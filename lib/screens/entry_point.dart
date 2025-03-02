@@ -1,3 +1,4 @@
+import 'package:final_ecommerce/routes/route_constants.dart';
 import 'package:final_ecommerce/screens/screen_export.dart';
 import 'package:flutter/material.dart';
 
@@ -56,7 +57,9 @@ class _EntryPointState extends State<EntryPoint> {
                     color: Colors.black87,
                     size: 28,
                   ),
-                  onPressed: () {},
+                  onPressed: () {
+                    Navigator.pushNamed(context, cartScreenRoute);
+                  },
                 ),
               ),
               Positioned(
