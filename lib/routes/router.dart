@@ -21,6 +21,9 @@ Route<dynamic> generateRoute(RouteSettings settings) {
     case entryPointScreenRoute:
       return MaterialPageRoute(builder: (context) => const EntryPoint());
 
+    case cartScreenRoute:
+      return MaterialPageRoute(builder: (context) => const CartScreen());
+
     default:
       return MaterialPageRoute(builder: (context) => const HomeScreen());
   }
