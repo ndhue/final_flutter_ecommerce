@@ -1,3 +1,4 @@
+import 'package:final_ecommerce/screens/auth/login_screen.dart';
 import 'package:final_ecommerce/screens/entry_point.dart';
 import 'package:final_ecommerce/screens/screen_export.dart';
 import 'package:flutter/material.dart';
@@ -23,6 +24,9 @@ Route<dynamic> generateRoute(RouteSettings settings) {
 
     case cartScreenRoute:
       return MaterialPageRoute(builder: (context) => const CartScreen());
+    
+    case authScreenRoute:
+      return MaterialPageRoute(builder: (context) => LoginScreen());
 
     default:
       return MaterialPageRoute(builder: (context) => const HomeScreen());

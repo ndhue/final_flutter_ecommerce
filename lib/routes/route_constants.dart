@@ -4,3 +4,4 @@ const String categoriesScreenRoute = "categories";
 const String profileScreenRoute = "profile";
 const String ordersScreenRoute = "orders";
 const String cartScreenRoute = "cart";
+const String authScreenRoute =  "auth";
