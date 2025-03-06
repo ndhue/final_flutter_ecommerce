@@ -10,12 +10,13 @@ An Ecommerce app using Flutter.
    cd final_flutter_ecommerce
    ```
 
-````
 
 2. **Install dependencies:**
-```sh
-flutter pub get
-````
+
+   ```sh
+   flutter pub get
+   ```
+
 
 3. **Run the app:**
 
