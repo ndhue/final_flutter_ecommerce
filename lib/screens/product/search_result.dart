@@ -1,40 +1,42 @@
 import 'package:flutter/material.dart';
 
+const List<Map<String, dynamic>> products = [
+  {
+    "name":
+        "Earphones for monitor with high-quality sound and noise cancelling",
+    "price": "\$199.99",
+    "image":
+        "https://bizweb.dktcdn.net/100/340/129/products/tai-nghe-sony-ch-ch520-cuongphanvn-13.jpg?v=1680431911657",
+  },
+  {
+    "name": "Monitor LG 22\" 4K Ultra HD with HDR10",
+    "price": "\$199.99",
+    "image": "https://example.com/ipadpro.jpg",
+  },
+  {
+    "name": "Earphones for monitor",
+    "price": "\$199.99",
+    "image": "https://example.com/ipadpro.jpg",
+  },
+  {
+    "name": "Monitor LG 22\" 4K",
+    "price": "\$199.99",
+    "image": "https://example.com/ipadpro.jpg",
+  },
+  {
+    "name": "Earphones for monitor",
+    "price": "\$199.99",
+    "image": "https://example.com/ipadpro.jpg",
+  },
+  {
+    "name": "Monitor LG 22\" 4K",
+    "price": "\$199.99",
+    "image": "https://example.com/laptop1.jpg",
+  },
+];
+
 class SearchResults extends StatelessWidget {
-  final List<Map<String, dynamic>> products = [
-    {
-      "name":
-          "Earphones for monitor with high-quality sound and noise cancelling",
-      "price": "\$199.99",
-      "image":
-          "https://bizweb.dktcdn.net/100/340/129/products/tai-nghe-sony-ch-ch520-cuongphanvn-13.jpg?v=1680431911657",
-    },
-    {
-      "name": "Monitor LG 22\" 4K Ultra HD with HDR10",
-      "price": "\$199.99",
-      "image": "https://example.com/ipadpro.jpg",
-    },
-    {
-      "name": "Earphones for monitor",
-      "price": "\$199.99",
-      "image": "https://example.com/ipadpro.jpg",
-    },
-    {
-      "name": "Monitor LG 22\" 4K",
-      "price": "\$199.99",
-      "image": "https://example.com/ipadpro.jpg",
-    },
-    {
-      "name": "Earphones for monitor",
-      "price": "\$199.99",
-      "image": "https://example.com/ipadpro.jpg",
-    },
-    {
-      "name": "Monitor LG 22\" 4K",
-      "price": "\$199.99",
-      "image": "https://example.com/laptop1.jpg",
-    },
-  ];
+  const SearchResults({super.key});
 
   @override
   Widget build(BuildContext context) {
