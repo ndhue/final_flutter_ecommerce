@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 class ProductSearch extends StatefulWidget {
+  const ProductSearch({super.key});
+
   @override
   _ProductSearchState createState() => _ProductSearchState();
 }

@@ -7,6 +7,9 @@ const Color successColor = Color(0xFF2ED573);
 const Color warningColor = Color(0xFFFFBE21);
 const Color errorColor = Color(0xFFEA5B5B);
 
+const Color darkTextColor = Color(0xFF393F42);
+const Color lightGrey = Color(0xFFFAFAFC);
+
 const double defaultPadding = 16.0;
 const double defaultBorderRadious = 12.0;
 const Duration defaultDuration = Duration(milliseconds: 300);
