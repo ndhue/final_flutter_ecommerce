@@ -12,14 +12,8 @@ class ProductCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final variant = product.variants.first;
-    final hasDiscount = variant.currentPrice < variant.sellingPrice;
-    final discountPercent =
-        hasDiscount
-            ? ((variant.sellingPrice - variant.currentPrice) /
-                    variant.sellingPrice *
-                    100)
-                .round()
-            : 0;
+    final hasDiscount = variant.discount > 0;
+    final discountPercent = (variant.discount * 100).round();
 
     return Container(
       margin: const EdgeInsets.only(right: 12),
@@ -86,7 +80,7 @@ class ProductCard extends StatelessWidget {
 
                 // Product Price
                 SizedBox(
-                  height: 46,
+                  height: 48,
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -99,7 +93,6 @@ class ProductCard extends StatelessWidget {
                         ),
                       ),
                       if (hasDiscount) ...[
-                        const SizedBox(width: 4),
                         Text(
                           FormatHelper.formatCurrency(variant.sellingPrice),
                           style: const TextStyle(
@@ -125,13 +118,8 @@ class ProductCard extends StatelessWidget {
                       backgroundColor: primaryColor,
                       foregroundColor: Colors.white,
                     ),
-                    onPressed: () {
-                      // Handle Add to Cart Action
-                    },
-                    child: const Text(
-                      "Add to cart",
-                      style: TextStyle(color: Colors.white, fontSize: 12.0),
-                    ),
+                    onPressed: () {},
+                    child: const Text("Add to Cart"),
                   ),
                 ),
               ],

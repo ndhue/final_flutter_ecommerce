@@ -21,7 +21,6 @@ Product mockIpad = Product(
       name: "128GB Wi-Fi",
       costPrice: 25000000,
       sellingPrice: 27000000,
-      discountPrice: 30000000,
       inventory: 10,
       isColor: false,
       discount: 0.2, // 20% discount
@@ -32,7 +31,6 @@ Product mockIpad = Product(
       name: "256GB Wi-Fi + Cellular",
       costPrice: 30000000,
       sellingPrice: 32000000,
-      discountPrice: 35000000,
       inventory: 5,
       isColor: false,
       discount: 0.2, // 20% discount
@@ -62,7 +60,6 @@ Product mockLaptop = Product(
       name: "16GB RAM / 512GB SSD",
       costPrice: 35000000,
       sellingPrice: 37000000,
-      discountPrice: 37000000, // No discount
       inventory: 15,
       isColor: false,
       discount: 0.0, // No discount
@@ -73,7 +70,6 @@ Product mockLaptop = Product(
       name: "32GB RAM / 1TB SSD",
       costPrice: 45000000,
       sellingPrice: 47000000,
-      discountPrice: 47000000, // No discount
       inventory: 8,
       isColor: false,
       discount: 0.0, // No discount
@@ -84,3 +80,37 @@ Product mockLaptop = Product(
 
 // Product list
 List<Product> products = [mockIpad, mockLaptop, mockIpad, mockLaptop];
+
+// Categories
+List<Category> categories = [
+  Category(
+    id: '1',
+    name: 'Mobiles',
+    description: "Latest smartphones from top brands.",
+    icon: "",
+  ),
+  Category(
+    id: '2',
+    name: 'Laptops',
+    description: "High-performance laptops for work and gaming.",
+    icon: "",
+  ),
+  Category(
+    id: '3',
+    name: 'Headphones',
+    description: "Wireless and wired headphones with great sound quality.",
+    icon: "",
+  ),
+  Category(
+    id: '4',
+    name: 'Tablets',
+    description: "Portable and powerful tablets for entertainment and work.",
+    icon: "",
+  ),
+  Category(
+    id: '5',
+    name: 'Smartwatches',
+    description: "Keep track of your fitness goals with smartwatches.",
+    icon: "",
+  ),
+];
