@@ -1,18 +1,19 @@
 import 'package:final_ecommerce/screens/screen_export.dart';
 import 'package:final_ecommerce/utils/constants.dart';
 import 'package:flutter/material.dart';
+import 'package:fluttertoast/fluttertoast.dart';
 
-class LoginScreen extends StatefulWidget {
-  const LoginScreen({super.key});
+class RegistrationScreen extends StatefulWidget {
+  const RegistrationScreen({super.key});
 
   @override
-  State<LoginScreen> createState() => _LoginScreenState();
+  State<RegistrationScreen> createState() => _RegistrationScreenState();
 }
 
-class _LoginScreenState extends State<LoginScreen> {
+class _RegistrationScreenState extends State<RegistrationScreen> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passController = TextEditingController();
-  bool _isObscure = true; // Ẩn mật khẩu ban đầu
+  bool _isObscure = true;
 
   @override
   Widget build(BuildContext context) {
@@ -20,19 +21,19 @@ class _LoginScreenState extends State<LoginScreen> {
       backgroundColor: Colors.white,
       body: LayoutBuilder(
         builder: (context, constraints) {
-          bool isWideScreen = constraints.maxWidth > 600;
+          bool isWideScreen = constraints.maxWidth > 600; // Kiểm tra màn hình lớn
 
           return Center(
             child: isWideScreen
                 ? Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Expanded(
                         flex: 1,
                         child: Padding(
                           padding: const EdgeInsets.all(20.0),
                           child: Image.asset(
-                            "assets/images/vector-1.png",
+                            "assets/images/vector-2.png",
                             width: constraints.maxWidth * 0.3,
                             fit: BoxFit.contain,
                           ),
@@ -55,7 +56,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Image.asset(
-                          "assets/images/vector-1.png",
+                          "assets/images/vector-2.png",
                           width: constraints.maxWidth * 0.8,
                           fit: BoxFit.contain,
                         ),
@@ -70,7 +71,7 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  // Widget xây dựng form đăng nhập
+  // Widget xây dựng form đăng ký
   Widget _buildForm() {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 10),
@@ -78,7 +79,7 @@ class _LoginScreenState extends State<LoginScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Text(
-            'Log In',
+            'Sign Up',
             style: TextStyle(
               color: primaryColor,
               fontSize: 27,
@@ -124,6 +125,8 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
           ),
           const SizedBox(height: 25),
+
+          // 📌 Nút Sign Up
           Align(
             alignment: Alignment.center,
             child: SizedBox(
@@ -131,10 +134,17 @@ class _LoginScreenState extends State<LoginScreen> {
               height: 50,
               child: ElevatedButton(
                 onPressed: () {
-                  Navigator.pushAndRemoveUntil(
+                  Fluttertoast.showToast(
+                    msg: "Sign up successful!",
+                    toastLength: Toast.LENGTH_SHORT,
+                    gravity: ToastGravity.BOTTOM,
+                    backgroundColor: Colors.black,
+                    textColor: Colors.white,
+                    fontSize: 16.0,
+                  );
+                  Navigator.pushReplacement(
                     context,
-                    MaterialPageRoute(builder: (context) => HomeScreen()),
-                    (route) => false,
+                    MaterialPageRoute(builder: (context) => LoginScreen()),
                   );
                 },
                 style: ElevatedButton.styleFrom(
@@ -144,7 +154,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                 ),
                 child: const Text(
-                  'Sign In',
+                  'Sign Up',
                   style: TextStyle(
                     color: Colors.white,
                     fontSize: 15,
@@ -156,23 +166,23 @@ class _LoginScreenState extends State<LoginScreen> {
           ),
           const SizedBox(height: 15),
 
-          // 📌 Sign Up Text
+          // 📌 Sign In Text
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               const Text(
-                'Don’t have an account?',
+                'Already have an account?',
                 style: TextStyle(fontSize: 13),
               ),
               TextButton(
                 onPressed: () {
-                  Navigator.push(
+                  Navigator.pushReplacement(
                     context,
-                    MaterialPageRoute(builder: (context) => RegistrationScreen()),
+                    MaterialPageRoute(builder: (context) => LoginScreen()),
                   );
                 },
                 child: const Text(
-                  'Sign Up',
+                  'Sign In',
                   style: TextStyle(
                     color: primaryColor,
                     fontWeight: FontWeight.bold,
