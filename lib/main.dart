@@ -1,6 +1,6 @@
 import 'package:final_ecommerce/routes/route_constants.dart';
 import 'package:final_ecommerce/routes/router.dart' as router;
-import 'package:final_ecommerce/screens/auth/registration_screen.dart';
+import 'package:final_ecommerce/screens/screen_export.dart';
 import 'package:flutter/material.dart';
 
 void main() {

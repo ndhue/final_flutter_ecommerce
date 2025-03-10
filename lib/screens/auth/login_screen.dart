@@ -1,4 +1,3 @@
-import 'package:final_ecommerce/screens/auth/registration_screen.dart';
 import 'package:final_ecommerce/screens/screen_export.dart';
 import 'package:final_ecommerce/utils/constants.dart';
 import 'package:flutter/material.dart';
@@ -125,8 +124,6 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
           ),
           const SizedBox(height: 25),
-
-          // 📌 Nút Sign In
           Align(
             alignment: Alignment.center,
             child: SizedBox(
