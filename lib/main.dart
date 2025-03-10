@@ -1,5 +1,6 @@
 import 'package:final_ecommerce/routes/route_constants.dart';
 import 'package:final_ecommerce/routes/router.dart' as router;
+import 'package:final_ecommerce/screens/auth/registration_screen.dart';
 import 'package:flutter/material.dart';
 
 void main() {
@@ -15,6 +16,7 @@ class MainApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       title: 'Demo',
       onGenerateRoute: router.generateRoute,
+      //home: RegistrationScreen(),
       initialRoute: entryPointScreenRoute,
     );
   }
