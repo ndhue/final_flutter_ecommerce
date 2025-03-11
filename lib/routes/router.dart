@@ -1,9 +1,9 @@
+import 'package:final_ecommerce/screens/admin/admin_screens_export.dart';
 import 'package:final_ecommerce/screens/entry_point.dart';
 import 'package:final_ecommerce/screens/screen_export.dart';
 import 'package:flutter/material.dart';
+
 import 'route_constants.dart';
-
-
 
 Route<dynamic> generateRoute(RouteSettings settings) {
   // Phân tích URL từ settings.name
@@ -14,7 +14,6 @@ Route<dynamic> generateRoute(RouteSettings settings) {
   Widget page;
   // Xử lý route dựa trên path
   switch (path) {
-    //case '/':
     case entryPointScreenRoute:
       page = const EntryPoint();
       break;
@@ -38,12 +37,17 @@ Route<dynamic> generateRoute(RouteSettings settings) {
       break;
     case shippingAddressScreenRoute:
       page = ShippingAddress();
-      break; 
+      break;
     case paymentMethodScreenRoute:
       page = PaymentMethod();
-      break;   
+      break;
     case helpsAndSupportScreenRoute:
       page = HelpsSupport();
+    case adminChatsRoute:
+      page = AdminChatsScreen();
+    case customerChatRoute:
+      final args = settings.arguments as Map<String, dynamic>;
+      page = HelpCenterScreen(userId: args['userId']);
       break;
     default:
       // Xử lý trường hợp không tìm thấy route

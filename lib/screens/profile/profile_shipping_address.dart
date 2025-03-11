@@ -1,11 +1,11 @@
-import 'package:flutter/material.dart';
 import 'package:final_ecommerce/utils/constants.dart';
+import 'package:flutter/material.dart';
 
 class ShippingAddress extends StatefulWidget {
-  ShippingAddress({super.key});
+  const ShippingAddress({super.key});
 
   @override
-  _ShippingAddressState createState() => _ShippingAddressState();
+  State<ShippingAddress> createState() => _ShippingAddressState();
 }
 
 class _ShippingAddressState extends State<ShippingAddress> {
