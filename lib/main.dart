@@ -1,9 +1,10 @@
 import 'package:final_ecommerce/routes/route_constants.dart';
 import 'package:final_ecommerce/routes/router.dart' as router;
-import 'package:final_ecommerce/screens/screen_export.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_web_plugins/url_strategy.dart';
 
 void main() {
+  usePathUrlStrategy();
   runApp(const MainApp());
 }
 
@@ -16,7 +17,6 @@ class MainApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       title: 'Demo',
       onGenerateRoute: router.generateRoute,
-      //home: RegistrationScreen(),
       initialRoute: entryPointScreenRoute,
     );
   }
