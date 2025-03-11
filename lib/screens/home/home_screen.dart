@@ -1,4 +1,5 @@
 import 'package:final_ecommerce/data/mock_data.dart';
+import 'package:final_ecommerce/screens/home/components/categories_section.dart';
 import 'package:final_ecommerce/utils/constants.dart';
 import 'package:final_ecommerce/widgets/widgets_export.dart';
 import 'package:flutter/material.dart';
@@ -31,6 +32,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   fit: BoxFit.cover,
                 ),
               ),
+              CategoriesSection(),
               ProductListSlider(title: "Popular", products: products),
               ProductListSlider(title: "Discount", products: products),
             ],

@@ -1,11 +1,20 @@
+import 'package:final_ecommerce/data/mock_chat_provider.dart';
+import 'package:final_ecommerce/firebase_options.dart';
 import 'package:final_ecommerce/routes/route_constants.dart';
 import 'package:final_ecommerce/routes/router.dart' as router;
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_web_plugins/url_strategy.dart';
+import 'package:provider/provider.dart';
 
-void main() {
-  usePathUrlStrategy();
-  runApp(const MainApp());
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  runApp(
+    MultiProvider(
+      providers: [ChangeNotifierProvider(create: (_) => MockChatProvider())],
+      child: MainApp(),
+    ),
+  );
 }
 
 class MainApp extends StatelessWidget {

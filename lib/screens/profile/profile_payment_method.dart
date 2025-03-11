@@ -1,11 +1,11 @@
-import 'package:flutter/material.dart';
 import 'package:final_ecommerce/utils/constants.dart';
+import 'package:flutter/material.dart';
 
 class PaymentMethod extends StatefulWidget {
-  PaymentMethod({super.key});
+  const PaymentMethod({super.key});
 
   @override
-  _PaymentMethod createState() => _PaymentMethod();
+  State<PaymentMethod> createState() => _PaymentMethod();
 }
 
 class _PaymentMethod extends State<PaymentMethod> {
@@ -14,10 +14,7 @@ class _PaymentMethod extends State<PaymentMethod> {
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Colors.white,
-        title: Text(
-          "Payment Method",
-          style: TextStyle(color: Colors.black),
-        ),
+        title: Text("Payment Method", style: TextStyle(color: Colors.black)),
         leading: IconButton(
           icon: Icon(Icons.arrow_back, color: Colors.black),
           onPressed: () {
@@ -53,7 +50,10 @@ class _PaymentMethod extends State<PaymentMethod> {
                         ],
                       ),
                       SizedBox(height: 10),
-                      _buildTextField("Card Holder Name", "Enter your card holder name"),
+                      _buildTextField(
+                        "Card Holder Name",
+                        "Enter your card holder name",
+                      ),
                       _buildTextField("Card Number", "Enter your card number"),
                       Row(
                         children: [
@@ -76,14 +76,20 @@ class _PaymentMethod extends State<PaymentMethod> {
             padding: EdgeInsets.all(20),
             child: ElevatedButton(
               onPressed: () {},
-              child: Text("Save", style: TextStyle(fontSize: 23, color: Colors.white)),
               style: ElevatedButton.styleFrom(
                 backgroundColor: primaryColor,
-                minimumSize: Size(double.infinity, 25), // Set the width to double.infinity and height to 25
+                minimumSize: Size(
+                  double.infinity,
+                  25,
+                ), // Set the width to double.infinity and height to 25
                 padding: EdgeInsets.symmetric(vertical: 15),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(10),
                 ),
+              ),
+              child: Text(
+                "Save",
+                style: TextStyle(fontSize: 23, color: Colors.white),
               ),
             ),
           ),
@@ -96,7 +102,10 @@ class _PaymentMethod extends State<PaymentMethod> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+        Text(
+          label,
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+        ),
         SizedBox(height: 10),
         TextFormField(
           decoration: InputDecoration(
