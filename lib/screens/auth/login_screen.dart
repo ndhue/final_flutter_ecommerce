@@ -187,7 +187,7 @@ class _LoginScreenState extends State<LoginScreen> {
             alignment: Alignment.center,
             child: TextButton(
               onPressed: () {
-                // Xử lý quên mật khẩu
+                
               },
               child: const Text(
                 'Forgot password?',
