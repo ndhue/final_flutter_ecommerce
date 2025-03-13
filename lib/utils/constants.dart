@@ -7,8 +7,9 @@ const Color successColor = Color(0xFF2ED573);
 const Color warningColor = Color(0xFFFFBE21);
 const Color errorColor = Color(0xFFEA5B5B);
 
-const Color darkTextColor = Color(0xFF393F42);
+const Color darkTextColor = Color.fromARGB(255, 101, 104, 105);
 const Color lightGrey = Color(0xFFFAFAFC);
+const Color borderColor = Color(0xFFE4E4E4);
 
 const double defaultPadding = 16.0;
 const double defaultBorderRadious = 12.0;

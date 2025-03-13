@@ -3,65 +3,61 @@ import 'package:final_ecommerce/models/category_model.dart';
 import 'package:final_ecommerce/utils/constants.dart';
 import 'package:flutter/material.dart';
 
-class CategoryWidget extends StatelessWidget {
-  final Category category;
-  final ValueNotifier<Color> _boxColor = ValueNotifier<Color>(
-    Colors.transparent,
-  );
-
-  CategoryWidget({super.key, required this.category});
-
-  void _changeColor() {
-    _boxColor.value =
-        _boxColor.value == Colors.transparent
-            ? Colors.grey[100]!
-            : Colors.transparent;
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: _changeColor,
-      behavior: HitTestBehavior.opaque,
-      child: ValueListenableBuilder<Color>(
-        valueListenable: _boxColor,
-        builder: (context, color, child) {
-          return Container(
-            color: color,
-            height: 70,
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
-                Image.asset(
-                  'assets/images/categories/${category.icon}',
-                  height: 40,
-                  width: 40,
-                ),
-                Text(
-                  category.name,
-                  style: TextStyle(fontSize: 12, color: iconColor),
-                ),
-              ],
-            ),
-          );
-        },
-      ),
-    );
-  }
-}
-
 class CategoriesSection extends StatelessWidget {
-  const CategoriesSection({super.key});
+  final VoidCallback navigateToCategories;
+  CategoriesSection({super.key, required this.navigateToCategories});
+
+  // Create a new Category instance for the "All" category
+  final allCategory = Category(
+    id: 'all',
+    name: 'All',
+    image: 'all.png',
+    description: 'All categories',
+  );
 
   @override
   Widget build(BuildContext context) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceAround,
-      children: categories
-          .map((category) {
-            return CategoryWidget(category: category);
-          })
-          .toList(growable: false),
+      children: [
+        ...categories.take(3).map((category) {
+          return CategoryWidget(category: category);
+        }),
+        CategoryWidget(category: allCategory, navigate: navigateToCategories),
+      ],
+    );
+  }
+}
+
+class CategoryWidget extends StatelessWidget {
+  final Category category;
+  final VoidCallback? navigate;
+
+  const CategoryWidget({super.key, required this.category, this.navigate});
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 70,
+      width: 80,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(4),
+        onTap: navigate ?? () => debugPrint('Navigate to ${category.name}'),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.spaceAround,
+          children: [
+            Image.asset(
+              'assets/images/categories/${category.image}',
+              height: 36,
+              width: 36,
+            ),
+            Text(
+              category.name,
+              style: TextStyle(fontSize: 12, color: iconColor),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

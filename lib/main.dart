@@ -8,11 +8,17 @@ import 'package:provider/provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+
+  if (Firebase.apps.isEmpty) {
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+  }
+
   runApp(
     MultiProvider(
       providers: [ChangeNotifierProvider(create: (_) => MockChatProvider())],
-      child: MainApp(),
+      child: const MainApp(),
     ),
   );
 }
@@ -26,7 +32,7 @@ class MainApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       title: 'Demo',
       onGenerateRoute: router.generateRoute,
-      initialRoute: productSearchRoute,
+      initialRoute: entryPointScreenRoute,
     );
   }
 }

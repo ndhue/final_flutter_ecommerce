@@ -5,7 +5,8 @@ import 'package:final_ecommerce/widgets/widgets_export.dart';
 import 'package:flutter/material.dart';
 
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key});
+  final VoidCallback? navigateToCategories;
+  const HomeScreen({super.key, this.navigateToCategories});
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -32,7 +33,9 @@ class _HomeScreenState extends State<HomeScreen> {
                   fit: BoxFit.cover,
                 ),
               ),
-              CategoriesSection(),
+              CategoriesSection(
+                navigateToCategories: widget.navigateToCategories ?? () {},
+              ),
               ProductListSlider(title: "Popular", products: products),
               ProductListSlider(title: "Discount", products: products),
             ],

@@ -1,4 +1,6 @@
 import 'package:final_ecommerce/models/models_export.dart';
+import 'package:final_ecommerce/utils/constants.dart';
+import 'package:flutter/material.dart';
 
 Product mockIpad = Product(
   id: "productId2",
@@ -87,30 +89,63 @@ List<Category> categories = [
     id: '1',
     name: 'Mobiles',
     description: "Latest smartphones from top brands.",
-    icon: "smartphone.png",
+    image: "smartphone.png",
   ),
   Category(
     id: '2',
     name: 'Laptops',
     description: "High-performance laptops for work and gaming.",
-    icon: "laptop.png",
+    image: "laptop.png",
   ),
   Category(
     id: '3',
     name: 'Headphones',
     description: "Wireless and wired headphones with great sound quality.",
-    icon: "music.png",
+    image: "music.png",
   ),
   Category(
     id: '4',
     name: 'Tablets',
     description: "Portable and powerful tablets for entertainment and work.",
-    icon: "ipad.png",
+    image: "ipad.png",
   ),
   Category(
     id: '5',
     name: 'Smartwatches',
     description: "Keep track of your fitness goals with smartwatches.",
-    icon: "smartwatch.png",
+    image: "smartwatch.png",
+  ),
+];
+
+List<Category> specialCategories = [
+  Category(
+    id: '1',
+    name: "Promotional",
+    icon: const Icon(
+      Icons.local_offer,
+      color: Colors.red,
+      size: 40,
+    ), // Tag icon representing discounts and promotions
+    description: "Exclusive deals and limited-time offers available here.",
+  ),
+  Category(
+    id: '2',
+    name: "New Products",
+    icon: const Icon(
+      Icons.fiber_new,
+      color: primaryColor,
+      size: 40,
+    ), // "New" label icon for newly released products
+    description: "Check out the latest additions to our store.",
+  ),
+  Category(
+    id: '3',
+    name: "Best Sellers",
+    icon: const Icon(
+      Icons.star,
+      color: Colors.amber,
+      size: 40,
+    ), // Star icon representing popular and top-rated products
+    description: "Discover the most popular and highly rated products.",
   ),
 ];

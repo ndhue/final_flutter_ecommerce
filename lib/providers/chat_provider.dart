@@ -1,6 +1,7 @@
 import 'package:final_ecommerce/models/models_export.dart';
-import 'package:final_ecommerce/repositories/chat_repository.dart';
 import 'package:flutter/material.dart';
+
+import '../repositories/chat_repository.dart';
 
 class ChatProvider extends ChangeNotifier {
   final ChatRepository _chatRepository = ChatRepository();
@@ -8,12 +9,18 @@ class ChatProvider extends ChangeNotifier {
   List<Chat> _chats = [];
   List<Message> _messages = [];
   bool _isLoading = false;
+  int _unreadMessages = 0;
 
   List<Chat> get chats => _chats;
   List<Message> get messages => _messages;
   bool get isLoading => _isLoading;
+  int get unreadMessages => _unreadMessages;
 
-  // Fetch Chats (Admin side)
+  ChatProvider() {
+    fetchChats();
+  }
+
+  // Fetch chat list for Admin
   Future<void> fetchChats() async {
     _isLoading = true;
     notifyListeners();
@@ -23,17 +30,32 @@ class ChatProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  // Fetch messages in one chat
+  // Fetch messages for a specific user
   Future<void> fetchMessages(String userId) async {
     _isLoading = true;
     notifyListeners();
 
     _messages = await _chatRepository.getMessagesOnce(userId);
+    _unreadMessages = await getUnreadMessagesCount(
+      userId,
+    ); // Fetch unread count
     _isLoading = false;
     notifyListeners();
   }
 
-  // Send message
+  // Get unread messages count
+  Future<int> getUnreadMessagesCount(String userId) async {
+    return await _chatRepository.getUnreadMessagesCount(userId);
+  }
+
+  // Mark chat as read when user opens chat
+  Future<void> markChatAsRead(String userId) async {
+    await _chatRepository.markChatAsRead(userId);
+    _unreadMessages = 0;
+    notifyListeners();
+  }
+
+  // Send message and update unread count
   Future<void> sendMessage(
     String userId,
     String senderId,
@@ -48,6 +70,6 @@ class ChatProvider extends ChangeNotifier {
       message,
       imageUrl: imageUrl,
     );
-    await fetchMessages(userId); // Re-fetch messages
+    await fetchMessages(userId);
   }
 }
