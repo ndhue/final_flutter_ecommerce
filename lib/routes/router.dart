@@ -59,7 +59,7 @@ Route<dynamic> generateRoute(RouteSettings settings) {
       break;
     case customerChatRoute:
       final args = settings.arguments as Map<String, dynamic>;
-      page = HelpCenterScreen(userId: args['userId']);
+      page = HelpCenterScreen(userId: args['userId'], userName: args['userName']);
       break;
     default:
       page = const HomeScreen();

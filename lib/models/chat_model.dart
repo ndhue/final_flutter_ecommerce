@@ -1,14 +1,18 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 class Chat {
   final String userId;
   final String userName;
   final String lastMessage;
-  final DateTime lastMessageTimestamp;
+  final Timestamp lastMessageTimestamp;
+  final Timestamp lastSeenMessageTimestamp;
 
   Chat({
     required this.userId,
     required this.userName,
     required this.lastMessage,
     required this.lastMessageTimestamp,
+    required this.lastSeenMessageTimestamp,
   });
 
   // Convert Firestore JSON -> Chat Object
@@ -17,7 +21,11 @@ class Chat {
       userId: json["userId"],
       userName: json["userName"],
       lastMessage: json["lastMessage"],
-      lastMessageTimestamp: json["lastMessageTimestamp"],
+      lastMessageTimestamp: json["lastMessageTimestamp"] as Timestamp,
+      lastSeenMessageTimestamp:
+          json.containsKey('lastSeenMessageTimestamp')
+              ? json['lastSeenMessageTimestamp'] as Timestamp
+              : Timestamp(0, 0), // Default if missing
     );
   }
 
@@ -28,6 +36,7 @@ class Chat {
       "userName": userName,
       "lastMessage": lastMessage,
       "lastMessageTimestamp": lastMessageTimestamp,
+      'lastSeenMessageTimestamp': lastSeenMessageTimestamp,
     };
   }
 }

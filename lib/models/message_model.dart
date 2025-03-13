@@ -1,9 +1,12 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 class Message {
   final String senderId;
   final String senderName;
   final String message;
   final String imageUrl;
-  final DateTime timestamp;
+  final Timestamp timestamp;
+  bool isRead;
 
   Message({
     required this.senderId,
@@ -11,6 +14,7 @@ class Message {
     required this.message,
     required this.imageUrl,
     required this.timestamp,
+    required this.isRead,
   });
 
   // Convert Firestore JSON -> Message Object
@@ -21,6 +25,7 @@ class Message {
       message: json["message"] ?? "",
       imageUrl: json["imageUrl"] ?? "",
       timestamp: json["timestamp"],
+      isRead: json.containsKey('isRead') ? json['isRead'] as bool : false,
     );
   }
 
@@ -32,6 +37,7 @@ class Message {
       "message": message,
       "imageUrl": imageUrl,
       "timestamp": timestamp,
+      'isRead': isRead,
     };
   }
 }

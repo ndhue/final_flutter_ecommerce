@@ -1,79 +1,124 @@
-import 'package:flutter/material.dart';
+import 'dart:async';
+
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:final_ecommerce/models/models_export.dart';
+import 'package:flutter/material.dart';
 
 class MockChatProvider extends ChangeNotifier {
   List<Chat> _chats = [];
-  List<Message> _messages = [];
+  final Map<String, List<Message>> _messages = {}; // Store messages per user
   bool _isLoading = false;
+  final Map<String, Timestamp> _lastSeenMessageTimestamp =
+      {}; // Track last seen per user
 
   List<Chat> get chats => _chats;
-  List<Message> get messages => _messages;
   bool get isLoading => _isLoading;
+
+  Map<String, List<Message>> get messages => _messages;
 
   MockChatProvider() {
     _generateMockChats();
   }
 
-  // ✅ Tạo danh sách cuộc trò chuyện giả (Admin View)
+  // Generate mock chats
   void _generateMockChats() {
     _chats = [
       Chat(
         userId: "user1",
         userName: "Alice",
         lastMessage: "Hello, I need help!",
-        lastMessageTimestamp: DateTime.now(),
+        lastMessageTimestamp: Timestamp.now(),
+        lastSeenMessageTimestamp: Timestamp(0, 0), // Default: No messages seen
       ),
       Chat(
         userId: "user2",
         userName: "Bob",
         lastMessage: "Is my order confirmed?",
-        lastMessageTimestamp: DateTime.now().subtract(Duration(minutes: 5)),
-      ),
-      Chat(
-        userId: "user3",
-        userName: "Charlie",
-        lastMessage: "Can I get a refund?",
-        lastMessageTimestamp: DateTime.now().subtract(Duration(hours: 1)),
+        lastMessageTimestamp: Timestamp.now(),
+        lastSeenMessageTimestamp: Timestamp(0, 0),
       ),
     ];
+
+    _messages["user1"] = _generateMockMessages("user1");
+    _messages["user2"] = _generateMockMessages("user2");
+
     notifyListeners();
   }
 
-  // ✅ Tạo danh sách tin nhắn giả (User View)
-  void fetchMockMessages(String userId) {
+  // Generate mock messages per user
+  List<Message> _generateMockMessages(String userId) {
+    return [
+      Message(
+        senderId: userId,
+        senderName: "User",
+        message: "Hello, I have a problem.",
+        imageUrl: "",
+        timestamp: Timestamp.now(),
+        isRead: false, // Default unread
+      ),
+      Message(
+        senderId: "admin",
+        senderName: "Admin",
+        message: "Sure, how can I assist you?",
+        imageUrl: "",
+        timestamp: Timestamp.now(),
+        isRead: false, // Default unread
+      ),
+    ];
+  }
+
+  // Fetch messages and mark as read
+  Future<void> fetchMockMessages(String userId) async {
     _isLoading = true;
     notifyListeners();
 
-    Future.delayed(Duration(seconds: 1), () {
-      _messages = [
-        Message(
-          senderId: userId,
-          senderName: "User",
-          message: "Hello, I have a problem.",
-          imageUrl: "",
-          timestamp: DateTime.now().subtract(Duration(minutes: 10)),
-        ),
-        Message(
-          senderId: "admin",
-          senderName: "Admin",
-          message: "Sure, how can I assist you?",
-          imageUrl: "",
-          timestamp: DateTime.now().subtract(Duration(minutes: 8)),
-        ),
-        Message(
-          senderId: userId,
-          senderName: "User",
-          message: "I received the wrong product.",
-          imageUrl: "",
-          timestamp: DateTime.now().subtract(Duration(minutes: 5)),
-        ),
-      ];
-      _isLoading = false;
-      notifyListeners();
-    });
+    await Future.delayed(Duration(seconds: 1)); // Simulate network delay
+
+    _messages[userId] ??= _generateMockMessages(userId);
+
+    // Mark all messages as read
+    for (var msg in _messages[userId]!) {
+      msg.isRead = true;
+    }
+
+    _lastSeenMessageTimestamp[userId] = Timestamp.now();
+    _isLoading = false;
+    notifyListeners();
   }
 
-  // ✅ Mock Gửi Tin Nhắn
+  // Get unread messages count
+  int getUnreadMessagesCount(String userId) {
+    if (!_messages.containsKey(userId) ||
+        !_lastSeenMessageTimestamp.containsKey(userId)) {
+      return 0;
+    }
+
+    return _messages[userId]!
+        .where(
+          (msg) =>
+              msg.timestamp.toDate().isAfter(
+                _lastSeenMessageTimestamp[userId]!.toDate(),
+              ) &&
+              !msg.isRead,
+        )
+        .length;
+  }
+
+  // Mark chat as read when user opens chat
+  void markChatAsRead(String userId) {
+    if (!_messages.containsKey(userId)) return;
+
+    // Mark all messages as read
+    for (var message in _messages[userId]!) {
+      message.isRead = true;
+    }
+
+    // Update last seen timestamp
+    _lastSeenMessageTimestamp[userId] = Timestamp.now();
+
+    notifyListeners();
+  }
+
   void sendMockMessage(
     String userId,
     String senderId,
@@ -86,10 +131,26 @@ class MockChatProvider extends ChangeNotifier {
       senderName: senderName,
       message: message,
       imageUrl: imageUrl ?? "",
-      timestamp: DateTime.now(),
+      timestamp: Timestamp.now(),
+      isRead: senderId == userId, // If sender is user, mark as read
     );
 
-    _messages.insert(0, newMessage);
+    _messages[userId] ??= [];
+    _messages[userId]!.insert(0, newMessage);
+
+    // Update last message info in chat list
+    var chatIndex = _chats.indexWhere((chat) => chat.userId == userId);
+    if (chatIndex != -1) {
+      _chats[chatIndex] = Chat(
+        userId: userId,
+        userName: _chats[chatIndex].userName,
+        lastMessage: message,
+        lastMessageTimestamp: Timestamp.now(),
+        lastSeenMessageTimestamp:
+            _lastSeenMessageTimestamp[userId] ?? Timestamp(0, 0),
+      );
+    }
+
     notifyListeners();
   }
 }

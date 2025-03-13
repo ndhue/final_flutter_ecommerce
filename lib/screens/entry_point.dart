@@ -1,5 +1,5 @@
-import 'package:final_ecommerce/routes/route_constants.dart';
 import 'package:final_ecommerce/screens/screen_export.dart';
+import 'package:final_ecommerce/widgets/buttons/cart_button.dart';
 import 'package:flutter/material.dart';
 
 import '../utils/constants.dart';
@@ -12,13 +12,26 @@ class EntryPoint extends StatefulWidget {
 }
 
 class _EntryPointState extends State<EntryPoint> {
-  final List _pages = const [
-    HomeScreen(),
-    CategoriesScreen(),
-    OrdersScreen(),
-    ProfileScreen(),
-  ];
   int _currentIndex = 0;
+
+  void _navigateToCategories() {
+    setState(() {
+      _currentIndex = 1;
+    });
+  }
+
+  late List _pages;
+
+  @override
+  void initState() {
+    super.initState();
+    _pages = [
+      HomeScreen(navigateToCategories: _navigateToCategories),
+      CategoriesScreen(),
+      OrdersScreen(),
+      ProfileScreen(),
+    ];
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -47,43 +60,7 @@ class _EntryPointState extends State<EntryPoint> {
             ),
           ],
         ),
-        actions: [
-          Stack(
-            children: [
-              SizedBox(
-                child: IconButton(
-                  icon: const Icon(
-                    Icons.shopping_bag_outlined,
-                    color: Colors.black87,
-                    size: 28,
-                  ),
-                  onPressed: () {
-                    Navigator.pushNamed(context, cartScreenRoute);
-                  },
-                ),
-              ),
-              Positioned(
-                right: 6,
-                top: 4,
-                child: Container(
-                  padding: const EdgeInsets.all(4),
-                  decoration: const BoxDecoration(
-                    color: Colors.red,
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Text(
-                    "2",
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ],
+        actions: [CartButton()],
       ),
       body: _pages[_currentIndex],
       bottomNavigationBar: Container(

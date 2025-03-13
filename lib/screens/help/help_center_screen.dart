@@ -4,27 +4,33 @@ import 'package:provider/provider.dart';
 
 class HelpCenterScreen extends StatefulWidget {
   final String userId;
+  final String userName;
 
-  const HelpCenterScreen({super.key, required this.userId});
+  const HelpCenterScreen({super.key, required this.userId, required this.userName});
 
   @override
   State<HelpCenterScreen> createState() => _CustomerChatScreenState();
 }
 
 class _CustomerChatScreenState extends State<HelpCenterScreen> {
+  final TextEditingController _controller = TextEditingController();
   @override
   void initState() {
     super.initState();
-    Provider.of<MockChatProvider>(
-      context,
-      listen: false,
-    ).fetchMockMessages(widget.userId);
+    final chatProvider = Provider.of<MockChatProvider>(context, listen: false);
+    chatProvider.fetchMockMessages(widget.userId);
+    chatProvider.markChatAsRead(widget.userId);
+  }
+
+  @override
+  dispose() {
+    _controller.dispose();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     final chatProvider = Provider.of<MockChatProvider>(context);
-    final TextEditingController controller = TextEditingController();
 
     return Scaffold(
       appBar: AppBar(title: Text("Chat with Admin")),
@@ -36,9 +42,11 @@ class _CustomerChatScreenState extends State<HelpCenterScreen> {
                     ? Center(child: CircularProgressIndicator())
                     : ListView.builder(
                       reverse: true,
-                      itemCount: chatProvider.messages.length,
+                      itemCount:
+                          chatProvider.messages[widget.userId]?.length ?? 0,
                       itemBuilder: (context, index) {
-                        final message = chatProvider.messages[index];
+                        final message =
+                            chatProvider.messages[widget.userId]![index];
                         bool isUser = message.senderId == widget.userId;
                         return Align(
                           alignment:
@@ -59,7 +67,7 @@ class _CustomerChatScreenState extends State<HelpCenterScreen> {
                       },
                     ),
           ),
-          _buildMessageInput(controller, chatProvider),
+          _buildMessageInput(_controller, chatProvider),
         ],
       ),
     );
@@ -85,7 +93,7 @@ class _CustomerChatScreenState extends State<HelpCenterScreen> {
               chatProvider.sendMockMessage(
                 widget.userId,
                 widget.userId,
-                "User",
+                widget.userName,
                 controller.text,
               );
               controller.clear();
