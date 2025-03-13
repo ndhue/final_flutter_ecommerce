@@ -26,7 +26,7 @@ class MainApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       title: 'Demo',
       onGenerateRoute: router.generateRoute,
-      initialRoute: entryPointScreenRoute,
+      initialRoute: productSearchRoute,
     );
   }
 }

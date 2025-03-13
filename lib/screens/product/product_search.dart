@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:final_ecommerce/routes/route_constants.dart';
+import 'package:final_ecommerce/routes/router.dart' as router;
 
 class ProductSearch extends StatefulWidget {
   const ProductSearch({super.key});
@@ -15,6 +17,20 @@ class _ProductSearchState extends State<ProductSearch> {
     "Bluetooth speaker",
     "Drawing pad",
   ];
+  TextEditingController searchController = TextEditingController();
+
+  void _searchProduct(String query) {
+    if (query.isNotEmpty) {
+      setState(() {
+        if (!recentSearches.contains(query)) {
+          recentSearches.insert(0, query); // Lưu vào lịch sử tìm kiếm
+        }
+      });
+
+      // Chuyển sang trang SearchResults và truyền query
+      Navigator.pushNamed(context, searchResultRoute, arguments: query);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -23,19 +39,21 @@ class _ProductSearchState extends State<ProductSearch> {
         backgroundColor: Colors.white,
         elevation: 0,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: Colors.black),
+          icon: const Icon(Icons.arrow_back, color: Colors.black),
           onPressed: () => Navigator.pop(context),
         ),
         title: TextField(
-          decoration: InputDecoration(
-            hintText: "Search",
+          controller: searchController,
+          decoration: const InputDecoration(
+            hintText: "Search...",
             border: InputBorder.none,
             prefixIcon: Icon(Icons.search, color: Colors.grey),
           ),
+          onSubmitted: _searchProduct, // Khi nhấn Enter, gọi hàm tìm kiếm
         ),
         actions: [
           IconButton(
-            icon: Icon(Icons.shopping_cart, color: Colors.black),
+            icon: const Icon(Icons.shopping_cart, color: Colors.black),
             onPressed: () {},
           ),
         ],
@@ -45,36 +63,43 @@ class _ProductSearchState extends State<ProductSearch> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              "Last search",
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            Align(
-              alignment: Alignment.centerRight,
-              child: TextButton(
-                onPressed: () {
-                  setState(() {
-                    recentSearches.clear();
-                  });
-                },
-                child: Text("Clear all", style: TextStyle(color: Colors.red)),
-              ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  "Last search",
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+                TextButton(
+                  onPressed:
+                      () => setState(() {
+                        recentSearches.clear();
+                      }),
+                  child: const Text(
+                    "Clear all",
+                    style: TextStyle(color: Colors.red),
+                  ),
+                ),
+              ],
             ),
             Expanded(
               child: ListView.builder(
                 itemCount: recentSearches.length,
                 itemBuilder: (context, index) {
                   return ListTile(
-                    leading: Icon(Icons.history, color: Colors.grey),
+                    leading: const Icon(Icons.history, color: Colors.grey),
                     title: Text(recentSearches[index]),
                     trailing: IconButton(
-                      icon: Icon(Icons.close, color: Colors.grey),
-                      onPressed: () {
-                        setState(() {
-                          recentSearches.removeAt(index);
-                        });
-                      },
+                      icon: const Icon(Icons.close, color: Colors.grey),
+                      onPressed:
+                          () => setState(() {
+                            recentSearches.removeAt(index);
+                          }),
                     ),
+                    onTap:
+                        () => _searchProduct(
+                          recentSearches[index],
+                        ), // Khi click vào, tìm lại từ khóa
                   );
                 },
               ),
