@@ -10,3 +10,6 @@ const String paymentMethodScreenRoute = "payment_method";
 const String helpsAndSupportScreenRoute = "helps_and_support";
 const String adminChatsRoute = "admin_chats";
 const String customerChatRoute = "customer_chat";
+
+const String productSearchRoute = "procduct_search";
+const String searchResultRoute = "search_result";

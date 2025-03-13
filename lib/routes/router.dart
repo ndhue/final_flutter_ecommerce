@@ -2,17 +2,16 @@ import 'package:final_ecommerce/screens/admin/admin_screens_export.dart';
 import 'package:final_ecommerce/screens/entry_point.dart';
 import 'package:final_ecommerce/screens/screen_export.dart';
 import 'package:flutter/material.dart';
-
+import 'package:final_ecommerce/screens/product/search_result.dart';
+import 'package:final_ecommerce/screens/product/product_search.dart';
 import 'route_constants.dart';
 
 Route<dynamic> generateRoute(RouteSettings settings) {
-  // Phân tích URL từ settings.name
   final uri = Uri.parse(settings.name ?? '/');
-  final path = uri.path; // Lấy đường dẫn chính (ví dụ: /home, /profile)
-  // final queryParams =
-  //     uri.queryParameters;
+  final path = uri.path;
+
   Widget page;
-  // Xử lý route dựa trên path
+
   switch (path) {
     case entryPointScreenRoute:
       page = const EntryPoint();
@@ -43,17 +42,32 @@ Route<dynamic> generateRoute(RouteSettings settings) {
       break;
     case helpsAndSupportScreenRoute:
       page = HelpsSupport();
+      break;
     case adminChatsRoute:
       page = AdminChatsScreen();
+      break;
+    case productSearchRoute:
+      page = ProductSearch();
+      break;
+    case searchResultRoute:
+      final args = settings.arguments;
+      if (args is String) {
+        page = const SearchResults();
+      } else {
+        page = const SearchResults();
+      }
+      break;
     case customerChatRoute:
       final args = settings.arguments as Map<String, dynamic>;
       page = HelpCenterScreen(userId: args['userId']);
       break;
     default:
-      // Xử lý trường hợp không tìm thấy route
-      page = const HomeScreen(); // Hoặc có thể hiển thị màn hình 404
+      page = const HomeScreen();
       break;
   }
-  // Trả về MaterialPageRoute với widget tương ứng
-  return MaterialPageRoute(builder: (context) => page, settings: settings);
+
+  return MaterialPageRoute(
+    builder: (context) => page,
+    settings: settings, // Giữ nguyên arguments để SearchResults nhận được
+  );
 }

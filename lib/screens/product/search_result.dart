@@ -1,42 +1,42 @@
 import 'package:flutter/material.dart';
+import '/models/models_export.dart';
+import '/widgets/product_card.dart';
+import '/data/mock_data.dart';
 
-const List<Map<String, dynamic>> products = [
-  {
-    "name":
-        "Earphones for monitor with high-quality sound and noise cancelling",
-    "price": "\$199.99",
-    "image":
-        "https://bizweb.dktcdn.net/100/340/129/products/tai-nghe-sony-ch-ch520-cuongphanvn-13.jpg?v=1680431911657",
-  },
-  {
-    "name": "Monitor LG 22\" 4K Ultra HD with HDR10",
-    "price": "\$199.99",
-    "image": "https://example.com/ipadpro.jpg",
-  },
-  {
-    "name": "Earphones for monitor",
-    "price": "\$199.99",
-    "image": "https://example.com/ipadpro.jpg",
-  },
-  {
-    "name": "Monitor LG 22\" 4K",
-    "price": "\$199.99",
-    "image": "https://example.com/ipadpro.jpg",
-  },
-  {
-    "name": "Earphones for monitor",
-    "price": "\$199.99",
-    "image": "https://example.com/ipadpro.jpg",
-  },
-  {
-    "name": "Monitor LG 22\" 4K",
-    "price": "\$199.99",
-    "image": "https://example.com/laptop1.jpg",
-  },
-];
-
-class SearchResults extends StatelessWidget {
+class SearchResults extends StatefulWidget {
   const SearchResults({super.key});
+
+  @override
+  _SearchResultsState createState() => _SearchResultsState();
+}
+
+class _SearchResultsState extends State<SearchResults> {
+  TextEditingController searchController = TextEditingController();
+  String searchQuery = "Search result"; // Mặc định
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+
+    // Nhận giá trị từ `arguments`
+    final args = ModalRoute.of(context)?.settings.arguments;
+    if (args is String) {
+      setState(() {
+        searchQuery = args;
+        searchController.text = args;
+      });
+    }
+  }
+
+  // Hàm lọc sản phẩm theo từ khóa
+  List<Product> get filteredProducts {
+    return products
+        .where(
+          (product) =>
+              product.name.toLowerCase().contains(searchQuery.toLowerCase()),
+        )
+        .toList();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -45,19 +45,25 @@ class SearchResults extends StatelessWidget {
         backgroundColor: Colors.white,
         elevation: 0,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: Colors.black),
+          icon: const Icon(Icons.arrow_back, color: Colors.black),
           onPressed: () => Navigator.pop(context),
         ),
         title: TextField(
-          decoration: InputDecoration(
-            hintText: "Earphone",
+          controller: searchController,
+          decoration: const InputDecoration(
+            hintText: "Search...",
             border: InputBorder.none,
             prefixIcon: Icon(Icons.search, color: Colors.grey),
           ),
+          onChanged: (value) {
+            setState(() {
+              searchQuery = value.isEmpty ? "Search result" : value;
+            });
+          },
         ),
         actions: [
           IconButton(
-            icon: Icon(Icons.shopping_cart, color: Colors.black),
+            icon: const Icon(Icons.shopping_cart, color: Colors.black),
             onPressed: () {},
           ),
         ],
@@ -71,125 +77,41 @@ class SearchResults extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  "Search result for \"Earphone\"",
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  'Search result for "$searchQuery"',
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
                 IconButton(
-                  icon: Icon(Icons.filter_list, color: Colors.black),
+                  icon: const Icon(Icons.filter_list, color: Colors.black),
                   onPressed: () {},
                 ),
               ],
             ),
+            const SizedBox(height: 8),
             Expanded(
-              child: GridView.builder(
-                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 2,
-                  childAspectRatio: 0.75,
-                  crossAxisSpacing: 10,
-                  mainAxisSpacing: 10,
-                ),
-                itemCount: products.length,
-                itemBuilder: (context, index) {
-                  final product = products[index];
-                  return LayoutBuilder(
-                    builder: (context, constraints) {
-                      double imageSize = constraints.maxWidth * 1;
-                      double textSize = constraints.maxWidth * 0.07;
-                      double buttonHeight = constraints.maxHeight * 0.8;
-
-                      return Card(
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
+              child:
+                  filteredProducts.isEmpty
+                      ? const Center(
+                        child: Text(
+                          'No products found.',
+                          style: TextStyle(fontSize: 16, color: Colors.grey),
                         ),
-                        child: Column(
-                          children: [
-                            Expanded(
-                              flex: 7,
-                              child: ClipRRect(
-                                borderRadius: BorderRadius.vertical(
-                                  top: Radius.circular(10),
-                                ),
-                                child: Align(
-                                  alignment: Alignment.center,
-                                  child: SizedBox(
-                                    width: imageSize,
-                                    height: imageSize,
-                                    child: Image.network(
-                                      product["image"],
-                                      fit: BoxFit.contain,
-                                    ),
-                                  ),
-                                ),
-                              ),
+                      )
+                      : GridView.builder(
+                        gridDelegate:
+                            const SliverGridDelegateWithFixedCrossAxisCount(
+                              crossAxisCount: 2,
+                              childAspectRatio: 0.75,
+                              crossAxisSpacing: 10,
+                              mainAxisSpacing: 10,
                             ),
-                            Expanded(
-                              flex: 2,
-                              child: Padding(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 8,
-                                ),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Text(
-                                      product["name"],
-                                      style: TextStyle(
-                                        fontSize: textSize,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                    SizedBox(height: 4),
-                                    Text(
-                                      product["price"],
-                                      style: TextStyle(
-                                        fontSize: textSize * 0.9,
-                                        color: Colors.black54,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                            Expanded(
-                              flex: 2,
-                              child: Padding(
-                                padding: const EdgeInsets.only(
-                                  left: 8,
-                                  right: 8,
-                                  bottom: 10,
-                                ),
-                                child: SizedBox(
-                                  height: buttonHeight,
-                                  width: double.infinity,
-                                  child: ElevatedButton(
-                                    onPressed: () {},
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: Colors.green,
-                                      foregroundColor: Colors.white,
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(5),
-                                      ),
-                                    ),
-                                    child: Text(
-                                      "Add to cart",
-                                      style: TextStyle(
-                                        fontSize: textSize * 0.8,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      );
-                    },
-                  );
-                },
-              ),
+                        itemCount: filteredProducts.length,
+                        itemBuilder: (context, index) {
+                          return ProductCard(product: filteredProducts[index]);
+                        },
+                      ),
             ),
           ],
         ),
