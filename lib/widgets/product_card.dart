@@ -1,8 +1,10 @@
 import 'package:final_ecommerce/utils/constants.dart';
 import 'package:final_ecommerce/utils/format.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart'; // ✅ Thêm dòng này
 
 import '../models/models_export.dart';
+import '../providers/cart_provider.dart'; // ✅ Thêm dòng này
 
 class ProductCard extends StatelessWidget {
   final Product product;
@@ -118,7 +120,21 @@ class ProductCard extends StatelessWidget {
                       backgroundColor: primaryColor,
                       foregroundColor: Colors.white,
                     ),
-                    onPressed: () {},
+                    onPressed: () {
+                      Provider.of<CartProvider>(
+                        context,
+                        listen: false,
+                      ).addToCart(product);
+
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            '${product.name} đã được thêm vào giỏ hàng',
+                          ),
+                          duration: const Duration(seconds: 2),
+                        ),
+                      );
+                    },
                     child: const Text("Add to Cart"),
                   ),
                 ),
