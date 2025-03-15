@@ -1,5 +1,6 @@
 import 'package:final_ecommerce/screens/admin/admin_screens_export.dart';
 import 'package:final_ecommerce/screens/entry_point.dart';
+import 'package:final_ecommerce/screens/orders/order_history.dart';
 import 'package:final_ecommerce/screens/screen_export.dart';
 import 'package:flutter/material.dart';
 import 'package:final_ecommerce/screens/product/search_result.dart';
@@ -43,6 +44,15 @@ Route<dynamic> generateRoute(RouteSettings settings) {
     case helpsAndSupportScreenRoute:
       page = HelpsSupport();
       break;
+
+    case pravicyAndPolicyScreenRoute:
+      page = PravicyAndPolicy();
+      break;
+    case faqsScreenRoute:
+      page = FAQs();
+    case orderHistoryRouteScreen:
+      page  = OrdersHistoryScreen();
+
     case adminChatsRoute:
       page = AdminChatsScreen();
       break;
@@ -60,6 +70,7 @@ Route<dynamic> generateRoute(RouteSettings settings) {
     case customerChatRoute:
       final args = settings.arguments as Map<String, dynamic>;
       page = HelpCenterScreen(userId: args['userId'], userName: args['userName']);
+
       break;
     default:
       page = const HomeScreen();

@@ -5,7 +5,9 @@ import 'package:final_ecommerce/routes/router.dart' as router;
 import 'package:final_ecommerce/providers/cart_provider.dart'; // ✅ Thêm dòng này
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
+
 import 'package:provider/provider.dart';
+
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
