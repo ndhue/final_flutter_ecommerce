@@ -2,10 +2,10 @@ import 'package:final_ecommerce/utils/constants.dart';
 import 'package:flutter/material.dart';
 
 class HelpsSupport extends StatefulWidget {
-  HelpsSupport({super.key});
+  const HelpsSupport({super.key});
 
   @override
-  _HelpsSupport createState() => _HelpsSupport();
+  State<HelpsSupport> createState() => _HelpsSupport();
 }
 
 class _HelpsSupport extends State<HelpsSupport> {
@@ -31,26 +31,33 @@ class _HelpsSupport extends State<HelpsSupport> {
             children: [
               Image.asset(
                 'images/helps-support.png',
-               width: double.infinity,
+                width: double.infinity,
                 height: 200,
                 fit: BoxFit.cover,
               ),
               SizedBox(height: 10),
               ListTile(
-                title: Text("Contact Us. We are here to help you.",
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                title: Text(
+                  "Contact Us. We are here to help you.",
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
                 subtitle: Align(
                   alignment: Alignment.center,
                   child: Text(
-                  "Got any questions about our services or your orders? We are here to help you.  We will get back to you as soon as possible.",
-                    style: TextStyle(fontSize: 14, color: Colors.grey, )),
+                    "Got any questions about our services or your orders? We are here to help you.  We will get back to you as soon as possible.",
+                    style: TextStyle(fontSize: 14, color: Colors.grey),
+                  ),
                 ),
               ),
               SizedBox(height: 20),
               _buildText("Call us", "+84 132456598", icon: Icons.phone),
               _buildText("Mail us", "abcxy@gmail.com", icon: Icons.mail),
-              _buildText("Visit us", "123 Street, City, Country", icon: Icons.location_on),
-             // _buildText("Live chat", 'Start live chat with us', icon: Icons.chat_bubble),
+              _buildText(
+                "Visit us",
+                "123 Street, City, Country",
+                icon: Icons.location_on,
+              ),
+              // _buildText("Live chat", 'Start live chat with us', icon: Icons.chat_bubble),
             ],
           ),
         ],

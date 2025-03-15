@@ -1,31 +1,62 @@
 import 'package:final_ecommerce/data/mock_data.dart';
 import 'package:final_ecommerce/models/category_model.dart';
+import 'package:final_ecommerce/utils/constants.dart';
 import 'package:flutter/material.dart';
 
-class CategoryWidget extends StatelessWidget {
-  final Category category;
+class CategoriesSection extends StatelessWidget {
+  final VoidCallback navigateToCategories;
+  CategoriesSection({super.key, required this.navigateToCategories});
 
-  const CategoryWidget({super.key, required this.category});
+  // Create a new Category instance for the "All" category
+  final allCategory = Category(
+    id: 'all',
+    name: 'All',
+    image: 'all.png',
+    description: 'All categories',
+  );
 
   @override
   Widget build(BuildContext context) {
-    return Column(children: [Icon(Icons.phone), Text(category.name)]);
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceAround,
+      children: [
+        ...categories.take(3).map((category) {
+          return CategoryWidget(category: category);
+        }),
+        CategoryWidget(category: allCategory, navigate: navigateToCategories),
+      ],
+    );
   }
 }
 
-class CategoriesSection extends StatelessWidget {
-  const CategoriesSection({super.key});
+class CategoryWidget extends StatelessWidget {
+  final Category category;
+  final VoidCallback? navigate;
+
+  const CategoryWidget({super.key, required this.category, this.navigate});
 
   @override
   Widget build(BuildContext context) {
     return SizedBox(
       height: 70,
-      child: ListView.builder(
-        scrollDirection: Axis.horizontal,
-        itemCount: 4,
-        itemBuilder: (context, index) {
-          return CategoryWidget(category: categories[index]);
-        },
+      width: 80,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(4),
+        onTap: navigate ?? () => debugPrint('Navigate to ${category.name}'),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.spaceAround,
+          children: [
+            Image.asset(
+              'assets/images/categories/${category.image}',
+              height: 36,
+              width: 36,
+            ),
+            Text(
+              category.name,
+              style: TextStyle(fontSize: 12, color: iconColor),
+            ),
+          ],
+        ),
       ),
     );
   }
