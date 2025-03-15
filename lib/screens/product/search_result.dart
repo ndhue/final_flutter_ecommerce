@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '/models/models_export.dart';
 import '/widgets/product_card.dart';
 import '/data/mock_data.dart';
+import '/widgets/buttons/cart_button.dart';
+import '/routes/route_constants.dart';
 
 class SearchResults extends StatefulWidget {
   const SearchResults({super.key});
@@ -12,13 +15,11 @@ class SearchResults extends StatefulWidget {
 
 class _SearchResultsState extends State<SearchResults> {
   TextEditingController searchController = TextEditingController();
-  String searchQuery = "Search result"; // Mặc định
+  String searchQuery = "Search result";
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-
-    // Nhận giá trị từ `arguments`
     final args = ModalRoute.of(context)?.settings.arguments;
     if (args is String) {
       setState(() {
@@ -28,7 +29,6 @@ class _SearchResultsState extends State<SearchResults> {
     }
   }
 
-  // Hàm lọc sản phẩm theo từ khóa
   List<Product> get filteredProducts {
     return products
         .where(
@@ -46,7 +46,13 @@ class _SearchResultsState extends State<SearchResults> {
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.black),
-          onPressed: () => Navigator.pop(context),
+          onPressed: () {
+            if (Navigator.canPop(context)) {
+              Navigator.pop(context);
+            } else {
+              Navigator.pushReplacementNamed(context, productSearchRoute);
+            }
+          },
         ),
         title: TextField(
           controller: searchController,
@@ -61,12 +67,7 @@ class _SearchResultsState extends State<SearchResults> {
             });
           },
         ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.shopping_cart, color: Colors.black),
-            onPressed: () {},
-          ),
-        ],
+        actions: const [CartButton()],
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
