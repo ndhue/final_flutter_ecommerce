@@ -1,42 +1,70 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class Message {
+  final String id;
   final String senderId;
   final String senderName;
   final String message;
-  final String imageUrl;
-  final Timestamp timestamp;
-  bool isRead;
+  final List<String> imageUrls;
+  final DateTime timestamp;
+  final bool isRead;
+  QueryDocumentSnapshot<Object?>? documentSnapshot;
 
   Message({
+    required this.id,
     required this.senderId,
     required this.senderName,
     required this.message,
-    required this.imageUrl,
+    required this.imageUrls,
     required this.timestamp,
     required this.isRead,
+    this.documentSnapshot,
   });
 
-  // Convert Firestore JSON -> Message Object
-  factory Message.fromJson(Map<String, dynamic> json) {
+  Message copyWith({bool? isRead, required List<String> imageUrls}) {
     return Message(
-      senderId: json["senderId"],
-      senderName: json["senderName"],
-      message: json["message"] ?? "",
-      imageUrl: json["imageUrl"] ?? "",
-      timestamp: json["timestamp"],
-      isRead: json.containsKey('isRead') ? json['isRead'] as bool : false,
+      id: id,
+      senderId: senderId,
+      senderName: senderName,
+      message: message,
+      imageUrls: imageUrls,
+      timestamp: timestamp,
+      isRead: isRead ?? this.isRead, // Update only if provided
     );
   }
 
-  // Convert Message Object -> Firestore JSON
-  Map<String, dynamic> toJson() {
+  // Convert Firestore data to Message object
+  factory Message.fromMap(
+    Map<String, dynamic> map, {
+    DocumentSnapshot? snapshot,
+  }) {
+    return Message(
+      id: map['id'] ?? '',
+      senderId: map['senderId'] ?? '',
+      senderName: map['senderName'] ?? '',
+      message: map['message'] ?? '',
+      imageUrls: map['imageUrl'] ?? [],
+      timestamp: (map['timestamp'] as Timestamp).toDate(),
+      isRead: map['isRead'] ?? false,
+      documentSnapshot: snapshot as QueryDocumentSnapshot<Object?>?,
+    );
+  }
+
+  QueryDocumentSnapshot<Object?>? get getDocumentSnapshot => documentSnapshot;
+
+  set setDocumentSnapshot(QueryDocumentSnapshot<Object?>? documentSnapshot) {
+    this.documentSnapshot = documentSnapshot;
+  }
+
+  // Convert Message object to Firestore format
+  Map<String, dynamic> toMap() {
     return {
-      "senderId": senderId,
-      "senderName": senderName,
-      "message": message,
-      "imageUrl": imageUrl,
-      "timestamp": timestamp,
+      'id': id,
+      'senderId': senderId,
+      'senderName': senderName,
+      'message': message,
+      'imageUrls': imageUrls,
+      'timestamp': timestamp.toUtc(),
       'isRead': isRead,
     };
   }

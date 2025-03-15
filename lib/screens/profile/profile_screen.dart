@@ -25,7 +25,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
             child: ListTile(
               leading: CircleAvatar(
-                backgroundImage: AssetImage('images/avatar-1.jpg'),
+                backgroundImage: AssetImage('assets/images/avatar-1.jpg'),
                 radius: 30,
               ),
               title: Text(

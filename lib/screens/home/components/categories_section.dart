@@ -18,9 +18,9 @@ class CategoriesSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceAround,
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        ...categories.take(3).map((category) {
+        ...categories.take(4).map((category) {
           return CategoryWidget(category: category);
         }),
         CategoryWidget(category: allCategory, navigate: navigateToCategories),
@@ -39,7 +39,7 @@ class CategoryWidget extends StatelessWidget {
   Widget build(BuildContext context) {
     return SizedBox(
       height: 70,
-      width: 80,
+      width: 70,
       child: InkWell(
         borderRadius: BorderRadius.circular(4),
         onTap: navigate ?? () => debugPrint('Navigate to ${category.name}'),

@@ -22,10 +22,11 @@ class _HomeScreenState extends State<HomeScreen> {
           padding: const EdgeInsets.all(defaultPadding),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
+            spacing: 8,
             children: [
               // Banner Image
               ClipRRect(
-                borderRadius: BorderRadius.circular(defaultBorderRadious),
+                borderRadius: BorderRadius.circular(defaultBorderRadius),
                 child: Image.asset(
                   'assets/images/banner.png',
                   width: double.infinity,

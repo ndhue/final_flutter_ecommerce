@@ -1,3 +1,4 @@
-export '/widgets/buttons/cart_button.dart';
-export '/widgets/product_card.dart';
-export '/widgets/product_list_slider.dart';
+export 'buttons/cart_button.dart';
+export 'product_card.dart';
+export 'product_list_slider.dart';
+export 'skeletons.dart';

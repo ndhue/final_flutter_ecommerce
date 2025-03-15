@@ -5,17 +5,19 @@ import 'package:flutter/material.dart';
 class SearchBarWidget extends StatelessWidget {
   const SearchBarWidget({super.key});
 
+  void onSearch(BuildContext context) {
+    Navigator.pushNamed(context, productSearchRoute);
+  }
+
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: () {
-        Navigator.pushNamed(context, productSearchRoute);
-      },
+    return InkWell(
+      onTap: () => onSearch(context),
+      onLongPress: () => onSearch(context),
       child: Container(
         height: 50,
         padding: const EdgeInsets.symmetric(horizontal: 15),
         decoration: BoxDecoration(
-          color: Colors.white,
           borderRadius: BorderRadius.circular(10),
           border: Border.all(color: borderColor),
         ),
