@@ -40,14 +40,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
           _buildSectionTitle("Personal Information"),
           _buildMenuItem(Icons.local_shipping, "Shipping Address", context, shippingAddressScreenRoute),
           _buildMenuItem(Icons.payment, "Payment Method", context, paymentMethodScreenRoute),
-          _buildMenuItem(Icons.history, "Order History", context, homeScreenRoute
-          ),
+          _buildMenuItem(Icons.history, "Order History", context, orderHistoryRouteScreen),
 
           SizedBox(height: 20),
           _buildSectionTitle("Support & Information"),
-          _buildMenuItem(Icons.security, "Privacy Policy ", context, homeScreenRoute),
+          _buildMenuItem(Icons.security, "Privacy Policy ", context, pravicyAndPolicyScreenRoute),
           _buildMenuItem(Icons.help, "Helps and support", context, helpsAndSupportScreenRoute),
-          _buildMenuItem(Icons.question_answer, "FAQs", context, homeScreenRoute),
+          _buildMenuItem(Icons.question_answer, "FAQs", context, faqsScreenRoute),
           
           SizedBox(height: 20),
           _buildSectionTitle("Account Management"),

@@ -1,4 +1,5 @@
 import 'package:final_ecommerce/screens/entry_point.dart';
+import 'package:final_ecommerce/screens/orders/order_history.dart';
 import 'package:final_ecommerce/screens/screen_export.dart';
 import 'package:flutter/material.dart';
 import 'route_constants.dart';
@@ -44,6 +45,14 @@ Route<dynamic> generateRoute(RouteSettings settings) {
       break;   
     case helpsAndSupportScreenRoute:
       page = HelpsSupport();
+      break;
+    case pravicyAndPolicyScreenRoute:
+      page = PravicyAndPolicy();
+      break;
+    case faqsScreenRoute:
+      page = FAQs();
+    case orderHistoryRouteScreen:
+      page  = OrdersHistoryScreen();
       break;
     default:
       // Xử lý trường hợp không tìm thấy route

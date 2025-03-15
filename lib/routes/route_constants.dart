@@ -8,3 +8,6 @@ const String authScreenRoute =  "auth";
 const String shippingAddressScreenRoute = "shipping_address";
 const String paymentMethodScreenRoute = "payment_method";
 const String helpsAndSupportScreenRoute = "helps_and_support";
+const String pravicyAndPolicyScreenRoute = "pravicy_and_policy";
+const String faqsScreenRoute = "FAQs";
+const  String orderHistoryRouteScreen = "order_history";

@@ -1,6 +1,7 @@
 import 'package:final_ecommerce/routes/route_constants.dart';
 import 'package:final_ecommerce/routes/router.dart' as router;
 import 'package:flutter/material.dart';
+// ignore: depend_on_referenced_packages
 import 'package:flutter_web_plugins/url_strategy.dart';
 
 void main() {

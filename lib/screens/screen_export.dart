@@ -8,4 +8,6 @@ export '/screens/auth/registration_screen.dart';
 export '/screens/profile/profile_shippingAddress.dart';
 export '/screens/profile/profile_payment_method.dart';
 export '/screens/profile/profile_helps_support.dart';
+export 'profile/profile_pravicy&policy.dart';
+export 'profile/profile_FAQs.dart';
 
