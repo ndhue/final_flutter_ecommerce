@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../models/product_model.dart'; // Sửa đường dẫn nếu cần
+
 import '../../providers/cart_provider.dart'; // Đảm bảo đã tạo file này
 import '../../utils/format.dart'; // Để formatCurrency
 
@@ -42,9 +42,8 @@ class CartScreen extends StatelessWidget {
                           subtitle: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text('Variant: ${variant.name ?? 'Default'}'),
+                              Text('Variant: ${variant.name}'),
                               Text(
-                                // ✅ Chỉ hiển thị đơn giá
                                 'Unit Price: ${FormatHelper.formatCurrency(variant.currentPrice)}',
                                 style: const TextStyle(fontSize: 13),
                               ),

@@ -39,26 +39,22 @@ class _EntryPointState extends State<EntryPoint> {
       appBar: AppBar(
         actionsPadding: const EdgeInsets.only(right: defaultPadding),
         backgroundColor: Colors.white,
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              "Delivery address",
-              style: TextStyle(color: Colors.grey[500], fontSize: 12),
-            ),
-            Row(
-              children: [
-                Text(
-                  "District 7, TP HCM",
-                  style: const TextStyle(
-                    color: Colors.black87,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                  ),
+        title: Align(
+          alignment: Alignment.centerLeft,
+          child: Row(
+            children: [
+              Image.asset('assets/images/shopping.png', height: 28),
+              const SizedBox(width: 8),
+              const Text(
+                "Naturify Shop",
+                style: TextStyle(
+                  color: primaryColor,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
                 ),
-              ],
-            ),
-          ],
+              ),
+            ],
+          ),
         ),
         actions: [CartButton()],
       ),
