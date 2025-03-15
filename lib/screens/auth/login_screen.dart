@@ -23,47 +23,48 @@ class _LoginScreenState extends State<LoginScreen> {
           bool isWideScreen = constraints.maxWidth > 600;
 
           return Center(
-            child: isWideScreen
-                ? Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Expanded(
-                        flex: 1,
-                        child: Padding(
-                          padding: const EdgeInsets.all(20.0),
-                          child: Image.asset(
-                            "assets/images/vector-1.png",
-                            width: constraints.maxWidth * 0.3,
-                            fit: BoxFit.contain,
-                          ),
-                        ),
-                      ),
-                      Expanded(
-                        flex: 1,
-                        child: Align(
-                          alignment: Alignment.center,
-                          child: ConstrainedBox(
-                            constraints: const BoxConstraints(maxWidth: 400),
-                            child: _buildForm(),
-                          ),
-                        ),
-                      ),
-                    ],
-                  )
-                : SingleChildScrollView(
-                    child: Column(
+            child:
+                isWideScreen
+                    ? Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Image.asset(
-                          "assets/images/vector-1.png",
-                          width: constraints.maxWidth * 0.8,
-                          fit: BoxFit.contain,
+                        Expanded(
+                          flex: 1,
+                          child: Padding(
+                            padding: const EdgeInsets.all(20.0),
+                            child: Image.asset(
+                              "assets/images/vector-1.png",
+                              width: constraints.maxWidth * 0.3,
+                              fit: BoxFit.contain,
+                            ),
+                          ),
                         ),
-                        const SizedBox(height: 30),
-                        _buildForm(),
+                        Expanded(
+                          flex: 1,
+                          child: Align(
+                            alignment: Alignment.center,
+                            child: ConstrainedBox(
+                              constraints: const BoxConstraints(maxWidth: 400),
+                              child: _buildForm(),
+                            ),
+                          ),
+                        ),
                       ],
+                    )
+                    : SingleChildScrollView(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Image.asset(
+                            "assets/images/vector-1.png",
+                            width: constraints.maxWidth * 0.8,
+                            fit: BoxFit.contain,
+                          ),
+                          const SizedBox(height: 30),
+                          _buildForm(),
+                        ],
+                      ),
                     ),
-                  ),
           );
         },
       ),
@@ -168,7 +169,9 @@ class _LoginScreenState extends State<LoginScreen> {
                 onPressed: () {
                   Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (context) => RegistrationScreen()),
+                    MaterialPageRoute(
+                      builder: (context) => RegistrationScreen(),
+                    ),
                   );
                 },
                 child: const Text(
@@ -186,9 +189,7 @@ class _LoginScreenState extends State<LoginScreen> {
           Align(
             alignment: Alignment.center,
             child: TextButton(
-              onPressed: () {
-                
-              },
+              onPressed: () {},
               child: const Text(
                 'Forgot password?',
                 style: TextStyle(

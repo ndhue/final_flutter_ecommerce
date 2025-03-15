@@ -1,5 +1,7 @@
+import 'package:final_ecommerce/providers/cart_provider.dart';
 import 'package:final_ecommerce/routes/route_constants.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 class CartButton extends StatelessWidget {
   const CartButton({super.key});
@@ -23,20 +25,31 @@ class CartButton extends StatelessWidget {
         Positioned(
           right: 6,
           top: 4,
-          child: Container(
-            padding: const EdgeInsets.all(4),
-            decoration: const BoxDecoration(
-              color: Colors.red,
-              shape: BoxShape.circle,
-            ),
-            child: const Text(
-              "2",
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 12,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
+          child: Consumer<CartProvider>(
+            builder: (context, cartProvider, child) {
+              final uniqueItemCount =
+                  cartProvider
+                      .cartItems
+                      .length; // Đếm số loại sản phẩm duy nhất
+
+              return uniqueItemCount > 0
+                  ? Container(
+                    padding: const EdgeInsets.all(4),
+                    decoration: const BoxDecoration(
+                      color: Colors.red,
+                      shape: BoxShape.circle,
+                    ),
+                    child: Text(
+                      uniqueItemCount.toString(),
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  )
+                  : const SizedBox(); // Ẩn nếu giỏ hàng rỗng
+            },
           ),
         ),
       ],
