@@ -33,6 +33,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   fit: BoxFit.cover,
                 ),
               ),
+              SizedBox(height: 10,),
               // Categories Section
               CategoriesSection(
                 onCategorySelected: (category) {

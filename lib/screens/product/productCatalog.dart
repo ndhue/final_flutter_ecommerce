@@ -1,4 +1,5 @@
 import 'package:final_ecommerce/utils/constants.dart';
+import 'package:final_ecommerce/widgets/buttons/cart_button.dart';
 import 'package:flutter/material.dart';
 import 'package:final_ecommerce/models/models_export.dart';
 import '/widgets/product_card.dart';
@@ -38,14 +39,24 @@ class _ProductCatalogState extends State<ProductCatalog> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(selectedCategory),
+        actionsPadding: const EdgeInsets.only(right: defaultPadding),
         backgroundColor: Colors.white,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black),
-          onPressed: () {
-            Navigator.pop(context); // Quay lại trang trước
-          },
+        title: Align(
+          alignment: Alignment.centerLeft,
+          child: Row(
+            children: [
+              const SizedBox(width: 8),
+              Text(
+                selectedCategory,
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
         ),
+        actions: [CartButton()],
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
