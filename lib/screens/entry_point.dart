@@ -14,19 +14,14 @@ class EntryPoint extends StatefulWidget {
 class _EntryPointState extends State<EntryPoint> {
   int _currentIndex = 0;
 
-  void _navigateToCategories() {
-    setState(() {
-      _currentIndex = 1;
-    });
-  }
-
+  
   late List _pages;
 
   @override
   void initState() {
     super.initState();
     _pages = [
-      HomeScreen(navigateToCategories: _navigateToCategories),
+      HomeScreen(),
       CategoriesScreen(),
       OrdersScreen(),
       ProfileScreen(),

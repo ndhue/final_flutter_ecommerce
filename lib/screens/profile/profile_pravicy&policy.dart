@@ -33,24 +33,26 @@ class _PravicyAndPolicyState extends State<PravicyAndPolicy> {
               ),
               const SizedBox(height: 20),
               _buildText(
-                'Chính sách bảo hành & Đổi trả',
+                'Warranty & Return Policy',
                 subtitle:
-                    'Đổi trả trong vòng 7 ngày nếu sản phẩm lỗi, hỏng, không đúng mô tả.\n'
-                    'Không áp dụng cho các sản phẩm không có chính sách đổi trả (ví dụ: thực phẩm, mỹ phẩm đã mở nắp).',
+                    'Returns are accepted within 7 days if the product is defective, damaged, or not as described.\n'
+                    'Not applicable to products without a return policy (e.g., opened food or cosmetics).',
                 icon: Icons.assignment_return,
               ),
               _buildText(
-                'Chính sách bảo mật và quyền riêng tư',
-                subtitle: 'Chúng tôi cam kết bảo vệ dữ liệu cá nhân của bạn. Chúng tôi đảm bảo sẽ không cung cấp thông tin cá nhân của bạn cho bất kỳ bên thứ 3 nào. \n'
-                          'Người mua hàng  vá bán hàng phải tuân thủ một số quy định về bảo mật của bên chúng tôi để hạn chế ít nhất các trường hợp lừa đảo \n'
-                          'Người dùng hệ thống nên sử dụng chính sách bảo mật 2 lớp để tối ưu chế độ bảo mật',
+                'Privacy Policy & Data Protection',
+                subtitle:
+                    'We are committed to protecting your personal data. We guarantee that your personal information will not be shared with any third party. \n'
+                    'Both buyers and sellers must comply with our security regulations to minimize fraud cases.\n'
+                    'Users are advised to enable two-factor authentication for optimal security protection.',
                 icon: Icons.privacy_tip,
               ),
               _buildText(
-                'Điều khoản và dịch vụ',
-                subtitle: 'Qúy khách vui lòng đọc kỹ điều khoản trước khi sử dụng dịch vụ. \n'
-                          'Các trường hợp gặp lỗi về hệ thống chúng tôi sẽ cố gắng nhanh chóng tiến hành sửa chửa.\n'
-                          'Nếu có thắc mắc gì thêm về hệ thống, khách hàng có thể liên hệ trực tiếp với chúng tôi thông qua Helps And Support',
+                'Terms & Services',
+                subtitle:
+                    'Please read the terms carefully before using our services. \n'
+                    'In case of system errors, we will make every effort to fix them as soon as possible.\n'
+                    'If you have any further questions about the system, please contact us directly through Help & Support.',
                 icon: Icons.description,
               ),
             ],
@@ -79,7 +81,7 @@ Widget _buildText(String label, {String? subtitle, IconData? icon}) {
           ),
           child: ListTile(
             trailing: icon != null ? Icon(icon, color: Colors.blue) : null,
-            subtitle: Text(subtitle ?? '', style: TextStyle(fontSize: 16),),
+            subtitle: Text(subtitle ?? '', style: TextStyle(fontSize: 16)),
           ),
         ),
       ],
