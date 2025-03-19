@@ -1,8 +1,9 @@
 import 'package:final_ecommerce/data/mock_chat_provider.dart';
 import 'package:final_ecommerce/routes/route_constants.dart';
 import 'package:final_ecommerce/utils/constants.dart';
-import 'package:final_ecommerce/widgets/widgets_export.dart';
+import 'package:final_ecommerce/widgets/skeletons.dart';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
 class AdminChatsScreen extends StatefulWidget {
@@ -16,29 +17,46 @@ class _AdminChatsScreenState extends State<AdminChatsScreen> {
   @override
   void initState() {
     super.initState();
+    final chatProvider = context.read<MockChatProvider>();
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final chatProvider = context.read<MockChatProvider>();
       chatProvider.fetchChats();
     });
+  }
+
+  String _formatTimestamp(DateTime timestamp) {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final yesterday = today.subtract(const Duration(days: 1));
+
+    if (timestamp.isAfter(today)) {
+      return DateFormat.Hm().format(timestamp); // Show only time (HH:mm)
+    } else if (timestamp.isAfter(yesterday)) {
+      return "Yesterday";
+    } else {
+      return DateFormat('dd/MM/yyyy').format(timestamp); // Show date format
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
       appBar: AppBar(
-        title: const Text("Customer Chats"),
-        backgroundColor: Colors.white,
+        backgroundColor: primaryColor,
+        foregroundColor: Colors.white,
+        title: const Text(
+          "Customer Chats",
+          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+        ),
       ),
       body: Container(
         decoration: BoxDecoration(
-          color: Colors.white,
           border: Border(top: BorderSide(color: borderColor, width: 0.5)),
         ),
         child: Consumer<MockChatProvider>(
           builder: (context, chatProvider, _) {
             if (chatProvider.isLoading) {
-              return AdminChatSkeleton();
+              return const AdminChatSkeleton();
             }
 
             if (chatProvider.chats.isEmpty) {
@@ -46,36 +64,77 @@ class _AdminChatsScreenState extends State<AdminChatsScreen> {
             }
 
             return ListView.builder(
+              physics: const BouncingScrollPhysics(),
               itemCount: chatProvider.chats.length,
               itemBuilder: (context, index) {
                 final chat = chatProvider.chats[index];
                 int unreadCount = chatProvider.getUnreadMessages(chat.userId);
 
-                return ListTile(
-                  title: Text(chat.userName),
-                  subtitle: Text(chat.lastMessage),
-                  trailing:
-                      unreadCount > 0
-                          ? CircleAvatar(
-                            backgroundColor: Colors.red,
-                            child: Text(
-                              unreadCount.toString(),
-                              style: const TextStyle(color: Colors.white),
+                return Column(
+                  children: [
+                    ListTile(
+                      title: Text(
+                        chat.userName,
+                        style: const TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                      subtitle: Row(
+                        spacing: 16.0,
+                        children: [
+                          Text(
+                            chat.lastMessage.length > 30
+                                ? '${chat.lastMessage.substring(0, 30)}...'
+                                : chat.lastMessage,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              fontSize: 14,
+                              color: Colors.black87,
                             ),
-                          )
-                          : const SizedBox.shrink(),
-                  onTap: () {
-                    chatProvider.markChatAsRead(chat.userId);
-                    Navigator.pushNamed(
-                      context,
-                      chatScreenRoute,
-                      arguments: {
-                        "userId": chat.userId,
-                        "userName": chat.userName,
-                        "isAdmin": true,
+                          ),
+                          Text(
+                            _formatTimestamp(chat.lastMessageTimestamp),
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey[600],
+                            ),
+                          ),
+                        ],
+                      ),
+                      trailing: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          if (unreadCount > 0)
+                            Padding(
+                              padding: const EdgeInsets.only(top: 4),
+                              child: CircleAvatar(
+                                backgroundColor: Colors.red,
+                                radius: 12,
+                                child: Text(
+                                  unreadCount.toString(),
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                      onTap: () {
+                        chatProvider.markChatAsRead(chat.userId);
+                        Navigator.pushNamed(
+                          context,
+                          chatScreenRoute,
+                          arguments: {
+                            "userId": chat.userId,
+                            "userName": chat.userName,
+                            "isAdmin": true,
+                          },
+                        );
                       },
-                    );
-                  },
+                    ),
+                    Divider(height: 1, thickness: 0.2, color: Colors.grey[400]),
+                  ],
                 );
               },
             );

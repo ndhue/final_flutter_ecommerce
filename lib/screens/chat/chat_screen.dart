@@ -8,6 +8,7 @@ import 'package:final_ecommerce/widgets/widgets_export.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:intl/intl.dart';
 import 'package:photo_view/photo_view.dart';
 import 'package:photo_view/photo_view_gallery.dart';
 import 'package:provider/provider.dart';
@@ -173,13 +174,11 @@ class _ChatScreenState extends State<ChatScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: Colors.white,
         title: Text(
           widget.isAdmin ? widget.userName : "Chat with Admin",
           style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
         ),
       ),
-      backgroundColor: Colors.white,
       body: Container(
         decoration: BoxDecoration(
           border: Border(top: BorderSide(color: borderColor, width: 0.5)),
@@ -223,11 +222,25 @@ class _ChatScreenState extends State<ChatScreen> {
                               itemCount: messages.length,
                               itemBuilder: (context, index) {
                                 final message = messages[index];
-                                bool isCurrentUser =
+                                final bool isCurrentUser =
                                     message.senderId ==
                                     (widget.isAdmin ? "admin" : widget.userId);
+                                final bool showTime = _shouldShowTimeSeparator(
+                                  messages,
+                                  index,
+                                );
 
-                                return _buildBubbleChat(isCurrentUser, message);
+                                return Column(
+                                  children: [
+                                    if (showTime)
+                                      _buildTimeSeparator(
+                                        message.timestamp,
+                                        index,
+                                        messages,
+                                      ),
+                                    _buildBubbleChat(isCurrentUser, message),
+                                  ],
+                                );
                               },
                             ),
                           ),
@@ -245,6 +258,57 @@ class _ChatScreenState extends State<ChatScreen> {
     );
   }
 
+  bool _shouldShowTimeSeparator(List<Message> messages, int index) {
+    if (index == messages.length - 1) return true;
+
+    final currentMessageTime = messages[index].timestamp;
+    final previousMessageTime = messages[index + 1].timestamp;
+
+    // Show full date if more than 1 day apart
+    if (currentMessageTime.difference(previousMessageTime).inDays > 0) {
+      return true;
+    }
+
+    // Show time separator if more than 15 minutes apart
+    return currentMessageTime.difference(previousMessageTime).inMinutes > 15;
+  }
+
+  /// **Time Separator Widget**
+  Widget _buildTimeSeparator(
+    DateTime timestamp,
+    int index,
+    List<Message> messages,
+  ) {
+    bool isFullDateNeeded =
+        (index == messages.length - 1) ||
+        messages[index].timestamp
+                .difference(messages[index + 1].timestamp)
+                .inDays >
+            0;
+
+    String formattedTime =
+        isFullDateNeeded
+            ? DateFormat("MMM d, yyyy - h:mm a").format(timestamp)
+            : DateFormat("h:mm a").format(timestamp);
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8.0),
+      child: Center(
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 12),
+          decoration: BoxDecoration(
+            color: Colors.grey[300],
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Text(
+            formattedTime,
+            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildBubbleChat(bool isCurrentUser, Message message) {
     return Align(
       alignment: isCurrentUser ? Alignment.centerRight : Alignment.centerLeft,
@@ -252,13 +316,12 @@ class _ChatScreenState extends State<ChatScreen> {
         margin: const EdgeInsets.all(8),
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: isCurrentUser ? Colors.grey[200] : bubbleChat,
+          color: isCurrentUser ? bubbleChat : Colors.grey[300],
           borderRadius: BorderRadius.circular(8),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Show loading placeholder if image is still uploading
             if (message.imageUrls.isNotEmpty)
               GestureDetector(
                 onTap:
@@ -269,23 +332,18 @@ class _ChatScreenState extends State<ChatScreen> {
                     ),
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(6),
-                  child:
-                      message.imageUrls.first == "loading"
-                          ? ImageSkeletonLoader()
-                          : Image.network(
-                            message.imageUrls.first,
-                            width: 200,
-                            height: 200,
-                            fit: BoxFit.cover,
-                          ),
+                  child: Image.network(
+                    message.imageUrls.first,
+                    width: 100,
+                    height: 100,
+                    fit: BoxFit.cover,
+                  ),
                 ),
               ),
-
-            // Show message text if available
             if (message.message.isNotEmpty)
               Padding(
                 padding: EdgeInsets.only(
-                  top: message.imageUrls.isNotEmpty ? 6 : 0,
+                  top: message.imageUrls.isNotEmpty ? 8 : 0,
                 ),
                 child: Text(
                   message.message,
@@ -348,12 +406,12 @@ class _ChatScreenState extends State<ChatScreen> {
                                       _selectedImages.removeAt(index);
                                     }),
                                 child: const CircleAvatar(
-                                  radius: 12,
-                                  backgroundColor: Colors.red,
+                                  radius: 10,
+                                  backgroundColor: primaryColor,
                                   child: Icon(
                                     Icons.close,
                                     color: Colors.white,
-                                    size: 14,
+                                    size: 10,
                                   ),
                                 ),
                               ),

@@ -37,6 +37,10 @@ class MainApp extends StatelessWidget {
       title: 'Demo',
       onGenerateRoute: router.generateRoute,
       initialRoute: entryPointScreenRoute,
+      theme: ThemeData(
+        scaffoldBackgroundColor: Colors.white,
+        appBarTheme: const AppBarTheme(color: Colors.white, elevation: 0),
+      ),
     );
   }
 }
