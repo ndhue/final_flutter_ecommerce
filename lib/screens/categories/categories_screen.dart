@@ -1,3 +1,4 @@
+import 'package:final_ecommerce/screens/product/productCatalog.dart';
 import 'package:final_ecommerce/utils/constants.dart';
 import 'package:flutter/material.dart';
 
@@ -20,11 +21,22 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
       child: Padding(
         padding: const EdgeInsets.all(defaultPadding),
         child: Column(
-          spacing: defaultPadding,
           children: [
             const SearchBarWidget(),
+            const SizedBox(height: defaultPadding),
             const SpecialFiltersWidget(),
-            const CategoriesGridView(),
+            const SizedBox(height: defaultPadding),
+            CategoriesGridView(
+              onCategorySelected: (category) {
+                  // Khi người dùng click vào một danh mục, chuyển đến trang ProductCatalog
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => ProductCatalog(category: category),
+                    ),
+                  );
+                },
+            ),
           ],
         ),
       ),

@@ -1,12 +1,12 @@
 import 'package:final_ecommerce/data/mock_data.dart';
 import 'package:final_ecommerce/screens/home/components/categories_section.dart';
+import 'package:final_ecommerce/screens/product/productCatalog.dart';
 import 'package:final_ecommerce/utils/constants.dart';
 import 'package:final_ecommerce/widgets/widgets_export.dart';
 import 'package:flutter/material.dart';
 
 class HomeScreen extends StatefulWidget {
-  final VoidCallback? navigateToCategories;
-  const HomeScreen({super.key, this.navigateToCategories});
+  const HomeScreen({super.key});
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -22,7 +22,6 @@ class _HomeScreenState extends State<HomeScreen> {
           padding: const EdgeInsets.all(defaultPadding),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
-            spacing: 8,
             children: [
               // Banner Image
               ClipRRect(
@@ -34,9 +33,18 @@ class _HomeScreenState extends State<HomeScreen> {
                   fit: BoxFit.cover,
                 ),
               ),
+              // Categories Section
               CategoriesSection(
-                navigateToCategories: widget.navigateToCategories ?? () {},
+                onCategorySelected: (category) {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => ProductCatalog(category: category),
+                    ),
+                  );
+                },
               ),
+              // Các danh sách sản phẩm khác (ví dụ: Popular, Discount)
               ProductListSlider(title: "Popular", products: products),
               ProductListSlider(title: "Discount", products: products),
             ],
