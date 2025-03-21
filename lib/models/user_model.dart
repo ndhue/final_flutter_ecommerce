@@ -1,0 +1,49 @@
+class UserModel {
+  final String id;
+  final String fullName;
+  final String email;
+  final String role;
+  final bool activated;
+  final int loyaltyPoints;
+  final int loyaltyPointsUsed;
+  final String shippingAddress;
+
+  UserModel({
+    required this.id,
+    required this.fullName,
+    required this.email,
+    required this.role,
+    required this.activated,
+    required this.loyaltyPoints,
+    required this.loyaltyPointsUsed,
+    required this.shippingAddress,
+  });
+
+  // Convert Firestore document to UserModel
+  factory UserModel.fromMap(Map<String, dynamic> data) {
+    return UserModel(
+      id: data['id'] ?? '',
+      fullName: data['fullName'] ?? '',
+      email: data['email'] ?? '',
+      role: data['role'] ?? 'user',
+      activated: data['activated'] ?? false,
+      loyaltyPoints: data['loyaltyPoints'] ?? 0,
+      loyaltyPointsUsed: data['loyaltyPointsUsed'] ?? 0,
+      shippingAddress: data['shippingAddress'] ?? '',
+    );
+  }
+
+  // Convert UserModel to JSON
+  Map<String, dynamic> toMap() {
+    return {
+      'id': id,
+      'fullName': fullName,
+      'email': email,
+      'role': role,
+      'activated': activated,
+      'loyaltyPoints': loyaltyPoints,
+      'loyaltyPointsUsed': loyaltyPointsUsed,
+      'shippingAddress': shippingAddress,
+    };
+  }
+}

@@ -1,5 +1,6 @@
-export '/models/category_model.dart';
-export '/models/chat_model.dart';
-export '/models/message_model.dart';
-export '/models/product_model.dart';
-export '/models/variant_model.dart';
+export 'category_model.dart';
+export 'chat_model.dart';
+export 'message_model.dart';
+export 'product_model.dart';
+export 'user_model.dart';
+export 'variant_model.dart';

@@ -1,6 +1,9 @@
+import 'package:final_ecommerce/providers/providers_export.dart';
+import 'package:final_ecommerce/routes/route_constants.dart';
 import 'package:final_ecommerce/screens/screen_export.dart';
 import 'package:final_ecommerce/utils/constants.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -13,6 +16,58 @@ class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passController = TextEditingController();
   bool _isObscure = true; // Ẩn mật khẩu ban đầu
+  bool _isLoading = false; // Loading khi đăng nhập
+
+  Future<void> _handleLogin() async {
+    if (!mounted) return; // Ensure the widget is still mounted
+    setState(() => _isLoading = true);
+
+    final authProvider = context.read<AuthProvider>();
+    final userProvider = context.read<UserProvider>();
+
+    final email = _emailController.text.trim();
+    final password = _passController.text.trim();
+
+    bool success = await authProvider.signIn(email, password);
+    if (!mounted) return; // Check again after async operation
+    setState(() => _isLoading = false);
+
+    if (success) {
+      final user = authProvider.user;
+      if (user == null) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("Login failed. Please try again.")),
+          );
+        }
+        return;
+      }
+
+      String uid = user.uid;
+      await userProvider.fetchUser(uid);
+      String? role = userProvider.getUserRole();
+
+      if (role == "admin") {
+        if (mounted) {
+          // Navigator.of(context).pushReplacementNamed(adminEntryPointScreenRoute);
+          Navigator.of(context).pushReplacementNamed(entryPointScreenRoute);
+        }
+      } else {
+        if (mounted) {
+          Navigator.of(context).pushReplacementNamed(entryPointScreenRoute);
+        }
+      }
+    } else {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("Invalid email or password"),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -28,25 +83,25 @@ class _LoginScreenState extends State<LoginScreen> {
                     ? Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Expanded(
+                        // Image Section (Only on Web / Large Screen)
+                        Flexible(
                           flex: 1,
                           child: Padding(
                             padding: const EdgeInsets.all(20.0),
                             child: Image.asset(
                               "assets/images/vector-1.png",
-                              width: constraints.maxWidth * 0.3,
+                              height: constraints.maxHeight * 0.5,
                               fit: BoxFit.contain,
                             ),
                           ),
                         ),
+
+                        // Form Section
                         Expanded(
                           flex: 1,
-                          child: Align(
-                            alignment: Alignment.center,
-                            child: ConstrainedBox(
-                              constraints: const BoxConstraints(maxWidth: 400),
-                              child: _buildForm(),
-                            ),
+                          child: ConstrainedBox(
+                            constraints: const BoxConstraints(maxWidth: 400),
+                            child: _buildForm(),
                           ),
                         ),
                       ],
@@ -58,6 +113,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           Image.asset(
                             "assets/images/vector-1.png",
                             width: constraints.maxWidth * 0.8,
+                            height: constraints.maxHeight * 0.4,
                             fit: BoxFit.contain,
                           ),
                           const SizedBox(height: 30),
@@ -71,7 +127,7 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  // Widget xây dựng form đăng nhập
+  // 🔹 Xây dựng form đăng nhập
   Widget _buildForm() {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 10),
@@ -79,16 +135,16 @@ class _LoginScreenState extends State<LoginScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Text(
-            'Log In',
+            'Log in to Naturify',
             style: TextStyle(
               color: primaryColor,
-              fontSize: 27,
-              fontWeight: FontWeight.w500,
+              fontSize: 24,
+              fontWeight: FontWeight.w600,
             ),
           ),
-          const SizedBox(height: 30),
+          const SizedBox(height: 20),
 
-          // 📌 Email Input
+          // Email Input
           TextField(
             controller: _emailController,
             decoration: InputDecoration(
@@ -99,9 +155,9 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
             ),
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 10),
 
-          // 📌 Password Input
+          // Password Input
           TextField(
             controller: _passController,
             obscureText: _isObscure,
@@ -124,40 +180,41 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
             ),
           ),
-          const SizedBox(height: 25),
+
+          const SizedBox(height: 10),
+
+          // Sign In Button
           Align(
             alignment: Alignment.center,
             child: SizedBox(
               width: double.infinity,
               height: 50,
               child: ElevatedButton(
-                onPressed: () {
-                  Navigator.pushAndRemoveUntil(
-                    context,
-                    MaterialPageRoute(builder: (context) => HomeScreen()),
-                    (route) => false,
-                  );
-                },
+                onPressed: _isLoading ? null : _handleLogin,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: primaryColor,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(10),
                   ),
                 ),
-                child: const Text(
-                  'Sign In',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 15,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
+                child:
+                    _isLoading
+                        ? const CircularProgressIndicator(color: Colors.white)
+                        : const Text(
+                          'Sign In',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 15,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
               ),
             ),
           ),
+
           const SizedBox(height: 15),
 
-          // 📌 Sign Up Text
+          // Sign Up Text
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
@@ -170,7 +227,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => RegistrationScreen(),
+                      builder: (context) => const RegistrationScreen(),
                     ),
                   );
                 },
@@ -185,7 +242,7 @@ class _LoginScreenState extends State<LoginScreen> {
             ],
           ),
 
-          // 📌 Forget Password
+          // Forget Password
           Align(
             alignment: Alignment.center,
             child: TextButton(

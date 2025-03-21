@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+const adminId = 'mGMZLaK7aZVbLdXrRtG7WEkiGSs1';
+
 const Color textColor = Color.fromARGB(57, 63, 66, 73);
 const Color iconColor = Color.fromARGB(146, 108, 108, 73);
 const Color primaryColor = Color(0xFF67C4A7);

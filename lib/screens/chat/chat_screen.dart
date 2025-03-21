@@ -1,7 +1,7 @@
 import 'dart:io';
 
-import 'package:final_ecommerce/data/mock_chat_provider.dart';
 import 'package:final_ecommerce/models/models_export.dart';
+import 'package:final_ecommerce/providers/providers_export.dart';
 import 'package:final_ecommerce/services/cloudinary_service.dart';
 import 'package:final_ecommerce/utils/constants.dart';
 import 'package:final_ecommerce/widgets/widgets_export.dart';
@@ -15,13 +15,13 @@ import 'package:provider/provider.dart';
 
 class ChatScreen extends StatefulWidget {
   final String userId;
-  final String userName;
+  final String? userName; // This can be null initially
   final bool isAdmin;
 
   const ChatScreen({
     super.key,
     required this.userId,
-    required this.userName,
+    this.userName,
     required this.isAdmin,
   });
 
@@ -34,35 +34,46 @@ class _ChatScreenState extends State<ChatScreen> {
   final ScrollController _scrollController = ScrollController();
   final List<dynamic> _viewImages = [];
   final List<XFile> _selectedImages = [];
-
-  late String chatId;
-  bool _isFirstLoad = true;
+  late String _userName;
+  bool _isFirstLoad = true; // Track if this is the first load
 
   @override
   void initState() {
     super.initState();
-    chatId = "chat_${widget.userId}";
-    final chatProvider = context.read<MockChatProvider>();
 
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      chatProvider.fetchMockMessages(widget.userId).then((_) {
-        setState(() {
-          _isFirstLoad = false;
+    _userName = "Unknown";
+
+    final chatProvider = context.read<ChatProvider>();
+    final userProvider = context.read<UserProvider>();
+
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (chatProvider.messages.isEmpty) {
+        setState(() => _isFirstLoad = true);
+        await chatProvider.ensureChatExists(widget.userId);
+        await userProvider.fetchUser(widget.userId);
+        _userName = userProvider.user!.fullName;
+
+        chatProvider.listenToMessages(widget.userId).listen((messages) {
+          setState(() => _isFirstLoad = false);
         });
-      });
-      chatProvider.markChatAsRead(widget.userId);
+
+        chatProvider.markChatAsRead(widget.userId);
+      } else {
+        _userName = userProvider.user?.fullName ?? "Unknown";
+        setState(() => _isFirstLoad = false);
+      }
     });
+
     _scrollController.addListener(_onScroll);
   }
 
   void _onScroll() {
-    final chatProvider = context.read<MockChatProvider>();
-    if (_scrollController.position.pixels ==
-            _scrollController.position.maxScrollExtent &&
+    final chatProvider = context.read<ChatProvider>();
+    if (_scrollController.position.pixels >=
+            _scrollController.position.maxScrollExtent - 100 &&
         chatProvider.hasMoreMessages &&
-        !chatProvider.isLoading) {
-      debugPrint("Loading more messages");
-      chatProvider.fetchMockMessages(widget.userId, loadMore: true);
+        !chatProvider.isLoadingMore) {
+      chatProvider.fetchMessages(widget.userId, loadMore: true);
     }
   }
 
@@ -72,7 +83,7 @@ class _ChatScreenState extends State<ChatScreen> {
 
     for (var file in pickedFiles) {
       if (kIsWeb) {
-        Uint8List webImage = await file.readAsBytes(); // Web uses bytes
+        Uint8List webImage = await file.readAsBytes();
         setState(() {
           _viewImages.add(webImage);
           _selectedImages.add(file);
@@ -81,7 +92,7 @@ class _ChatScreenState extends State<ChatScreen> {
         setState(() {
           _viewImages.add(File(file.path));
           _selectedImages.add(file);
-        }); // Mobile uses File
+        });
       }
     }
   }
@@ -108,7 +119,7 @@ class _ChatScreenState extends State<ChatScreen> {
 
                   return PhotoViewGalleryPageOptions(
                     imageProvider:
-                        (image is String) // If image is a URL from Firestore/Cloudinary
+                        (image is String)
                             ? NetworkImage(image)
                             : kIsWeb
                             ? MemoryImage(image as Uint8List) as ImageProvider
@@ -124,43 +135,66 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   void _sendMessage() async {
-    final chatProvider = context.read<MockChatProvider>();
-
+    final chatProvider = context.read<ChatProvider>();
     if (_controller.text.isEmpty && _selectedImages.isEmpty) return;
 
-    // Create a temporary message for instant UI feedback
-    List<String> tempImageUrls = _selectedImages.map((_) => "loading").toList();
-    Message tempMessage = Message(
-      id: DateTime.now().toString(),
-      senderId: widget.isAdmin ? "admin" : widget.userId,
-      senderName: widget.isAdmin ? "Admin" : widget.userName,
-      message: _controller.text,
-      timestamp: DateTime.now(),
-      imageUrls: tempImageUrls,
-      isRead: false,
-    );
+    final String messageText = _controller.text;
 
-    chatProvider.addLocalMessage(tempMessage); // Add temp message to UI
-    setState(() {
-      _viewImages.clear();
-    });
-    _controller.clear();
+    try {
+      // Prepare a temporary message ID
+      final String tempMessageId =
+          "temp_${DateTime.now().millisecondsSinceEpoch}";
 
-    // Upload images in the background
-    List<String> uploadedImageUrls = [];
-    for (var i = 0; i < _selectedImages.length; i++) {
-      String? imageUrl = await CloudinaryService.uploadImage(
-        _selectedImages[i],
+      // Create a temporary message for instant UI feedback
+      List<String> tempImageUrls =
+          _selectedImages.map((_) => "loading").toList();
+      Message tempMessage = Message(
+        id: tempMessageId,
+        senderId: widget.isAdmin ? "admin" : widget.userId,
+        senderName: widget.isAdmin ? "Admin" : (widget.userName ?? _userName),
+        message: messageText,
+        timestamp: DateTime.now(),
+        imageUrls: tempImageUrls,
+        isRead: false,
       );
-      uploadedImageUrls.add(imageUrl ?? ""); // Keep empty if upload fails
-    }
 
-    // Replace temp message with final message
-    chatProvider.replaceTempMessage(tempMessage, uploadedImageUrls);
-    // Clear selected images after upload success
-    setState(() {
-      _selectedImages.clear();
-    });
+      // Add the temporary message to the provider
+      chatProvider.addLocalMessage(tempMessage);
+      setState(() => _viewImages.clear());
+      _controller.clear();
+
+      // Upload images in the background
+      List<String> uploadedImageUrls = [];
+      for (var i = 0; i < _selectedImages.length; i++) {
+        String? imageUrl = await CloudinaryService.uploadImage(
+          _selectedImages[i],
+        );
+        if (imageUrl != null) {
+          uploadedImageUrls.add(imageUrl);
+        } else {
+          debugPrint("Failed to upload image: ${_selectedImages[i].path}");
+        }
+      }
+
+      // Send the final message to Firestore
+      await chatProvider.sendMessage(
+        widget.userId,
+        widget.isAdmin ? "admin" : widget.userId,
+        widget.isAdmin ? "Admin" : (widget.userName ?? _userName),
+        messageText,
+        imageUrls: uploadedImageUrls,
+      );
+
+      // Replace the temporary message with the final message
+      chatProvider.replaceTempMessage(tempMessage, uploadedImageUrls);
+
+      setState(() => _selectedImages.clear());
+    } catch (e) {
+      debugPrint("Error sending message: $e");
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text("Failed to send message")));
+    }
   }
 
   @override
@@ -172,89 +206,77 @@ class _ChatScreenState extends State<ChatScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final chatProvider = context.watch<ChatProvider>();
+
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          widget.isAdmin ? widget.userName : "Chat with Admin",
-          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          widget.isAdmin ? _userName : "Chat with Admin",
+          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
         ),
       ),
-      body: Container(
-        decoration: BoxDecoration(
-          border: Border(top: BorderSide(color: borderColor, width: 0.5)),
-        ),
-        child: Column(
-          children: [
-            Expanded(
-              child: Consumer<MockChatProvider>(
-                builder: (context, chatProvider, _) {
-                  return StreamBuilder<List<Message>>(
-                    stream: chatProvider.listenToMessages(widget.userId),
-                    builder: (context, snapshot) {
-                      if (chatProvider.isLoading && _isFirstLoad) {
-                        return ChatSkeletonLoader();
-                      }
-
-                      if (snapshot.hasError) {
-                        return const Center(
-                          child: Text("Error loading messages"),
-                        );
-                      }
-
-                      final messages = snapshot.data ?? [];
-                      return Column(
-                        children: [
-                          if (chatProvider.isLoading)
-                            const Padding(
-                              padding: EdgeInsets.all(8.0),
-                              child: SizedBox(
-                                height: 20,
-                                width: 20,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                ),
-                              ),
-                            ),
-                          Expanded(
-                            child: ListView.builder(
-                              controller: _scrollController,
-                              reverse: true,
-                              itemCount: messages.length,
-                              itemBuilder: (context, index) {
-                                final message = messages[index];
-                                final bool isCurrentUser =
-                                    message.senderId ==
-                                    (widget.isAdmin ? "admin" : widget.userId);
-                                final bool showTime = _shouldShowTimeSeparator(
-                                  messages,
-                                  index,
-                                );
-
-                                return Column(
-                                  children: [
-                                    if (showTime)
-                                      _buildTimeSeparator(
-                                        message.timestamp,
-                                        index,
-                                        messages,
+      body:
+          _isFirstLoad
+              ? const ChatSkeletonLoader()
+              : Column(
+                children: [
+                  Expanded(
+                    child:
+                        chatProvider.messages.isEmpty
+                            ? const Center(child: Text("No messages yet"))
+                            : Column(
+                              children: [
+                                if (chatProvider.isLoadingMore)
+                                  const Padding(
+                                    padding: EdgeInsets.all(8.0),
+                                    child: SizedBox(
+                                      height: 20,
+                                      width: 20,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
                                       ),
-                                    _buildBubbleChat(isCurrentUser, message),
-                                  ],
-                                );
-                              },
+                                    ),
+                                  ),
+                                Expanded(
+                                  child: ListView.builder(
+                                    controller: _scrollController,
+                                    reverse: true,
+                                    itemCount: chatProvider.messages.length,
+                                    itemBuilder: (context, index) {
+                                      final message =
+                                          chatProvider.messages[index];
+                                      final bool isCurrentUser =
+                                          message.senderId ==
+                                          (widget.isAdmin
+                                              ? "admin"
+                                              : widget.userId);
+                                      final bool showTime =
+                                          _shouldShowTimeSeparator(
+                                            chatProvider.messages,
+                                            index,
+                                          );
+
+                                      return Column(
+                                        children: [
+                                          if (showTime)
+                                            _buildTimeSeparator(
+                                              message.timestamp,
+                                            ),
+                                          _buildBubbleChat(
+                                            isCurrentUser,
+                                            message,
+                                          ),
+                                        ],
+                                      );
+                                    },
+                                  ),
+                                ),
+                              ],
                             ),
-                          ),
-                        ],
-                      );
-                    },
-                  );
-                },
+                  ),
+                  SafeArea(child: _buildMessageInput()),
+                ],
               ),
-            ),
-            SafeArea(child: _buildMessageInput()),
-          ],
-        ),
-      ),
     );
   }
 
@@ -264,33 +286,14 @@ class _ChatScreenState extends State<ChatScreen> {
     final currentMessageTime = messages[index].timestamp;
     final previousMessageTime = messages[index + 1].timestamp;
 
-    // Show full date if more than 1 day apart
     if (currentMessageTime.difference(previousMessageTime).inDays > 0) {
       return true;
     }
 
-    // Show time separator if more than 15 minutes apart
     return currentMessageTime.difference(previousMessageTime).inMinutes > 15;
   }
 
-  /// **Time Separator Widget**
-  Widget _buildTimeSeparator(
-    DateTime timestamp,
-    int index,
-    List<Message> messages,
-  ) {
-    bool isFullDateNeeded =
-        (index == messages.length - 1) ||
-        messages[index].timestamp
-                .difference(messages[index + 1].timestamp)
-                .inDays >
-            0;
-
-    String formattedTime =
-        isFullDateNeeded
-            ? DateFormat("MMM d, yyyy - h:mm a").format(timestamp)
-            : DateFormat("h:mm a").format(timestamp);
-
+  Widget _buildTimeSeparator(DateTime timestamp) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8.0),
       child: Center(
@@ -301,7 +304,7 @@ class _ChatScreenState extends State<ChatScreen> {
             borderRadius: BorderRadius.circular(12),
           ),
           child: Text(
-            formattedTime,
+            DateFormat("MMM d, yyyy - h:mm a").format(timestamp),
             style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
           ),
         ),
@@ -332,12 +335,15 @@ class _ChatScreenState extends State<ChatScreen> {
                     ),
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(6),
-                  child: Image.network(
-                    message.imageUrls.first,
-                    width: 100,
-                    height: 100,
-                    fit: BoxFit.cover,
-                  ),
+                  child:
+                      message.imageUrls.first == "loading"
+                          ? ImageSkeletonLoader()
+                          : Image.network(
+                            message.imageUrls.first,
+                            width: 200,
+                            height: 200,
+                            fit: BoxFit.cover,
+                          ),
                 ),
               ),
             if (message.message.isNotEmpty)

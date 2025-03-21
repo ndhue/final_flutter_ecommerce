@@ -65,7 +65,6 @@ Route<dynamic> generateRoute(RouteSettings settings) {
         final args = settings.arguments as Map<String, dynamic>;
         page = ChatScreen(
           userId: args['userId'],
-          userName: args['userName'] ?? "Unknown",
           isAdmin: args['isAdmin'] ?? false,
         );
       } else {
@@ -77,7 +76,7 @@ Route<dynamic> generateRoute(RouteSettings settings) {
     case adminChatsRoute:
       page = AdminChatsScreen();
       break;
-      
+
     default:
       page = const EntryPoint();
       break;
