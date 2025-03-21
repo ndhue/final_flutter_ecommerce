@@ -1,9 +1,7 @@
 import 'package:final_ecommerce/screens/admin/admin_screens_export.dart';
-import 'package:final_ecommerce/screens/entry_point.dart';
 import 'package:final_ecommerce/screens/screen_export.dart';
 import 'package:flutter/material.dart';
-import 'package:final_ecommerce/screens/product/search_result.dart';
-import 'package:final_ecommerce/screens/product/product_search.dart';
+
 import 'route_constants.dart';
 
 Route<dynamic> generateRoute(RouteSettings settings) {
@@ -43,9 +41,14 @@ Route<dynamic> generateRoute(RouteSettings settings) {
     case helpsAndSupportScreenRoute:
       page = HelpsSupport();
       break;
-    case adminChatsRoute:
-      page = AdminChatsScreen();
+
+    case pravicyAndPolicyScreenRoute:
+      page = PravicyAndPolicy();
       break;
+    case faqsScreenRoute:
+      page = FAQs();
+    case orderHistoryRouteScreen:
+      page = OrdersHistoryScreen();
     case productSearchRoute:
       page = ProductSearch();
       break;
@@ -57,17 +60,27 @@ Route<dynamic> generateRoute(RouteSettings settings) {
         page = const SearchResults();
       }
       break;
-    case customerChatRoute:
-      final args = settings.arguments as Map<String, dynamic>;
-      page = HelpCenterScreen(userId: args['userId'], userName: args['userName']);
+    case chatScreenRoute:
+      if (settings.arguments is Map<String, dynamic>) {
+        final args = settings.arguments as Map<String, dynamic>;
+        page = ChatScreen(
+          userId: args['userId'],
+          isAdmin: args['isAdmin'] ?? false,
+        );
+      } else {
+        return MaterialPageRoute(builder: (context) => const EntryPoint());
+      }
       break;
+
+    // ADMIN ROUTES
+    case adminChatsRoute:
+      page = AdminChatsScreen();
+      break;
+
     default:
-      page = const HomeScreen();
+      page = const EntryPoint();
       break;
   }
 
-  return MaterialPageRoute(
-    builder: (context) => page,
-    settings: settings, // Giữ nguyên arguments để SearchResults nhận được
-  );
+  return MaterialPageRoute(builder: (context) => page, settings: settings);
 }

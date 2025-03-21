@@ -1,6 +1,8 @@
+import 'package:final_ecommerce/routes/route_constants.dart';
 import 'package:final_ecommerce/screens/screen_export.dart';
 import 'package:final_ecommerce/widgets/buttons/cart_button.dart';
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../utils/constants.dart';
 
@@ -13,24 +15,54 @@ class EntryPoint extends StatefulWidget {
 
 class _EntryPointState extends State<EntryPoint> {
   int _currentIndex = 0;
+  bool _isLoggedIn = false;
 
-  void _navigateToCategories() {
-    setState(() {
-      _currentIndex = 1;
-    });
-  }
-
-  late List _pages;
+  late List<Widget> _pages;
 
   @override
   void initState() {
     super.initState();
+    _checkLoginStatus();
     _pages = [
-      HomeScreen(navigateToCategories: _navigateToCategories),
-      CategoriesScreen(),
-      OrdersScreen(),
-      ProfileScreen(),
+      const HomeScreen(),
+      const CategoriesScreen(),
+      const OrdersScreen(),
+      const ProfileScreen(),
     ];
+  }
+
+  // Check if user is logged in
+  Future<void> _checkLoginStatus() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String? uid = prefs.getString('uid');
+    setState(() {
+      _isLoggedIn = uid != null;
+    });
+  }
+
+  // Show login dialog
+  void _showLoginDialog() {
+    showDialog(
+      context: context,
+      builder:
+          (context) => AlertDialog(
+            title: const Text("Sign In Required"),
+            content: const Text("Please sign in to access this feature."),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text("Cancel"),
+              ),
+              ElevatedButton(
+                onPressed: () {
+                  Navigator.pop(context);
+                  Navigator.pushNamed(context, authScreenRoute);
+                },
+                child: const Text("Sign In"),
+              ),
+            ],
+          ),
+    );
   }
 
   @override
@@ -39,26 +71,22 @@ class _EntryPointState extends State<EntryPoint> {
       appBar: AppBar(
         actionsPadding: const EdgeInsets.only(right: defaultPadding),
         backgroundColor: Colors.white,
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              "Delivery address",
-              style: TextStyle(color: Colors.grey[500], fontSize: 12),
-            ),
-            Row(
-              children: [
-                Text(
-                  "District 7, TP HCM",
-                  style: const TextStyle(
-                    color: Colors.black87,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                  ),
+        title: Align(
+          alignment: Alignment.centerLeft,
+          child: Row(
+            children: [
+              Image.asset('assets/images/shopping.png', height: 28),
+              const SizedBox(width: 8),
+              const Text(
+                "Naturify Shop",
+                style: TextStyle(
+                  color: primaryColor,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
                 ),
-              ],
-            ),
-          ],
+              ),
+            ],
+          ),
         ),
         actions: [CartButton()],
       ),
@@ -69,7 +97,9 @@ class _EntryPointState extends State<EntryPoint> {
         child: BottomNavigationBar(
           currentIndex: _currentIndex,
           onTap: (index) {
-            if (index != _currentIndex) {
+            if (!_isLoggedIn && (index == 2 || index == 3)) {
+              _showLoginDialog();
+            } else {
               setState(() {
                 _currentIndex = index;
               });
@@ -77,29 +107,29 @@ class _EntryPointState extends State<EntryPoint> {
           },
           backgroundColor: Colors.white,
           type: BottomNavigationBarType.fixed,
-          selectedLabelStyle: TextStyle(color: primaryColor),
+          selectedLabelStyle: const TextStyle(color: primaryColor),
           selectedFontSize: 12,
           selectedItemColor: primaryColor,
           unselectedItemColor: iconColor,
-          items: [
+          items: const [
             BottomNavigationBarItem(
-              icon: const Icon(Icons.home),
-              activeIcon: const Icon(Icons.home_filled),
+              icon: Icon(Icons.home_outlined),
+              activeIcon: Icon(Icons.home_filled),
               label: "Home",
             ),
             BottomNavigationBarItem(
-              icon: const Icon(Icons.grid_view_outlined),
-              activeIcon: const Icon(Icons.grid_view_rounded),
+              icon: Icon(Icons.grid_view_outlined),
+              activeIcon: Icon(Icons.grid_view_rounded),
               label: "Categories",
             ),
             BottomNavigationBarItem(
-              icon: const Icon(Icons.access_time_outlined),
-              activeIcon: const Icon(Icons.access_time_filled_rounded),
+              icon: Icon(Icons.access_time_outlined),
+              activeIcon: Icon(Icons.access_time_filled_rounded),
               label: "Orders",
             ),
             BottomNavigationBarItem(
-              icon: const Icon(Icons.person_outlined),
-              activeIcon: const Icon(Icons.person_rounded),
+              icon: Icon(Icons.person_outline),
+              activeIcon: Icon(Icons.person_rounded),
               label: "Profile",
             ),
           ],

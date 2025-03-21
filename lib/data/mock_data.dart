@@ -87,47 +87,43 @@ List<Product> products = [mockIpad, mockLaptop, mockIpad, mockLaptop];
 List<Category> categories = [
   Category(
     id: '1',
-    name: 'Mobiles',
-    description: "Latest smartphones from top brands.",
-    image: "smartphone.png",
+    name: 'Desktops',
+    description: "High-performance desktop PCs for gaming and work.",
+    image: "desktop.png",
   ),
   Category(
     id: '2',
     name: 'Laptops',
-    description: "High-performance laptops for work and gaming.",
+    description: "Powerful and portable laptops for every need.",
     image: "laptop.png",
   ),
   Category(
     id: '3',
+    name: 'Monitors',
+    description: "HD and 4K monitors for work and gaming.",
+    image: "monitor.png",
+  ),
+  Category(
+    id: '4',
+    name: 'Speakers',
+    description: "Gaming headsets, wireless speakers, and audio accessories.",
+    image: "speaker.png",
+  ),
+  Category(
+    id: '5',
+    name: 'Keyboards',
+    description: "Mechanical, membrane, and wireless keyboards.",
+    image: "keyboard.png",
+  ),
+  Category(
+    id: '6',
     name: 'Headphones',
     description: "Wireless and wired headphones with great sound quality.",
     image: "music.png",
   ),
-  Category(
-    id: '4',
-    name: 'Tablets',
-    description: "Portable and powerful tablets for entertainment and work.",
-    image: "ipad.png",
-  ),
-  Category(
-    id: '5',
-    name: 'Smartwatches',
-    description: "Keep track of your fitness goals with smartwatches.",
-    image: "smartwatch.png",
-  ),
 ];
 
 List<Category> specialCategories = [
-  Category(
-    id: '1',
-    name: "Promotional",
-    icon: const Icon(
-      Icons.local_offer,
-      color: Colors.red,
-      size: 40,
-    ), // Tag icon representing discounts and promotions
-    description: "Exclusive deals and limited-time offers available here.",
-  ),
   Category(
     id: '2',
     name: "New Products",
@@ -137,6 +133,16 @@ List<Category> specialCategories = [
       size: 40,
     ), // "New" label icon for newly released products
     description: "Check out the latest additions to our store.",
+  ),
+  Category(
+    id: '1',
+    name: "Promotional",
+    icon: const Icon(
+      Icons.local_offer,
+      color: Colors.red,
+      size: 40,
+    ), // Tag icon representing discounts and promotions
+    description: "Exclusive deals and limited-time offers available here.",
   ),
   Category(
     id: '3',

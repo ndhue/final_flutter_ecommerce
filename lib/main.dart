@@ -1,8 +1,7 @@
-import 'package:final_ecommerce/data/mock_chat_provider.dart';
 import 'package:final_ecommerce/firebase_options.dart';
+import 'package:final_ecommerce/providers/providers_export.dart';
 import 'package:final_ecommerce/routes/route_constants.dart';
 import 'package:final_ecommerce/routes/router.dart' as router;
-import 'package:final_ecommerce/providers/cart_provider.dart'; // ✅ Thêm dòng này
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -19,10 +18,12 @@ void main() async {
   runApp(
     MultiProvider(
       providers: [
-        ChangeNotifierProvider(create: (_) => MockChatProvider()),
+        ChangeNotifierProvider(create: (_) => AuthProvider()),
+        ChangeNotifierProvider(create: (_) => ChatProvider()),
+        ChangeNotifierProvider(create: (_) => CartProvider()),
         ChangeNotifierProvider(
-          create: (_) => CartProvider(),
-        ), // ✅ Thêm dòng này
+          create: (_) => UserProvider()..loadUserOnAppStart(),
+        ),
       ],
       child: const MainApp(),
     ),
@@ -39,6 +40,10 @@ class MainApp extends StatelessWidget {
       title: 'Demo',
       onGenerateRoute: router.generateRoute,
       initialRoute: entryPointScreenRoute,
+      theme: ThemeData(
+        scaffoldBackgroundColor: Colors.white,
+        appBarTheme: const AppBarTheme(color: Colors.white, elevation: 0),
+      ),
     );
   }
 }

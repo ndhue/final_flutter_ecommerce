@@ -1,42 +1,43 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class Chat {
+  final String id;
   final String userId;
   final String userName;
   final String lastMessage;
-  final Timestamp lastMessageTimestamp;
-  final Timestamp lastSeenMessageTimestamp;
+  final DateTime lastMessageTimestamp;
+  final int unreadCount;
 
   Chat({
+    required this.id,
     required this.userId,
     required this.userName,
     required this.lastMessage,
     required this.lastMessageTimestamp,
-    required this.lastSeenMessageTimestamp,
+    required this.unreadCount,
   });
 
-  // Convert Firestore JSON -> Chat Object
-  factory Chat.fromJson(Map<String, dynamic> json) {
+  // Convert Firestore document to Chat object
+  factory Chat.fromMap(Map<String, dynamic> map) {
     return Chat(
-      userId: json["userId"],
-      userName: json["userName"],
-      lastMessage: json["lastMessage"],
-      lastMessageTimestamp: json["lastMessageTimestamp"] as Timestamp,
-      lastSeenMessageTimestamp:
-          json.containsKey('lastSeenMessageTimestamp')
-              ? json['lastSeenMessageTimestamp'] as Timestamp
-              : Timestamp(0, 0), // Default if missing
+      id: map['id'] ?? '',
+      userId: map['userId'] ?? '',
+      userName: map['userName'] ?? '',
+      lastMessage: map['lastMessage'] ?? '',
+      lastMessageTimestamp: (map['lastMessageTimestamp'] as Timestamp).toDate(),
+      unreadCount: map['unreadCount'] ?? 0,
     );
   }
 
-  // Convert Chat Object -> Firestore JSON
-  Map<String, dynamic> toJson() {
+  // Convert Chat object to Firestore format
+  Map<String, dynamic> toMap() {
     return {
-      "userId": userId,
-      "userName": userName,
-      "lastMessage": lastMessage,
-      "lastMessageTimestamp": lastMessageTimestamp,
-      'lastSeenMessageTimestamp': lastSeenMessageTimestamp,
+      'id': id,
+      'userId': userId,
+      'userName': userName,
+      'lastMessage': lastMessage,
+      'lastMessageTimestamp': lastMessageTimestamp.toUtc(),
+      'unreadCount': unreadCount,
     };
   }
 }

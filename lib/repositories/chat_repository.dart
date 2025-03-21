@@ -1,111 +1,161 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:final_ecommerce/models/models_export.dart';
+import 'package:final_ecommerce/utils/constants.dart';
+import 'package:flutter/material.dart';
+import 'package:rxdart/rxdart.dart';
 
 class ChatRepository {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
-  // Get all chats for Admin
+  // Fetch all chats (for Admin)
   Future<List<Chat>> getChatsOnce() async {
-    QuerySnapshot snapshot =
-        await _firestore
-            .collection("chats")
-            .orderBy("lastMessageTimestamp", descending: true)
-            .get();
-
-    return snapshot.docs
-        .map((doc) => Chat.fromJson(doc.data() as Map<String, dynamic>))
-        .toList();
+    final snapshot = await _firestore.collection('chats').get();
+    return snapshot.docs.map((doc) => Chat.fromMap(doc.data())).toList();
   }
 
-  // Get messages for a specific user
-  Future<List<Message>> getMessagesOnce(String userId) async {
-    QuerySnapshot snapshot =
-        await _firestore
-            .collection("chats")
-            .doc(userId)
-            .collection("messages")
-            .orderBy("timestamp", descending: true)
-            .get();
+  // Fetch messages (lazy loading)
+  Future<List<Message>> getMessagesWithPagination(
+    String userId,
+    DocumentSnapshot? lastMessage,
+  ) async {
+    try {
+      Query query = _firestore
+          .collection('chats')
+          .doc(userId)
+          .collection('messages')
+          .orderBy('timestamp', descending: true)
+          .limit(10);
 
-    return snapshot.docs
-        .map((doc) => Message.fromJson(doc.data() as Map<String, dynamic>))
-        .toList();
+      if (lastMessage != null) {
+        query = query.startAfterDocument(lastMessage);
+      }
+
+      QuerySnapshot querySnapshot = await query.get();
+
+      return querySnapshot.docs
+          .map(
+            (doc) =>
+                Message.fromMap(doc.data() as Map<String, dynamic>)
+                  ..documentSnapshot = doc,
+          )
+          .toList();
+    } catch (e) {
+      return [];
+    }
+  }
+
+  // Listen for real-time message updates
+  Stream<List<Message>> listenToMessages(String userId) {
+    return _firestore
+        .collection('chats')
+        .doc(userId)
+        .collection('messages')
+        .orderBy('timestamp', descending: true)
+        .limit(20)
+        .snapshots()
+        .debounceTime(Duration(milliseconds: 1000)) // Reduce excessive updates
+        .map(
+          (snapshot) =>
+              snapshot.docs.map((doc) {
+                return Message.fromMap(doc.data());
+              }).toList(),
+        );
   }
 
   // Get unread messages count
   Future<int> getUnreadMessagesCount(String userId) async {
-    DocumentSnapshot chatDoc =
-        await _firestore.collection("chats").doc(userId).get();
-
-    if (!chatDoc.exists) return 0;
-
-    Timestamp lastSeen = (chatDoc.data() as Map<String, dynamic>?)?["lastSeenMessageTimestamp"] ?? Timestamp(0, 0);
-
-    QuerySnapshot unreadMessages =
+    final snapshot =
         await _firestore
-            .collection("chats")
+            .collection('chats')
             .doc(userId)
-            .collection("messages")
-            .where(
-              "timestamp",
-              isGreaterThan: lastSeen,
-            ) // Only unread messages
+            .collection('messages')
+            .where('isRead', isEqualTo: false)
             .get();
-
-    return unreadMessages.docs.length;
+    return snapshot.docs.length;
   }
 
-  // Mark chat as read when user opens chat
+  // Mark all messages as read
   Future<void> markChatAsRead(String userId) async {
-    // Update last seen timestamp
-    await _firestore.collection("chats").doc(userId).update({
-      "lastSeenMessageTimestamp": Timestamp.now(),
-    });
-
-    // Update unread messages in the messages collection
-    QuerySnapshot unreadMessages =
+    final batch = _firestore.batch();
+    final unreadMessages =
         await _firestore
-            .collection("chats")
+            .collection('chats')
             .doc(userId)
-            .collection("messages")
-            .where("isRead", isEqualTo: false)
+            .collection('messages')
+            .where('isRead', isEqualTo: false)
             .get();
 
     for (var doc in unreadMessages.docs) {
-      doc.reference.update({'isRead': true});
+      batch.update(doc.reference, {'isRead': true});
     }
+
+    // Reset unread count
+    batch.update(_firestore.collection('chats').doc(userId), {
+      'unreadCount': 0,
+    });
+
+    await batch.commit();
   }
 
-  // Send message and update chat
+  // Send message (supports text & images)
   Future<void> sendMessage(
     String userId,
     String senderId,
     String senderName,
     String message, {
-    String? imageUrl,
+    List<String>? imageUrls,
   }) async {
-    Message newMessage = Message(
-      senderId: senderId,
-      senderName: senderName,
-      message: message,
-      imageUrl: imageUrl ?? "",
-      timestamp: Timestamp.now(),
-      isRead: senderId == userId, // Mark as read if the sender is the user
-    );
+    try {
+      final docRef =
+          _firestore
+              .collection('chats')
+              .doc(userId)
+              .collection('messages')
+              .doc();
 
-    // Add message to Firestore
-    await _firestore
-        .collection("chats")
-        .doc(userId)
-        .collection("messages")
-        .add(newMessage.toJson());
+      final newMessage = Message(
+        id: docRef.id,
+        senderId: senderId,
+        senderName: senderName,
+        message: message,
+        imageUrls: imageUrls ?? [],
+        timestamp: DateTime.now(),
+        isRead: senderId == adminId, // Mark admin messages as read
+      );
 
-    // Update last message info in chat document
-    await _firestore.collection("chats").doc(userId).set({
-      "userId": userId,
-      "userName": senderName,
-      "lastMessage": message.isNotEmpty ? message : "Image",
-      "lastMessageTimestamp": Timestamp.now(),
-    }, SetOptions(merge: true));
+      // Store the message in Firestore
+      await docRef.set(newMessage.toMap());
+
+      // Update chat metadata (last message & unread count)
+      await _firestore.collection('chats').doc(userId).update({
+        'lastMessage': message.isNotEmpty ? message : "[Image]",
+        'lastMessageTimestamp': FieldValue.serverTimestamp(),
+        'unreadCount':
+            senderId == adminId
+                ? 0
+                : FieldValue.increment(
+                  1,
+                ), // Increment unread count for user messages
+      });
+
+      debugPrint("Message sent successfully: ${newMessage.toMap()}");
+    } catch (e) {
+      debugPrint("Error sending message: $e");
+      rethrow;
+    }
+  }
+
+  // Chat exists before opening
+  Future<void> checkChatExists(String userId) async {
+    final chatDoc = await _firestore.collection('chats').doc(userId).get();
+    if (!chatDoc.exists) {
+      await _firestore.collection('chats').doc(userId).set({
+        'userId': userId,
+        'adminId': adminId,
+        'lastMessage': '',
+        'timestamp': FieldValue.serverTimestamp(),
+        'unreadCount': 0,
+      });
+    }
   }
 }

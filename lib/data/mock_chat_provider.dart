@@ -1,156 +1,156 @@
-import 'dart:async';
-
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:final_ecommerce/models/models_export.dart';
 import 'package:flutter/material.dart';
 
-class MockChatProvider extends ChangeNotifier {
-  List<Chat> _chats = [];
-  final Map<String, List<Message>> _messages = {}; // Store messages per user
-  bool _isLoading = false;
-  final Map<String, Timestamp> _lastSeenMessageTimestamp =
-      {}; // Track last seen per user
+import '../models/models_export.dart';
 
-  List<Chat> get chats => _chats;
-  bool get isLoading => _isLoading;
+class MockChatProvider extends ChangeNotifier {
+  final Map<String, List<Message>> _messages = {};
+  final List<Chat> _chats = [];
+  final Map<String, int> _unreadMessagesCount = {};
+  bool _isLoading = false;
+  bool _hasMoreMessages = true;
+  bool _hasFetchedChats = false;
 
   Map<String, List<Message>> get messages => _messages;
+  List<Chat> get chats => _chats;
+  bool get isLoading => _isLoading;
+  bool get hasMoreMessages => _hasMoreMessages;
+  int getUnreadMessages(String userId) => _unreadMessagesCount[userId] ?? 0;
 
-  MockChatProvider() {
-    _generateMockChats();
-  }
+  /// Fetch chat list (Admin)
+  Future<void> fetchChats() async {
+    if (_hasFetchedChats) return;
 
-  // Generate mock chats
-  void _generateMockChats() {
-    _chats = [
-      Chat(
-        userId: "user1",
-        userName: "Alice",
-        lastMessage: "Hello, I need help!",
-        lastMessageTimestamp: Timestamp.now(),
-        lastSeenMessageTimestamp: Timestamp(0, 0), // Default: No messages seen
-      ),
-      Chat(
-        userId: "user2",
-        userName: "Bob",
-        lastMessage: "Is my order confirmed?",
-        lastMessageTimestamp: Timestamp.now(),
-        lastSeenMessageTimestamp: Timestamp(0, 0),
-      ),
-    ];
-
-    _messages["user1"] = _generateMockMessages("user1");
-    _messages["user2"] = _generateMockMessages("user2");
-
-    notifyListeners();
-  }
-
-  // Generate mock messages per user
-  List<Message> _generateMockMessages(String userId) {
-    return [
-      Message(
-        senderId: userId,
-        senderName: "User",
-        message: "Hello, I have a problem.",
-        imageUrl: "",
-        timestamp: Timestamp.now(),
-        isRead: false, // Default unread
-      ),
-      Message(
-        senderId: "admin",
-        senderName: "Admin",
-        message: "Sure, how can I assist you?",
-        imageUrl: "",
-        timestamp: Timestamp.now(),
-        isRead: false, // Default unread
-      ),
-    ];
-  }
-
-  // Fetch messages and mark as read
-  Future<void> fetchMockMessages(String userId) async {
     _isLoading = true;
     notifyListeners();
 
-    await Future.delayed(Duration(seconds: 1)); // Simulate network delay
+    await Future.delayed(const Duration(milliseconds: 500));
 
-    _messages[userId] ??= _generateMockMessages(userId);
+    _chats.clear();
+    _chats.addAll(
+      List.generate(
+        5,
+        (index) => Chat(
+          id: "chat_$index",
+          userId: "user_$index",
+          userName: "User $index",
+          lastMessage: "Last message from User $index",
+          lastMessageTimestamp: DateTime.now().subtract(
+            Duration(minutes: index * 5),
+          ),
+          unreadCount: index,
+        ),
+      ),
+    );
 
-    // Mark all messages as read
-    for (var msg in _messages[userId]!) {
-      msg.isRead = true;
+    // Update unread messages count
+    for (var chat in _chats) {
+      _unreadMessagesCount[chat.userId] = chat.unreadCount;
     }
 
-    _lastSeenMessageTimestamp[userId] = Timestamp.now();
     _isLoading = false;
+    _hasFetchedChats = true;
     notifyListeners();
   }
 
-  // Get unread messages count
-  int getUnreadMessagesCount(String userId) {
-    if (!_messages.containsKey(userId) ||
-        !_lastSeenMessageTimestamp.containsKey(userId)) {
-      return 0;
-    }
+  /// Fetch messages (Lazy Loading)
+  Future<void> fetchMockMessages(String userId, {bool loadMore = false}) async {
+    if (loadMore && !_hasMoreMessages) return;
 
-    return _messages[userId]!
-        .where(
-          (msg) =>
-              msg.timestamp.toDate().isAfter(
-                _lastSeenMessageTimestamp[userId]!.toDate(),
-              ) &&
-              !msg.isRead,
-        )
-        .length;
-  }
+    _isLoading = true;
+    notifyListeners();
 
-  // Mark chat as read when user opens chat
-  void markChatAsRead(String userId) {
-    if (!_messages.containsKey(userId)) return;
+    await Future.delayed(const Duration(milliseconds: 500));
 
-    // Mark all messages as read
-    for (var message in _messages[userId]!) {
-      message.isRead = true;
-    }
+    _messages.putIfAbsent(userId, () => []);
+    final List<Message> newMessages = List.generate(
+      10,
+      (index) => Message(
+        id: DateTime.now().toString(),
+        senderId: index % 2 == 0 ? "admin" : userId,
+        senderName: index % 2 == 0 ? "Admin" : "User",
+        message: "Mock message $index",
+        timestamp: DateTime.now().subtract(Duration(minutes: index * 5)),
+        imageUrls: [],
+        isRead: index % 2 == 0,
+      ),
+    );
 
-    // Update last seen timestamp
-    _lastSeenMessageTimestamp[userId] = Timestamp.now();
+    _messages[userId]!.insertAll(0, newMessages);
 
+    // Update unread messages count for user
+    _unreadMessagesCount[userId] =
+        (_unreadMessagesCount[userId] ?? 0) + newMessages.length;
+
+    _isLoading = false;
+    _hasMoreMessages = newMessages.isNotEmpty;
     notifyListeners();
   }
 
-  void sendMockMessage(
+  /// Get unread messages count
+  Future<void> fetchUnreadMessagesCount(String userId) async {
+    _unreadMessagesCount[userId] =
+        _messages[userId]?.where((msg) => msg.senderId != userId).length ?? 0;
+    notifyListeners();
+  }
+
+  /// Add a temporary message before upload completes
+  void addLocalMessage(Message tempMessage) {
+    _messages.putIfAbsent(tempMessage.senderId, () => []);
+    _messages[tempMessage.senderId]!.insert(0, tempMessage);
+    notifyListeners();
+  }
+
+  /// ✅ Replace the temporary message with uploaded images
+  void replaceTempMessage(Message tempMessage, List<String> uploadedImageUrls) {
+    if (!_messages.containsKey(tempMessage.senderId)) return;
+
+    int index = _messages[tempMessage.senderId]!.indexOf(tempMessage);
+    if (index != -1) {
+      _messages[tempMessage.senderId]![index] = tempMessage.copyWith(
+        imageUrls: uploadedImageUrls,
+      );
+      notifyListeners();
+    }
+  }
+
+  /// ✅ Send message and update unread count
+  Future<void> sendMockMessage(
     String userId,
     String senderId,
     String senderName,
     String message, {
-    String? imageUrl,
-  }) {
+    List<String>? imageUrls,
+  }) async {
     final newMessage = Message(
+      id: DateTime.now().toString(),
       senderId: senderId,
       senderName: senderName,
       message: message,
-      imageUrl: imageUrl ?? "",
-      timestamp: Timestamp.now(),
-      isRead: senderId == userId, // If sender is user, mark as read
+      timestamp: DateTime.now(),
+      imageUrls: imageUrls ?? [],
+      isRead: false,
     );
 
-    _messages[userId] ??= [];
+    _messages.putIfAbsent(userId, () => []);
     _messages[userId]!.insert(0, newMessage);
 
-    // Update last message info in chat list
-    var chatIndex = _chats.indexWhere((chat) => chat.userId == userId);
-    if (chatIndex != -1) {
-      _chats[chatIndex] = Chat(
-        userId: userId,
-        userName: _chats[chatIndex].userName,
-        lastMessage: message,
-        lastMessageTimestamp: Timestamp.now(),
-        lastSeenMessageTimestamp:
-            _lastSeenMessageTimestamp[userId] ?? Timestamp(0, 0),
-      );
+    // ✅ Increase unread count if message is from admin
+    if (senderId == "admin") {
+      _unreadMessagesCount[userId] = (_unreadMessagesCount[userId] ?? 0) + 1;
     }
 
     notifyListeners();
+  }
+
+  /// Mark chat as read
+  void markChatAsRead(String userId) {
+    _unreadMessagesCount[userId] = 0;
+    notifyListeners();
+  }
+
+  /// Listen to real-time updates (Mocked)
+  Stream<List<Message>> listenToMessages(String userId) async* {
+    await Future.delayed(const Duration(milliseconds: 500));
+    yield _messages[userId] ?? [];
   }
 }

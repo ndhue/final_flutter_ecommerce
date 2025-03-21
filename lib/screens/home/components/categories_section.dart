@@ -4,8 +4,12 @@ import 'package:final_ecommerce/utils/constants.dart';
 import 'package:flutter/material.dart';
 
 class CategoriesSection extends StatelessWidget {
-  final VoidCallback navigateToCategories;
-  CategoriesSection({super.key, required this.navigateToCategories});
+  final Function(String) onCategorySelected; // Callback để truyền danh mục được chọn
+
+  CategoriesSection({
+    super.key,
+    required this.onCategorySelected,
+  });
 
   // Create a new Category instance for the "All" category
   final allCategory = Category(
@@ -18,12 +22,18 @@ class CategoriesSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceAround,
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        ...categories.take(3).map((category) {
-          return CategoryWidget(category: category);
+        ...categories.take(4).map((category) {
+          return CategoryWidget(
+            category: category,
+            navigate: () => onCategorySelected(category.name), // Gọi callback với danh mục được chọn
+          );
         }),
-        CategoryWidget(category: allCategory, navigate: navigateToCategories),
+        CategoryWidget(
+          category: allCategory,
+          navigate: () => onCategorySelected(allCategory.name), // Gọi callback với danh mục "All"
+        ),
       ],
     );
   }
@@ -39,10 +49,10 @@ class CategoryWidget extends StatelessWidget {
   Widget build(BuildContext context) {
     return SizedBox(
       height: 70,
-      width: 80,
+      width: 70,
       child: InkWell(
         borderRadius: BorderRadius.circular(4),
-        onTap: navigate ?? () => debugPrint('Navigate to ${category.name}'),
+        onTap: navigate, // Gọi callback khi click
         child: Column(
           mainAxisAlignment: MainAxisAlignment.spaceAround,
           children: [
