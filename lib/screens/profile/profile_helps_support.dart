@@ -1,6 +1,7 @@
 import 'package:final_ecommerce/routes/route_constants.dart';
 import 'package:final_ecommerce/utils/constants.dart';
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class HelpsSupport extends StatefulWidget {
@@ -13,6 +14,21 @@ class HelpsSupport extends StatefulWidget {
 class _HelpsSupport extends State<HelpsSupport> {
   final GlobalKey<ScaffoldMessengerState> _scaffoldMessengerKey =
       GlobalKey<ScaffoldMessengerState>();
+
+  Future<void> navigateToChat(BuildContext context) async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String? uid = prefs.getString('uid');
+
+    if (uid != null && context.mounted) {
+      Navigator.pushNamed(
+        context,
+        chatScreenRoute,
+        arguments: {"userId": uid, "isAdmin": false},
+      );
+    } else {
+      _showSnackBar("Please log in to chat");
+    }
+  }
 
   Future<void> _makePhoneCall(String phoneNumber) async {
     final Uri url = Uri(scheme: 'tel', path: phoneNumber);
@@ -140,19 +156,7 @@ class _HelpsSupport extends State<HelpsSupport> {
                     "Start Live Chat with us",
                     icon: Icons.chat_bubble,
                     iconColor: Colors.greenAccent,
-                    onTap: () {
-                      // Navigator.pushNamed(context, adminChatsRoute);
-                      // Pass user id and name of currrent user to chat screen
-                      Navigator.pushNamed(
-                        context,
-                        chatScreenRoute,
-                        arguments: {
-                          "userId": 'user123',
-                          "userName": 'John Doe',
-                          "isAdmin": false,
-                        },
-                      );
-                    },
+                    onTap: () => navigateToChat(context),
                   ),
                 ],
               ),

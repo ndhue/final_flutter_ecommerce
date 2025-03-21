@@ -1,7 +1,13 @@
+import 'package:final_ecommerce/providers/providers_export.dart';
 import 'package:final_ecommerce/routes/route_constants.dart';
 import 'package:final_ecommerce/utils/constants.dart';
 import 'package:final_ecommerce/utils/dialog.dart';
+import 'package:firebase_auth/firebase_auth.dart' hide AuthProvider;
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+import 'components/change_password.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -11,67 +17,135 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
+  Future<void> handleLogout(BuildContext context) async {
+    try {
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      await prefs.clear();
+
+      await FirebaseAuth.instance.signOut();
+
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (context.mounted) {
+          Navigator.of(
+            context,
+            rootNavigator: true,
+          ).pushReplacementNamed(authScreenRoute);
+        }
+      });
+    } catch (e) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("Logout failed. Please try again.")),
+          );
+        }
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    final userProvider = context.watch<UserProvider>();
+    final user = userProvider.user;
+
     return Scaffold(
       backgroundColor: Colors.white,
-      body: ListView(
-        padding: EdgeInsets.all(20),
-        children: [
-          Card(
-            color: primaryColor,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.vertical(top: Radius.circular(15)),
-            ),
-            child: ListTile(
-              leading: CircleAvatar(
-                backgroundImage: AssetImage('assets/images/avatar-1.jpg'),
-                radius: 30,
+      body:
+          userProvider.isLoading
+              ? const Center(child: CircularProgressIndicator())
+              : user == null
+              ? Center(child: Text("User data not found. Please log in again."))
+              : ListView(
+                padding: EdgeInsets.all(20),
+                children: [
+                  Card(
+                    color: primaryColor,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.vertical(
+                        top: Radius.circular(15),
+                      ),
+                    ),
+                    child: ListTile(
+                      leading: CircleAvatar(
+                        backgroundImage: AssetImage(
+                          'assets/images/avatar-1.jpg',
+                        ),
+                        radius: 30,
+                      ),
+                      title: Text(
+                        user.fullName,
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      subtitle: Text(user.email),
+                      trailing: Icon(Icons.edit, color: iconColor),
+                    ),
+                  ),
+                  SizedBox(height: 20),
+
+                  _buildSectionTitle("Personal Information"),
+
+                  _buildMenuItem(
+                    Icons.local_shipping,
+                    "Shipping Address",
+                    context,
+                    shippingAddressScreenRoute,
+                  ),
+                  _buildMenuItem(
+                    Icons.payment,
+                    "Payment Method",
+                    context,
+                    paymentMethodScreenRoute,
+                  ),
+                  _buildMenuItem(
+                    Icons.history,
+                    "Order History",
+                    context,
+                    orderHistoryRouteScreen,
+                  ),
+
+                  SizedBox(height: 20),
+                  _buildSectionTitle("Support & Information"),
+                  _buildMenuItem(
+                    Icons.security,
+                    "Privacy Policy ",
+                    context,
+                    pravicyAndPolicyScreenRoute,
+                  ),
+                  _buildMenuItem(
+                    Icons.help,
+                    "Helps and support",
+                    context,
+                    helpsAndSupportScreenRoute,
+                  ),
+                  _buildMenuItem(
+                    Icons.question_answer,
+                    "FAQs",
+                    context,
+                    faqsScreenRoute,
+                  ),
+
+                  SizedBox(height: 20),
+                  _buildSectionTitle("Account Management"),
+                  _buildMenuItemCustom(Icons.lock, "Change Password", () {
+                    _showChangePasswordDialog(context);
+                  }),
+                  _buildMenuItemCustom(Icons.logout, "Logout", () {
+                    AppDialogs.showCustomDialog(
+                      context: context,
+                      title: "Log out",
+                      content: "Are you sure you want to logout?",
+                      confirmText: "Log out",
+                      onConfirm: () => handleLogout(context),
+                      cancelText: "Cancel",
+                      icon: Icons.exit_to_app,
+                      confirmColor: Colors.red,
+                    );
+                  }),
+                ],
               ),
-              title: Text(
-                "Ahmed Raza",
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-              ),
-              subtitle: Text("ahmedraza@gmail.com"),
-              trailing: Icon(Icons.edit, color: iconColor),
-            ),
-          ),
-          SizedBox(height: 20),
-
-          _buildSectionTitle("Personal Information"),
-
-          _buildMenuItem(Icons.local_shipping, "Shipping Address", context, shippingAddressScreenRoute),
-          _buildMenuItem(Icons.payment, "Payment Method", context, paymentMethodScreenRoute),
-          _buildMenuItem(Icons.history, "Order History", context, orderHistoryRouteScreen),
-
-          SizedBox(height: 20),
-          _buildSectionTitle("Support & Information"),
-          _buildMenuItem(Icons.security, "Privacy Policy ", context, pravicyAndPolicyScreenRoute),
-          _buildMenuItem(Icons.help, "Helps and support", context, helpsAndSupportScreenRoute),
-          _buildMenuItem(Icons.question_answer, "FAQs", context, faqsScreenRoute),
-          
-
-          SizedBox(height: 20),
-          _buildSectionTitle("Account Management"),
-          _buildMenuItemCustom(Icons.lock, "Change Password", () {
-            _showChangePWDialog(context);
-          }),
-          _buildMenuItemCustom(Icons.logout, "Logout", () {
-            AppDialogs.showCustomDialog(
-              context: context,
-              title: "Log out",
-              content: "Are you sure you want to logout?",
-              confirmText: "Log out",
-              onConfirm: () {
-                Navigator.pushNamed(context, authScreenRoute);
-              },
-              cancelText: "Cancel",
-              icon: Icons.exit_to_app,
-              confirmColor: Colors.red,
-            );
-          }),
-        ],
-      ),
     );
   }
 
@@ -118,63 +192,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  void _showChangePWDialog(BuildContext context) {
+  void _showChangePasswordDialog(BuildContext context) {
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
-      builder:
-          (context) => Container(
-            padding: EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                SizedBox(height: 10),
-                Text(
-                  "Change Password?",
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                ),
-                SizedBox(height: 10),
-                TextField(
-                  obscureText: true,
-                  decoration: InputDecoration(labelText: "New Password"),
-                ),
-                SizedBox(height: 10),
-                TextField(
-                  obscureText: true,
-                  decoration: InputDecoration(labelText: "Confirm Password"),
-                ),
-                SizedBox(height: 20),
-                ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: primaryColor,
-                    minimumSize: Size(double.infinity, 50),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                  ),
-                  onPressed: () {},
-                  child: Text("Confirm", style: TextStyle(color: Colors.white)),
-                ),
-                SizedBox(height: 10),
-                OutlinedButton(
-                  style: OutlinedButton.styleFrom(
-                    minimumSize: Size(double.infinity, 50),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                  ),
-                  onPressed: () => Navigator.pop(context),
-                  child: Text("Cancel", style: TextStyle(color: Colors.black)),
-                ),
-                SizedBox(height: 10),
-              ],
-            ),
-          ),
+      builder: (context) => ChangePasswordDialog(),
     );
   }
 }

@@ -43,7 +43,11 @@ class Message {
       senderId: map['senderId'] ?? '',
       senderName: map['senderName'] ?? '',
       message: map['message'] ?? '',
-      imageUrls: map['imageUrl'] ?? [],
+      imageUrls:
+          (map['imageUrls'] as List<dynamic>?)
+              ?.map((url) => url as String)
+              .toList() ??
+          [], // Properly cast imageUrls to List<String>
       timestamp: (map['timestamp'] as Timestamp).toDate(),
       isRead: map['isRead'] ?? false,
       documentSnapshot: snapshot as QueryDocumentSnapshot<Object?>?,

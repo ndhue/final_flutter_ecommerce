@@ -5,19 +5,21 @@ An Ecommerce app using Flutter.
 ## 📦 Setup & Installation
 
 1. **Clone the repository:**
+
    ```sh
    git clone https://github.com/ndhue/final_flutter_ecommerce.git
    cd final_flutter_ecommerce
    ```
 
 2. **Install dependencies:**
+
    ```sh
    flutter pub get
    ```
 
 3. **Run the app:**
 
-   ```sh 
+   ```sh
    flutter run
    ```
 
@@ -28,6 +30,18 @@ An Ecommerce app using Flutter.
    ```
 
 5. **Update dependencies:**
+
    ```sh
    flutter pub upgrade
+   ```
+
+6. **Account**
+   ```sh
+   Admin:
+      email: superadmin@gmail.com
+      password: superadmin
+
+   User:
+      email: user2@example.com
+      password: userpassword
    ```
