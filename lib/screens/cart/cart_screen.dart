@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/cart_provider.dart';
 import '../../utils/format.dart';
+import '../../widgets/buttons/cart_button.dart';
+import 'payment_screen.dart';
 
 class CartScreen extends StatelessWidget {
   const CartScreen({super.key});
@@ -15,16 +17,12 @@ class CartScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Your Cart'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.shopping_cart),
-            onPressed: () {}, // TODO: Chuyển đến trang giỏ hàng chi tiết
-          ),
+        actions: const [
+          CartButton(), // Thay thế IconButton bằng CartButton
         ],
       ),
       body: Column(
         children: [
-          // Phần chọn địa chỉ giao hàng
           GestureDetector(
             onTap: () {
               _showAddressDialog(context, cartProvider);
@@ -52,7 +50,6 @@ class CartScreen extends StatelessWidget {
               ),
             ),
           ),
-
           Expanded(
             child:
                 cartItems.isEmpty
@@ -63,10 +60,6 @@ class CartScreen extends StatelessWidget {
                         final item = cartItems[index];
                         final product = item.product;
                         final variant = product.variants.first;
-                        final imageUrl =
-                            product.images.isNotEmpty
-                                ? product.images.first
-                                : 'https://via.placeholder.com/100';
 
                         return ListTile(
                           leading: Checkbox(
@@ -114,25 +107,21 @@ class CartScreen extends StatelessWidget {
                       },
                     ),
           ),
-
-          // Phần hiển thị Order Summary khi có sản phẩm được chọn
           if (hasSelectedItems)
             Container(
               padding: const EdgeInsets.all(16),
               color: Colors.grey[100],
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Text(
+                children: const [
+                  Text(
                     'Order Summary',
                     style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                   ),
-                  const Icon(Icons.keyboard_arrow_up),
+                  Icon(Icons.keyboard_arrow_up),
                 ],
               ),
             ),
-
-          // Phần hiển thị tổng tiền và nút thanh toán
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
@@ -165,7 +154,12 @@ class CartScreen extends StatelessWidget {
                   onPressed:
                       hasSelectedItems
                           ? () {
-                            // TODO: Xử lý khi chọn phương thức thanh toán
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const PaymentScreen(),
+                              ),
+                            );
                           }
                           : null,
                   style: ElevatedButton.styleFrom(
@@ -186,7 +180,6 @@ class CartScreen extends StatelessWidget {
     );
   }
 
-  /// Hiển thị hộp thoại chọn địa chỉ
   void _showAddressDialog(BuildContext context, CartProvider cartProvider) {
     String selectedCity = cartProvider.city;
     String selectedDistrict = cartProvider.district;
