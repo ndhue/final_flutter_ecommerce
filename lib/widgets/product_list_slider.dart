@@ -1,3 +1,4 @@
+import 'package:final_ecommerce/screens/screen_export.dart';
 import 'package:final_ecommerce/utils/constants.dart';
 import 'package:flutter/material.dart';
 
@@ -8,12 +9,14 @@ class ProductListSlider extends StatelessWidget {
   final String title;
   final List<Product> products;
   final VoidCallback? onSeeAllPressed;
+  final Function(Product)? onProductSelected; // Thêm callback này
 
   const ProductListSlider({
     super.key,
     required this.title,
     required this.products,
     this.onSeeAllPressed,
+    this.onProductSelected, // Thêm vào constructor
   });
 
   @override
@@ -47,9 +50,30 @@ class ProductListSlider extends StatelessWidget {
             scrollDirection: Axis.horizontal,
             itemCount: displayProducts.length,
             itemBuilder: (context, index) {
-              return SizedBox(
-                width: 180, // Fixed width for each product card
-                child: ProductCard(product: displayProducts[index]),
+              final product = displayProducts[index];
+              return GestureDetector(
+                onTap: () {
+                  if (onProductSelected != null) {
+                    onProductSelected!(
+                      product,
+                    ); // Gọi callback khi click vào sản phẩm
+                  }
+                },
+                child: SizedBox(
+                  width: 180, // Fixed width for each product card
+                  child: ProductCard(
+                    product: product,
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder:
+                              (context) => ProductDetails(product: product),
+                        ),
+                      );
+                    },
+                  ),
+                ),
               );
             },
           ),

@@ -1,6 +1,7 @@
 import 'package:final_ecommerce/data/mock_data.dart';
 import 'package:final_ecommerce/screens/home/components/categories_section.dart';
 import 'package:final_ecommerce/screens/product/productCatalog.dart';
+import 'package:final_ecommerce/screens/screen_export.dart';
 import 'package:final_ecommerce/utils/constants.dart';
 import 'package:final_ecommerce/widgets/widgets_export.dart';
 import 'package:flutter/material.dart';
@@ -46,8 +47,32 @@ class _HomeScreenState extends State<HomeScreen> {
                 },
               ),
               // Các danh sách sản phẩm khác (ví dụ: Popular, Discount)
-              ProductListSlider(title: "Popular", products: products),
-              ProductListSlider(title: "Discount", products: products),
+              ProductListSlider(
+                 title: "Popular",
+                products: products,
+                onProductSelected: (product) {
+                  // Xử lý khi click vào sản phẩm trong danh sách Popular
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => ProductDetails(product: product),
+                    ),
+                  );
+                },
+              ),
+              ProductListSlider(
+                title: "Discount",
+                products: products,
+                onProductSelected: (product) {
+                  // Xử lý khi click vào sản phẩm trong danh sách Discount
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => ProductDetails(product: product),
+                    ),
+                  );
+                },
+              ),
             ],
           ),
         ),

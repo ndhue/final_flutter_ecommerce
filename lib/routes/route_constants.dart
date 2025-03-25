@@ -15,3 +15,4 @@ const String adminChatsRoute = "admin_chats";
 const String chatScreenRoute = "chat";
 const String productSearchRoute = "procduct_search";
 const String searchResultRoute = "search_result";
+const String productDetailsRoute = "product_details";
