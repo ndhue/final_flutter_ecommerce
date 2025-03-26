@@ -16,3 +16,4 @@ export 'profile/profile_payment_method.dart';
 export 'profile/profile_pravicy&policy.dart';
 export 'profile/profile_screen.dart';
 export 'profile/profile_shipping_address.dart';
+export 'product/product_details.dart';

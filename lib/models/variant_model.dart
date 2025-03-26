@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/material.dart';
 
 class Variant {
   String variantId;
@@ -8,6 +9,7 @@ class Variant {
   double discount; // Discount percentage (0.0 to 1.0)
   int inventory;
   bool isColor;
+  Color? color;
   DateTime updatedAt;
 
   Variant({
@@ -19,6 +21,7 @@ class Variant {
     required this.inventory,
     required this.isColor,
     required this.updatedAt,
+    this.color,
   });
 
   // Get the current price (discounted or regular)
@@ -46,6 +49,8 @@ class Variant {
                   DateTime.parse(json['updatedAt']['timestampValue']),
                 ))
           : Timestamp.now(),
+      color: json['color']['stringValue']??'',
+
     );
   }
 

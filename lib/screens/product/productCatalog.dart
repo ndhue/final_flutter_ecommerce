@@ -1,3 +1,4 @@
+import 'package:final_ecommerce/screens/product/product_details.dart';
 import 'package:final_ecommerce/utils/constants.dart';
 import 'package:final_ecommerce/widgets/buttons/cart_button.dart';
 import 'package:flutter/material.dart';
@@ -12,6 +13,7 @@ class ProductCatalog extends StatefulWidget {
   const ProductCatalog({super.key, required this.category});
 
   @override
+  // ignore: library_private_types_in_public_api
   _ProductCatalogState createState() => _ProductCatalogState();
 }
 
@@ -90,7 +92,18 @@ class _ProductCatalogState extends State<ProductCatalog> {
                             ),
                         itemCount: filteredProducts.length,
                         itemBuilder: (context, index) {
-                          return ProductCard(product: filteredProducts[index]);
+                          return ProductCard(product: filteredProducts[index],
+                          onTap: () {
+                            // Xử lý khi click vào sản phẩm
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) =>
+                                    ProductDetails(product: filteredProducts[index]),
+                              ),
+                            );
+                          },
+                          );
                         },
                       ),
             ),

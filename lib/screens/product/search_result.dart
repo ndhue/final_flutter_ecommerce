@@ -1,3 +1,4 @@
+import 'package:final_ecommerce/screens/screen_export.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '/models/models_export.dart';
@@ -110,7 +111,19 @@ class _SearchResultsState extends State<SearchResults> {
                             ),
                         itemCount: filteredProducts.length,
                         itemBuilder: (context, index) {
-                          return ProductCard(product: filteredProducts[index]);
+                          return ProductCard(
+                            product: filteredProducts[index],
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder:
+                                      (context) =>
+                                          ProductDetails(product: filteredProducts[index]),
+                                ),
+                              );
+                            },
+                          );
                         },
                       ),
             ),

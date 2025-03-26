@@ -24,9 +24,10 @@ Product mockIpad = Product(
       costPrice: 25000000,
       sellingPrice: 27000000,
       inventory: 10,
-      isColor: false,
+      isColor: true,
       discount: 0.2, // 20% discount
       updatedAt: DateTime.parse("2025-02-18T10:00:00Z"),
+      color: Colors.green,
     ),
     Variant(
       variantId: "v2",
@@ -34,9 +35,10 @@ Product mockIpad = Product(
       costPrice: 30000000,
       sellingPrice: 32000000,
       inventory: 5,
-      isColor: false,
+      isColor: true,
       discount: 0.2, // 20% discount
       updatedAt: DateTime.parse("2025-02-18T10:00:00Z"),
+      color: Colors.black87
     ),
   ],
 );
@@ -80,8 +82,89 @@ Product mockLaptop = Product(
   ],
 );
 
+Product mockIphone = Product(
+  id: "productId4",
+  name: "iPhone 15 Pro Max",
+  brand: "Apple",
+  category: "Smartphones",
+  description: "The latest iPhone with A17 chip and Dynamic Island.",
+  rating: 4.9,
+  salesCount: 500,
+  totalReviews: 300,
+  images: [
+    "https://picsum.photos/250?image=4",
+    "https://picsum.photos/250?image=5",
+  ],
+  activated: true,
+  createdAt: DateTime.parse("2025-04-01T10:00:00Z"),
+  variants: [
+    Variant(
+      variantId: "v1",
+      name: "128GB",
+      costPrice: 30000000,
+      sellingPrice: 32000000,
+      inventory: 20,
+      isColor: true, // Có màu
+      discount: 0.1, // 10% discount
+      updatedAt: DateTime.parse("2025-04-01T10:00:00Z"),
+      color: Colors.blue, // Màu sắc
+    ),
+    Variant(
+      variantId: "v2",
+      name: "256GB",
+      costPrice: 35000000,
+      sellingPrice: 37000000,
+      inventory: 15,
+      isColor: true, // Có màu
+      discount: 0.1, // 10% discount
+      updatedAt: DateTime.parse("2025-04-01T10:00:00Z"),
+      color: Colors.amberAccent, // Màu sắc
+    ),
+  ],
+);
+
+Product mockMacBook = Product(
+  id: "productId5",
+  name: "MacBook Air M2",
+  brand: "Apple",
+  category: "Laptops",
+  description: "The latest MacBook Air with M2 chip and Retina display.",
+  rating: 4.7,
+  salesCount: 400,
+  totalReviews: 250,
+  images: [
+    "https://picsum.photos/250?image=6",
+    "https://picsum.photos/250?image=7",
+  ],
+  activated: true,
+  createdAt: DateTime.parse("2025-05-01T10:00:00Z"),
+  variants: [
+    Variant(
+      variantId: "v1",
+      name: "8GB RAM / 256GB SSD",
+      costPrice: 40000000,
+      sellingPrice: 42000000,
+      inventory: 25,
+      isColor: false, // Không có màu
+      discount: 0.0, // No discount
+      updatedAt: DateTime.parse("2025-05-01T10:00:00Z"),
+    ),
+    Variant(
+      variantId: "v2",
+      name: "16GB RAM / 512GB SSD",
+      costPrice: 50000000,
+      sellingPrice: 52000000,
+      inventory: 10,
+      isColor: false, // Không có màu
+      discount: 0.0, // No discount
+      updatedAt: DateTime.parse("2025-05-01T10:00:00Z"),
+
+    ),
+  ],
+);
+
 // Product list
-List<Product> products = [mockIpad, mockLaptop, mockIpad, mockLaptop];
+List<Product> products = [mockIpad, mockLaptop, mockIpad, mockLaptop, mockIphone, mockMacBook];
 
 // Categories
 List<Category> categories = [
