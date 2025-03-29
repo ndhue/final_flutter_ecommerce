@@ -9,6 +9,8 @@ class Product {
   String description;
   double rating;
   int salesCount;
+  bool isColor;
+
   int totalReviews;
   List<String> images;
   List<Variant> variants;
@@ -25,6 +27,7 @@ class Product {
     required this.salesCount,
     required this.totalReviews,
     required this.images,
+    required this.isColor,
     required this.variants,
     required this.activated,
     required this.createdAt,
@@ -39,6 +42,7 @@ class Product {
       category: json['category'] ?? '',
       description: json['description'] ?? '',
       rating: (json['rating'] ?? 0.0).toDouble(),
+      isColor: json['isColor'] ?? false,
       salesCount: (json['salesCount'] ?? 0),
       totalReviews: (json['totalReviews'] ?? 0),
       images:

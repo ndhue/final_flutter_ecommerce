@@ -1,100 +1,150 @@
 import 'package:flutter/material.dart';
 import '../models/product_model.dart';
+import '../models/variant_model.dart';
 
+/// **Mô hình CartItem**
 class CartItem {
   final Product product;
+  final Variant variant;
   int quantity;
 
-  CartItem({required this.product, this.quantity = 1});
+  CartItem({required this.product, required this.variant, this.quantity = 1});
+
+  String get imageUrl => product.images.isNotEmpty ? product.images.first : '';
+  double get price => variant.currentPrice.toDouble();
+
+  /// ✅ Mã định danh duy nhất cho mỗi CartItem (bao gồm màu + size nếu có)
+  String get cartKey {
+    final colorHex =
+        variant.isColor ? variant.color?.value.toRadixString(16) ?? '' : '';
+    final size = variant.isSize ? variant.size ?? '' : '';
+    return '${product.id}_${variant.variantId}_${colorHex}_$size';
+  }
 }
 
+/// **Provider quản lý giỏ hàng**
 class CartProvider extends ChangeNotifier {
   final List<CartItem> _cartItems = [];
-  final Set<Product> _selectedItems = {}; // Danh sách sản phẩm được chọn
+  final Set<String> _selectedKeys = {}; // Chứa cartKey
 
   String _city = "Hồ Chí Minh";
   String _district = "Quận 1";
+  String _ward = "Phường Bến Nghé";
   String _address = "";
+  String _receiverName = "";
+  String _phoneNumber = "";
 
   List<CartItem> get cartItems => _cartItems;
-  Set<Product> get selectedItems => _selectedItems;
+  Set<CartItem> get selectedItems =>
+      _cartItems.where((item) => _selectedKeys.contains(item.cartKey)).toSet();
 
   String get city => _city;
   String get district => _district;
+  String get ward => _ward;
   String get address => _address;
+  String get receiverName => _receiverName;
+  String get phoneNumber => _phoneNumber;
 
-  /// Cập nhật địa chỉ giao hàng
-  void updateAddress(String city, String district, String address) {
+  void updateAddress(
+    String city,
+    String district,
+    String ward,
+    String address,
+    String receiverName,
+    String phoneNumber,
+  ) {
     _city = city;
     _district = district;
-    _address = address;
+    _ward = ward;
+    _address = address.isNotEmpty ? address : "Chưa nhập địa chỉ";
+    _receiverName = receiverName;
+    _phoneNumber = phoneNumber;
     notifyListeners();
   }
 
-  /// Tính tổng tiền của sản phẩm đã chọn
-  double get totalPrice {
-    double total = 0.0;
-    for (var item in _cartItems) {
-      if (_selectedItems.contains(item.product)) {
-        final price = item.product.variants.first.currentPrice;
-        total += price * item.quantity;
-      }
-    }
-    return total;
+  double get totalPrice => _cartItems.fold(
+    0.0,
+    (total, item) => total + (item.price * item.quantity),
+  );
+
+  double get selectedTotalPrice => selectedItems.fold(
+    0.0,
+    (total, item) => total + (item.price * item.quantity),
+  );
+
+  String _buildCartKey(Product product, Variant variant) {
+    final colorHex =
+        variant.isColor ? variant.color?.value.toRadixString(16) ?? '' : '';
+    final size = variant.isSize ? variant.size ?? '' : '';
+    return '${product.id}_${variant.variantId}_${colorHex}_$size';
   }
 
-  /// Thêm sản phẩm vào giỏ hàng
-  void addToCart(Product product) {
-    final index = _cartItems.indexWhere(
-      (item) => item.product.id == product.id,
-    );
+  void addToCart(Product product, Variant variant) {
+    final key = _buildCartKey(product, variant);
+    final index = _cartItems.indexWhere((item) => item.cartKey == key);
+
     if (index != -1) {
       _cartItems[index].quantity += 1;
     } else {
-      _cartItems.add(CartItem(product: product));
+      _cartItems.add(CartItem(product: product, variant: variant));
     }
     notifyListeners();
   }
 
-  /// Xóa sản phẩm khỏi giỏ hàng
-  void removeFromCart(Product product) {
-    _cartItems.removeWhere((item) => item.product.id == product.id);
-    _selectedItems.remove(product); // Xóa luôn khỏi danh sách chọn nếu có
+  void removeFromCart(Product product, Variant variant) {
+    final key = _buildCartKey(product, variant);
+    _cartItems.removeWhere((item) => item.cartKey == key);
+    _selectedKeys.remove(key);
     notifyListeners();
   }
 
-  /// Tăng số lượng sản phẩm
-  void increaseQuantity(Product product) {
-    final index = _cartItems.indexWhere(
-      (item) => item.product.id == product.id,
-    );
+  void increaseQuantity(Product product, Variant variant) {
+    final key = _buildCartKey(product, variant);
+    final index = _cartItems.indexWhere((item) => item.cartKey == key);
     if (index != -1) {
       _cartItems[index].quantity += 1;
       notifyListeners();
     }
   }
 
-  /// Giảm số lượng sản phẩm
-  void decreaseQuantity(Product product) {
-    final index = _cartItems.indexWhere(
-      (item) => item.product.id == product.id,
-    );
-    if (index != -1 && _cartItems[index].quantity > 1) {
-      _cartItems[index].quantity -= 1;
+  void decreaseQuantity(Product product, Variant variant) {
+    final key = _buildCartKey(product, variant);
+    final index = _cartItems.indexWhere((item) => item.cartKey == key);
+    if (index != -1) {
+      if (_cartItems[index].quantity > 1) {
+        _cartItems[index].quantity -= 1;
+      } else {
+        _cartItems.removeAt(index);
+        _selectedKeys.remove(key);
+      }
+      notifyListeners();
+    }
+  }
+
+  void toggleSelection(Product product, Variant variant) {
+    final key = _buildCartKey(product, variant);
+    if (_selectedKeys.contains(key)) {
+      _selectedKeys.remove(key);
     } else {
-      _cartItems.removeAt(index);
-      _selectedItems.remove(product); // Xóa luôn khỏi danh sách chọn nếu có
+      _selectedKeys.add(key);
     }
     notifyListeners();
   }
 
-  /// Chọn hoặc bỏ chọn sản phẩm
-  void toggleSelection(Product product) {
-    if (_selectedItems.contains(product)) {
-      _selectedItems.remove(product);
-    } else {
-      _selectedItems.add(product);
-    }
+  void clearCart() {
+    _cartItems.clear();
+    _selectedKeys.clear();
+    notifyListeners();
+  }
+
+  void selectAll() {
+    _selectedKeys.clear();
+    _selectedKeys.addAll(_cartItems.map((item) => item.cartKey));
+    notifyListeners();
+  }
+
+  void deselectAll() {
+    _selectedKeys.clear();
     notifyListeners();
   }
 }

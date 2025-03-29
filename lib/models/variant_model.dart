@@ -10,6 +10,9 @@ class Variant {
   int inventory;
   bool isColor;
   Color? color;
+  String? imageUrl;
+  bool isSize;
+  String? size;
   DateTime updatedAt;
 
   Variant({
@@ -20,37 +23,52 @@ class Variant {
     this.discount = 0.0,
     required this.inventory,
     required this.isColor,
-    required this.updatedAt,
     this.color,
+    this.imageUrl,
+    this.isSize = false,
+    this.size,
+    required this.updatedAt,
   });
 
   // Get the current price (discounted or regular)
-  int get currentPrice {
-    if (discount > 0 && discount < 1) {
-      return (sellingPrice * (1 - discount)).round();
-    }
-    return sellingPrice;
-  }
+  int get currentPrice =>
+      (discount > 0 && discount < 1)
+          ? (sellingPrice * (1 - discount)).round()
+          : sellingPrice;
 
   // Convert Firestore JSON to Variant Object
   factory Variant.fromJson(Map<String, dynamic> json) {
     return Variant(
-      variantId: json['variantId']['stringValue'] ?? '',
-      name: json['name']['stringValue'] ?? '',
-      costPrice: json['costPrice']['integerValue'] ?? 0,
-      sellingPrice: json['sellingPrice']['integerValue'] ?? 0,
-      discount: (json['discount']?['doubleValue'] ?? 0.0).toDouble(),
-      inventory: json['inventory']['integerValue'] ?? 0,
-      isColor: json['isColor']['booleanValue'] ?? false,
-      updatedAt: json['updatedAt'] != null
-          ? (json['updatedAt']['timestampValue'] is Timestamp
-              ? json['updatedAt']['timestampValue']
-              : Timestamp.fromDate(
-                  DateTime.parse(json['updatedAt']['timestampValue']),
-                ))
-          : Timestamp.now(),
-      color: json['color']['stringValue']??'',
-
+      variantId: json['variantId']?['stringValue'] ?? '',
+      name: json['name']?['stringValue'] ?? '',
+      costPrice:
+          int.tryParse(json['costPrice']?['integerValue']?.toString() ?? '0') ??
+          0,
+      sellingPrice:
+          int.tryParse(
+            json['sellingPrice']?['integerValue']?.toString() ?? '0',
+          ) ??
+          0,
+      discount: json['discount']?['doubleValue']?.toDouble() ?? 0.0,
+      inventory:
+          int.tryParse(json['inventory']?['integerValue']?.toString() ?? '0') ??
+          0,
+      isColor: json['isColor']?['booleanValue'] ?? false,
+      isSize: json['isSize']?['booleanValue'] ?? false,
+      size: json['size']?['stringValue'],
+      updatedAt:
+          json['updatedAt']?['timestampValue'] != null
+              ? DateTime.tryParse(json['updatedAt']['timestampValue']) ??
+                  DateTime.now()
+              : DateTime.now(),
+      color:
+          json['color']?['stringValue'] != null
+              ? Color(
+                int.tryParse(json['color']['stringValue'], radix: 16) ??
+                    0xFF000000,
+              )
+              : null,
+      imageUrl: json['imageUrl']?['stringValue'] ?? '',
     );
   }
 
@@ -59,12 +77,19 @@ class Variant {
     return {
       "variantId": {"stringValue": variantId},
       "name": {"stringValue": name},
-      "costPrice": {"stringValue": costPrice},
+      "costPrice": {"integerValue": costPrice},
       "sellingPrice": {"integerValue": sellingPrice},
+      "discount": {"doubleValue": discount},
       "inventory": {"integerValue": inventory},
       "isColor": {"booleanValue": isColor},
-      "discount": {"doubleValue": discount},
-      "updatedAt": {"timestampValue": updatedAt},
+      "isSize": {"booleanValue": isSize},
+      "size": size != null ? {"stringValue": size} : null,
+      "updatedAt": {"timestampValue": updatedAt.toIso8601String()},
+      "color":
+          color != null
+              ? {"stringValue": color!.value.toRadixString(16)}
+              : null,
+      "imageUrl": imageUrl != null ? {"stringValue": imageUrl} : null,
     };
   }
 }

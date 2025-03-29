@@ -10,6 +10,7 @@ Product mockIpad = Product(
   description: "The latest iPad Pro with M2 chip and Liquid Retina display.",
   rating: 4.8,
   salesCount: 250,
+  isColor: true,
   totalReviews: 40,
   images: [
     "https://picsum.photos/250?image=1",
@@ -19,33 +20,38 @@ Product mockIpad = Product(
   createdAt: DateTime.parse("2025-02-18T10:00:00Z"),
   variants: [
     Variant(
-      variantId: "v1",
-      name: "128GB Wi-Fi",
+      variantId: "ipad_128gb_green",
+      name: "128GB",
+      size: "128GB",
       costPrice: 25000000,
       sellingPrice: 27000000,
       inventory: 10,
       isColor: true,
-      discount: 0.2, // 20% discount
+      isSize: true,
+      discount: 0.2,
       updatedAt: DateTime.parse("2025-02-18T10:00:00Z"),
       color: Colors.green,
     ),
     Variant(
-      variantId: "v2",
-      name: "256GB Wi-Fi + Cellular",
+      variantId: "ipad_256gb_black",
+      name: "256GB",
+      size: "256GB",
       costPrice: 30000000,
       sellingPrice: 32000000,
       inventory: 5,
       isColor: true,
-      discount: 0.2, // 20% discount
+      isSize: true,
+      discount: 0.2,
       updatedAt: DateTime.parse("2025-02-18T10:00:00Z"),
-      color: Colors.black87
+      color: Colors.black,
     ),
   ],
 );
 
 Product mockLaptop = Product(
+  isColor: false,
   id: "productId3",
-  name: "Dell XPS 15 Dell XPS 15 Dell XPS 15",
+  name: "Dell XPS 15",
   brand: "Dell",
   category: "Laptops",
   description: "Dell XPS 15 with 12th Gen Intel i7, 16GB RAM, and 512GB SSD.",
@@ -60,29 +66,34 @@ Product mockLaptop = Product(
   createdAt: DateTime.parse("2025-03-01T10:00:00Z"),
   variants: [
     Variant(
-      variantId: "v1",
+      variantId: "xps15_16gb",
       name: "16GB RAM / 512GB SSD",
+      size: "16GB",
       costPrice: 35000000,
       sellingPrice: 37000000,
       inventory: 15,
       isColor: false,
-      discount: 0.0, // No discount
+      isSize: true,
+      discount: 0.0,
       updatedAt: DateTime.parse("2025-03-01T10:00:00Z"),
     ),
     Variant(
-      variantId: "v2",
+      variantId: "xps15_32gb",
       name: "32GB RAM / 1TB SSD",
+      size: "32GB",
       costPrice: 45000000,
       sellingPrice: 47000000,
       inventory: 8,
       isColor: false,
-      discount: 0.0, // No discount
+      isSize: true,
+      discount: 0.0,
       updatedAt: DateTime.parse("2025-03-01T10:00:00Z"),
     ),
   ],
 );
 
 Product mockIphone = Product(
+  isColor: true,
   id: "productId4",
   name: "iPhone 15 Pro Max",
   brand: "Apple",
@@ -99,31 +110,36 @@ Product mockIphone = Product(
   createdAt: DateTime.parse("2025-04-01T10:00:00Z"),
   variants: [
     Variant(
-      variantId: "v1",
+      variantId: "iphone15_128gb_blue",
       name: "128GB",
+      size: "128GB",
       costPrice: 30000000,
       sellingPrice: 32000000,
       inventory: 20,
-      isColor: true, // Có màu
-      discount: 0.1, // 10% discount
+      isColor: true,
+      isSize: true,
+      discount: 0.1,
       updatedAt: DateTime.parse("2025-04-01T10:00:00Z"),
-      color: Colors.blue, // Màu sắc
+      color: Colors.blue,
     ),
     Variant(
-      variantId: "v2",
+      variantId: "iphone15_256gb_black",
       name: "256GB",
+      size: "256GB",
       costPrice: 35000000,
       sellingPrice: 37000000,
       inventory: 15,
-      isColor: true, // Có màu
-      discount: 0.1, // 10% discount
+      isColor: true,
+      isSize: true,
+      discount: 0.1,
       updatedAt: DateTime.parse("2025-04-01T10:00:00Z"),
-      color: Colors.amberAccent, // Màu sắc
+      color: Colors.black,
     ),
   ],
 );
 
 Product mockMacBook = Product(
+  isColor: false,
   id: "productId5",
   name: "MacBook Air M2",
   brand: "Apple",
@@ -140,33 +156,34 @@ Product mockMacBook = Product(
   createdAt: DateTime.parse("2025-05-01T10:00:00Z"),
   variants: [
     Variant(
-      variantId: "v1",
+      variantId: "macbookair_8gb",
       name: "8GB RAM / 256GB SSD",
+      size: "8GB",
       costPrice: 40000000,
       sellingPrice: 42000000,
       inventory: 25,
-      isColor: false, // Không có màu
-      discount: 0.0, // No discount
+      isColor: false,
+      isSize: true,
+      discount: 0.0,
       updatedAt: DateTime.parse("2025-05-01T10:00:00Z"),
     ),
     Variant(
-      variantId: "v2",
+      variantId: "macbookair_16gb",
       name: "16GB RAM / 512GB SSD",
+      size: "16GB",
       costPrice: 50000000,
       sellingPrice: 52000000,
       inventory: 10,
-      isColor: false, // Không có màu
-      discount: 0.0, // No discount
+      isColor: false,
+      isSize: true,
+      discount: 0.0,
       updatedAt: DateTime.parse("2025-05-01T10:00:00Z"),
-
     ),
   ],
 );
 
-// Product list
-List<Product> products = [mockIpad, mockLaptop, mockIpad, mockLaptop, mockIphone, mockMacBook];
+List<Product> products = [mockIpad, mockLaptop, mockIphone, mockMacBook];
 
-// Categories
 List<Category> categories = [
   Category(
     id: '1',
@@ -210,31 +227,19 @@ List<Category> specialCategories = [
   Category(
     id: '2',
     name: "New Products",
-    icon: const Icon(
-      Icons.fiber_new,
-      color: primaryColor,
-      size: 40,
-    ), // "New" label icon for newly released products
+    icon: const Icon(Icons.fiber_new, color: primaryColor, size: 40),
     description: "Check out the latest additions to our store.",
   ),
   Category(
     id: '1',
     name: "Promotional",
-    icon: const Icon(
-      Icons.local_offer,
-      color: Colors.red,
-      size: 40,
-    ), // Tag icon representing discounts and promotions
+    icon: const Icon(Icons.local_offer, color: Colors.red, size: 40),
     description: "Exclusive deals and limited-time offers available here.",
   ),
   Category(
     id: '3',
     name: "Best Sellers",
-    icon: const Icon(
-      Icons.star,
-      color: Colors.amber,
-      size: 40,
-    ), // Star icon representing popular and top-rated products
+    icon: const Icon(Icons.star, color: Colors.amber, size: 40),
     description: "Discover the most popular and highly rated products.",
   ),
 ];

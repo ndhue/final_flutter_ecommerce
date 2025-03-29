@@ -1,10 +1,10 @@
 import 'package:final_ecommerce/utils/constants.dart';
 import 'package:final_ecommerce/utils/format.dart';
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart'; // ✅ Thêm dòng này
-
+import 'package:provider/provider.dart';
 import '../models/models_export.dart';
-import '../providers/cart_provider.dart'; // ✅ Thêm dòng này
+import '../providers/cart_provider.dart';
+import '../screens/product/product_details.dart'; // <-- Đổi tên đúng với class bạn dùng
 
 class ProductCard extends StatelessWidget {
   final Product product;
@@ -27,7 +27,6 @@ class ProductCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Product Image with Discount Badge
           Stack(
             children: [
               ClipRRect(
@@ -73,15 +72,12 @@ class ProductCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Product Name
                 Text(
                   product.name,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(fontSize: 14, color: darkTextColor),
                 ),
-
-                // Product Price
                 SizedBox(
                   height: 48,
                   child: Column(
@@ -95,7 +91,7 @@ class ProductCard extends StatelessWidget {
                           color: darkTextColor,
                         ),
                       ),
-                      if (hasDiscount) ...[
+                      if (hasDiscount)
                         Text(
                           FormatHelper.formatCurrency(variant.sellingPrice),
                           style: const TextStyle(
@@ -104,12 +100,10 @@ class ProductCard extends StatelessWidget {
                             color: Colors.grey,
                           ),
                         ),
-                      ],
                     ],
                   ),
                 ),
 
-                // Add to Cart Button
                 SizedBox(
                   width: double.infinity,
                   height: 32,
@@ -122,19 +116,30 @@ class ProductCard extends StatelessWidget {
                       foregroundColor: Colors.white,
                     ),
                     onPressed: () {
-                      Provider.of<CartProvider>(
-                        context,
-                        listen: false,
-                      ).addToCart(product);
-
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(
-                            '${product.name} đã được thêm vào giỏ hàng',
+                      if (product.variants.length > 1) {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder:
+                                (context) => ProductDetails(product: product),
                           ),
-                          duration: const Duration(seconds: 2),
-                        ),
-                      );
+                        );
+                      } else {
+                        final variant = product.variants.first;
+                        Provider.of<CartProvider>(
+                          context,
+                          listen: false,
+                        ).addToCart(product, variant);
+
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              '${product.name} đã được thêm vào giỏ hàng',
+                            ),
+                            duration: const Duration(seconds: 2),
+                          ),
+                        );
+                      }
                     },
                     child: const Text("Add to Cart"),
                   ),

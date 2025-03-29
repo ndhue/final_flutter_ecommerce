@@ -4,12 +4,11 @@ import 'package:final_ecommerce/widgets/buttons/cart_button.dart';
 import 'package:flutter/material.dart';
 import 'package:final_ecommerce/models/models_export.dart';
 import 'package:provider/provider.dart';
+import 'package:collection/collection.dart';
 
 class ProductDetails extends StatefulWidget {
   const ProductDetails({super.key, required this.product});
-
   final Product product;
-
   @override
   _ProductDetailsState createState() => _ProductDetailsState();
 }
@@ -17,15 +16,42 @@ class ProductDetails extends StatefulWidget {
 class _ProductDetailsState extends State<ProductDetails> {
   late Product productSelected;
   int _currentImageIndex = 0;
-  String ? _selectedStorage;
-  Color ? _selectedColor;
+  String? _selectedStorage;
+  Color? _selectedColor;
+  Variant? _selectedVariant;
+  double _rating = 0;
+  int _totalReview = 0;
+  int _visibleReviews = 5;
 
   @override
   void initState() {
     super.initState();
     productSelected = widget.product;
-    _selectedColor = productSelected.variants.isNotEmpty ? productSelected.variants[0].color : null;
-    _selectedStorage = productSelected.variants.isNotEmpty ? productSelected.variants[0].name : null;
+    _selectedColor = productSelected.variants.first.color;
+    _selectedStorage = productSelected.variants.first.size ?? '';
+    _rating = productSelected.rating;
+    _totalReview = productSelected.totalReviews;
+    _updateSelectedVariant();
+  }
+
+  void _updateSelectedVariant() {
+    setState(() {
+      _selectedVariant = productSelected.variants.firstWhereOrNull(
+        (v) => v.color == _selectedColor && v.size == _selectedStorage,
+      );
+    });
+  }
+
+  void _selectColor(Color color) {
+    _selectedColor = color;
+    _updateSelectedVariant();
+  }
+
+  void _selectStorage(String storage) {
+    setState(() {
+      _selectedStorage = storage;
+      _updateSelectedVariant();
+    });
   }
 
   void _nextImage() {
@@ -36,18 +62,6 @@ class _ProductDetailsState extends State<ProductDetails> {
     }
   }
 
-  void _selectColor(Color color) {
-    setState(() {
-      _selectedColor = color;
-    });
-  }
-
-  void _selectStorage(String storage){
-    setState(() {
-      _selectedStorage =  storage;
-    });
-  }
-
   void _previousImage() {
     if (_currentImageIndex > 0) {
       setState(() {
@@ -56,9 +70,46 @@ class _ProductDetailsState extends State<ProductDetails> {
     }
   }
 
+  void _showMoreReviews() {
+    setState(() {
+      _visibleReviews += 5;
+    });
+  }
+
+  void _addToCart(BuildContext context) {
+    if (_selectedVariant == null) return;
+    Provider.of<CartProvider>(
+      context,
+      listen: false,
+    ).addToCart(productSelected, _selectedVariant!);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          '${productSelected.name} (${_selectedVariant!.name}) đã được thêm vào giỏ hàng',
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStarRating(double rating) {
+    return Row(
+      children: List.generate(5, (index) {
+        return Icon(
+          index < rating.round() ? Icons.star : Icons.star_border,
+          color: Colors.amber,
+          size: 24,
+        );
+      }),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    final hasColorOptions = productSelected.variants.any((variant) => variant.isColor);
+    final hasColorOptions = productSelected.variants.any((v) => v.isColor);
+    final colors =
+        productSelected.variants.map((v) => v.color).whereType<Color>().toSet();
+    final sizes =
+        productSelected.variants.map((v) => v.size).whereType<String>().toSet();
 
     return Scaffold(
       appBar: AppBar(
@@ -88,19 +139,23 @@ class _ProductDetailsState extends State<ProductDetails> {
                   ),
                 ),
                 Positioned(
-                  //top: MediaQuery.of(context).size.height * 0.4,
                   left: 10,
                   child: IconButton(
-                    icon: Icon(Icons.arrow_back_ios, color: Colors.white),
+                    icon: const Icon(Icons.arrow_back_ios, color: Colors.white),
                     onPressed: _currentImageIndex > 0 ? _previousImage : null,
                   ),
                 ),
                 Positioned(
-                 // top: MediaQuery.of(context).size.height * 0.4,
                   right: 10,
                   child: IconButton(
-                    icon: Icon(Icons.arrow_forward_ios, color: Colors.white),
-                    onPressed: _currentImageIndex < productSelected.images.length - 1 ? _nextImage : null,
+                    icon: const Icon(
+                      Icons.arrow_forward_ios,
+                      color: Colors.white,
+                    ),
+                    onPressed:
+                        _currentImageIndex < productSelected.images.length - 1
+                            ? _nextImage
+                            : null,
                   ),
                 ),
               ],
@@ -111,12 +166,15 @@ class _ProductDetailsState extends State<ProductDetails> {
               children: List.generate(
                 productSelected.images.length,
                 (index) => Container(
-                  margin: EdgeInsets.symmetric(horizontal: 4),
+                  margin: const EdgeInsets.symmetric(horizontal: 4),
                   width: 8,
                   height: 8,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: _currentImageIndex == index ? Colors.black : Colors.grey,
+                    color:
+                        _currentImageIndex == index
+                            ? Colors.black
+                            : Colors.grey,
                   ),
                 ),
               ),
@@ -128,58 +186,103 @@ class _ProductDetailsState extends State<ProductDetails> {
                 children: [
                   Text(
                     productSelected.name,
-                    style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                    style: const TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    '\$${productSelected.variants[0].sellingPrice}',
+                    _selectedVariant != null
+                        ? '\$${_selectedVariant!.sellingPrice}'
+                        : 'Không có biến thể phù hợp',
                     style: const TextStyle(fontSize: 16, color: Colors.grey),
                   ),
                   if (hasColorOptions) ...[
                     const SizedBox(height: 16),
                     const Text(
                       'Choose the color',
-                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                     const SizedBox(height: 8),
-                    Row(
-                      children: productSelected.variants
-                          .where((variant) => variant.isColor)
-                          .map((variant) => GestureDetector(
-                                onTap: () => _selectColor(variant.color ?? Colors.transparent),
-                                child: ColorOption(
-                                  variant.color ?? Colors.transparent,
-                                  isSelected: _selectedColor == variant.color,
+                    Wrap(
+                      spacing: 8.0,
+                      children:
+                          colors
+                              .map(
+                                (color) => GestureDetector(
+                                  onTap: () => _selectColor(color),
+                                  child: ColorOption(
+                                    color,
+                                    isSelected: _selectedColor == color,
+                                  ),
                                 ),
-                              ))
-                          .toList(),
+                              )
+                              .toList(),
                     ),
                   ],
                   const SizedBox(height: 20),
-                  const Text(
-                    'Choose the storage',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 10),
-                  Wrap(
-                    spacing: 8.0,
-                    runSpacing: 10.0,
-                    children: productSelected.variants.map((variant) {
-                      return GestureDetector(
-                        onTap: () => _selectStorage(variant.name),
-                        child: StorageOption(variant.name, isSelected: _selectedStorage == variant.name),
-                      );
-                    }).toList(),
-                  ),
+                  if (sizes.isNotEmpty) ...[
+                    const Text(
+                      'Choose the storage',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    Wrap(
+                      spacing: 8.0,
+                      children:
+                          sizes
+                              .map(
+                                (size) => GestureDetector(
+                                  onTap: () => _selectStorage(size),
+                                  child: StorageOption(
+                                    size,
+                                    isSelected: _selectedStorage == size,
+                                  ),
+                                ),
+                              )
+                              .toList(),
+                    ),
+                  ],
                   const SizedBox(height: 16),
-                  Text(
+                  const Text(
                     'Description of product',
-                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 8),
                   Text(
                     productSelected.description,
                     style: const TextStyle(fontSize: 14, color: Colors.grey),
+                  ),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'Rating',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      _buildStarRating(_rating),
+                      const SizedBox(width: 8),
+                      Text(
+                        '$_rating/5',
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    '($_totalReview reviews)',
+                    style: const TextStyle(fontSize: 12, color: Colors.grey),
                   ),
                 ],
               ),
@@ -195,13 +298,12 @@ class _ProductDetailsState extends State<ProductDetails> {
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.zero),
             minimumSize: const Size(double.infinity, 50),
           ),
-          onPressed: () {
-            Provider.of<CartProvider>(context, listen: false).addToCart(productSelected);
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('${productSelected.name} đã được thêm vào giỏ hàng')),
-            );
-          },
-          child: const Text('Add to Cart', style: TextStyle(color: Colors.white)),
+          onPressed:
+              _selectedVariant == null ? null : () => _addToCart(context),
+          child: const Text(
+            'Add to Cart',
+            style: TextStyle(color: Colors.white),
+          ),
         ),
       ),
     );
@@ -210,9 +312,8 @@ class _ProductDetailsState extends State<ProductDetails> {
 
 class StorageOption extends StatelessWidget {
   final String storage;
-  const StorageOption(this.storage, {this.isSelected=false});
   final bool isSelected;
-
+  const StorageOption(this.storage, {this.isSelected = false});
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -220,24 +321,24 @@ class StorageOption extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
         color: isSelected ? primaryColor : Colors.grey,
-        //border: Border.all(color: Colors.grey),
         borderRadius: BorderRadius.circular(8),
         border: Border.all(
-          color: isSelected ? Colors.blue : Colors.grey, width: 2),
+          color: isSelected ? Colors.blue : Colors.grey,
+          width: 2,
+        ),
       ),
-     
-        child: Text(storage, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
-      
-       
+      child: Text(
+        storage,
+        style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+      ),
     );
   }
 }
 
 class ColorOption extends StatelessWidget {
   final Color color;
-  const ColorOption(this.color, {this.isSelected = false});
   final bool isSelected;
-
+  const ColorOption(this.color, {this.isSelected = false});
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -247,7 +348,10 @@ class ColorOption extends StatelessWidget {
       decoration: BoxDecoration(
         color: color,
         shape: BoxShape.circle,
-        border: Border.all(color: isSelected ? Colors.blue : Colors.grey, width: 2),
+        border: Border.all(
+          color: isSelected ? Colors.blue : Colors.grey,
+          width: 2,
+        ),
       ),
     );
   }
