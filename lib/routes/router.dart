@@ -53,16 +53,15 @@ Route<dynamic> generateRoute(RouteSettings settings) {
     case productSearchRoute:
       page = ProductSearch();
       break;
-    
-    case productDetailsRoute:
-  if (settings.arguments is Product) {
-    final product = settings.arguments as Product;
-    page = ProductDetails(product: product);
-  } else {
-    page = const EntryPoint(); // Nếu không có sản phẩm, quay về trang chính
-  }
-  break;
 
+    case productDetailsRoute:
+      if (settings.arguments is Product) {
+        final product = settings.arguments as Product;
+        page = ProductDetails(product: product);
+      } else {
+        page = const EntryPoint(); // Nếu không có sản phẩm, quay về trang chính
+      }
+      break;
 
     case searchResultRoute:
       final args = settings.arguments;
@@ -85,8 +84,23 @@ Route<dynamic> generateRoute(RouteSettings settings) {
       break;
 
     // ADMIN ROUTES
+    case adminEntryPointRoute:
+      page = AdminEntryPoint();
+      break;
+
     case adminChatsRoute:
       page = AdminChatsScreen();
+      break;
+
+    case adminSingleChat:
+      if (settings.arguments is Map<String, dynamic>) {
+        final args = settings.arguments as Map<String, dynamic>;
+        page = ChatScreen(userId: args['userId'], isAdmin: true);
+      } else {
+        return MaterialPageRoute(
+          builder: (context) => const AdminChatsScreen(),
+        );
+      }
       break;
 
     default:
