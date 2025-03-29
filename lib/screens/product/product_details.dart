@@ -3,12 +3,14 @@ import 'package:final_ecommerce/utils/constants.dart';
 import 'package:final_ecommerce/widgets/buttons/cart_button.dart';
 import 'package:flutter/material.dart';
 import 'package:final_ecommerce/models/models_export.dart';
+import 'package:flutter_rating_bar/flutter_rating_bar.dart';
 import 'package:provider/provider.dart';
 import 'package:collection/collection.dart';
 
 class ProductDetails extends StatefulWidget {
   const ProductDetails({super.key, required this.product});
   final Product product;
+
   @override
   _ProductDetailsState createState() => _ProductDetailsState();
 }
@@ -91,18 +93,6 @@ class _ProductDetailsState extends State<ProductDetails> {
     );
   }
 
-  Widget _buildStarRating(double rating) {
-    return Row(
-      children: List.generate(5, (index) {
-        return Icon(
-          index < rating.round() ? Icons.star : Icons.star_border,
-          color: Colors.amber,
-          size: 24,
-        );
-      }),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final hasColorOptions = productSelected.variants.any((v) => v.isColor);
@@ -110,6 +100,15 @@ class _ProductDetailsState extends State<ProductDetails> {
         productSelected.variants.map((v) => v.color).whereType<Color>().toSet();
     final sizes =
         productSelected.variants.map((v) => v.size).whereType<String>().toSet();
+
+    final List<String> reviewImages = [
+      '/assets/images/review-1.jpg',
+      '/assets/images/order-2.jpg',
+      '',
+      '/assets/images/order-3.jpg',
+      '',
+      '/assets/images/review-1.jpg',
+    ];
 
     return Scaffold(
       appBar: AppBar(
@@ -268,7 +267,25 @@ class _ProductDetailsState extends State<ProductDetails> {
                   const SizedBox(height: 8),
                   Row(
                     children: [
-                      _buildStarRating(_rating),
+                      RatingBar.builder(
+                        initialRating: _rating,
+                        minRating: 1,
+                        direction: Axis.horizontal,
+                        allowHalfRating: true,
+                        itemCount: 5,
+                        itemSize: 24,
+                        itemPadding: const EdgeInsets.symmetric(
+                          horizontal: 2.0,
+                        ),
+                        itemBuilder:
+                            (context, _) =>
+                                const Icon(Icons.star, color: Colors.amber),
+                        onRatingUpdate: (rating) {
+                          setState(() {
+                            _rating = rating;
+                          });
+                        },
+                      ),
                       const SizedBox(width: 8),
                       Text(
                         '$_rating/5',
@@ -279,11 +296,76 @@ class _ProductDetailsState extends State<ProductDetails> {
                       ),
                     ],
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 8),
                   Text(
                     '($_totalReview reviews)',
                     style: const TextStyle(fontSize: 12, color: Colors.grey),
                   ),
+                  const SizedBox(height: 8),
+                  ListView.builder(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    itemCount:
+                        _visibleReviews > _totalReview
+                            ? _totalReview
+                            : _visibleReviews,
+                    itemBuilder: (context, index) {
+                      return Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 8.0),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            CircleAvatar(
+                              backgroundColor: Colors.grey[300],
+                              child: const Icon(
+                                Icons.person,
+                                color: Colors.white,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Người dùng $index',
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  const Text(
+                                    'Sản phẩm tuyệt vời!',
+                                    style: TextStyle(color: Colors.grey),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  if (reviewImages.length > index &&
+                                      reviewImages[index].isNotEmpty)
+                                    ClipRRect(
+                                      borderRadius: BorderRadius.circular(8),
+                                      child: Image.network(
+                                        reviewImages[index],
+                                        height: 100,
+                                        width: 100,
+                                        fit: BoxFit.cover,
+                                      ),
+                                    ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
+                  if (_visibleReviews < _totalReview)
+                    TextButton(
+                      onPressed: _showMoreReviews,
+                      child: const Text(
+                        'Xem thêm',
+                        style: TextStyle(color: primaryColor),
+                      ),
+                    ),
                 ],
               ),
             ),
