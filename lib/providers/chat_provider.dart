@@ -48,10 +48,12 @@ class ChatProvider extends ChangeNotifier {
   }
 
   // Fetch all chats (Admin only)
+  // Props callback to here
   Future<void> fetchChats() async {
-    debugPrint("Fetching chats...");
     setLoading(true);
     _chats = await _chatRepository.getChatsOnce();
+    await fetchUnreadMessagesCount(_userRepository.currentUserId!);
+    notifyListeners();
     setLoading(false);
   }
 

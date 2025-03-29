@@ -1,4 +1,4 @@
-import 'package:final_ecommerce/data/mock_chat_provider.dart';
+import 'package:final_ecommerce/providers/chat_provider.dart';
 import 'package:final_ecommerce/routes/route_constants.dart';
 import 'package:final_ecommerce/utils/constants.dart';
 import 'package:final_ecommerce/widgets/skeletons.dart';
@@ -17,7 +17,7 @@ class _AdminChatsScreenState extends State<AdminChatsScreen> {
   @override
   void initState() {
     super.initState();
-    final chatProvider = context.read<MockChatProvider>();
+    final chatProvider = context.read<ChatProvider>();
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       chatProvider.fetchChats();
@@ -53,7 +53,7 @@ class _AdminChatsScreenState extends State<AdminChatsScreen> {
         decoration: BoxDecoration(
           border: Border(top: BorderSide(color: borderColor, width: 0.5)),
         ),
-        child: Consumer<MockChatProvider>(
+        child: Consumer<ChatProvider>(
           builder: (context, chatProvider, _) {
             if (chatProvider.isLoading) {
               return const AdminChatSkeleton();
@@ -68,7 +68,7 @@ class _AdminChatsScreenState extends State<AdminChatsScreen> {
               itemCount: chatProvider.chats.length,
               itemBuilder: (context, index) {
                 final chat = chatProvider.chats[index];
-                int unreadCount = chatProvider.getUnreadMessages(chat.userId);
+                int unreadCount = chatProvider.unreadMessages;
 
                 return Column(
                   children: [
@@ -124,7 +124,7 @@ class _AdminChatsScreenState extends State<AdminChatsScreen> {
                         chatProvider.markChatAsRead(chat.userId);
                         Navigator.pushNamed(
                           context,
-                          chatScreenRoute,
+                          adminSingleChat,
                           arguments: {
                             "userId": chat.userId,
                             "userName": chat.userName,
