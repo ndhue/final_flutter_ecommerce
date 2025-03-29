@@ -11,8 +11,12 @@ const String helpsAndSupportScreenRoute = "helps_and_support";
 const String pravicyAndPolicyScreenRoute = "pravicy_and_policy";
 const String faqsScreenRoute = "FAQs";
 const String orderHistoryRouteScreen = "order_history";
-const String adminChatsRoute = "admin_chats";
 const String chatScreenRoute = "chat";
 const String productSearchRoute = "procduct_search";
 const String searchResultRoute = "search_result";
 const String productDetailsRoute = "product_details";
+
+// ADMIN
+const String adminChatsRoute = "dashboard/admin_chats";
+const String adminEntryPointRoute = "dashboard";
+const String adminSingleChat = "dashboard/admin_chats/chat";

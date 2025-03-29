@@ -41,7 +41,7 @@ class _ChatScreenState extends State<ChatScreen> {
   void initState() {
     super.initState();
 
-    _userName = "Unknown";
+    _userName = "";
 
     final chatProvider = context.read<ChatProvider>();
     final userProvider = context.read<UserProvider>();
@@ -67,7 +67,8 @@ class _ChatScreenState extends State<ChatScreen> {
     _scrollController.addListener(_onScroll);
   }
 
-  void _onScroll() {
+  void _onScroll() async {
+    // debugPrint(_scrollController.offset.toString());
     final chatProvider = context.read<ChatProvider>();
     if (_scrollController.position.pixels >=
             _scrollController.position.maxScrollExtent - 100 &&
@@ -75,6 +76,12 @@ class _ChatScreenState extends State<ChatScreen> {
         !chatProvider.isLoadingMore) {
       chatProvider.fetchMessages(widget.userId, loadMore: true);
     }
+    // Use for set background for appBar
+    if (_scrollController.offset.abs() ==
+        _scrollController.position.maxScrollExtent) {
+      debugPrint("On the top!");
+    }
+    // debugPrint(_scrollController.position.maxScrollExtent.toString());
   }
 
   Future<void> _pickImage() async {
@@ -190,7 +197,6 @@ class _ChatScreenState extends State<ChatScreen> {
 
       setState(() => _selectedImages.clear());
     } catch (e) {
-      debugPrint("Error sending message: $e");
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(const SnackBar(content: Text("Failed to send message")));
@@ -343,6 +349,18 @@ class _ChatScreenState extends State<ChatScreen> {
                             width: 200,
                             height: 200,
                             fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) {
+                              return Container(
+                                width: 200,
+                                height: 200,
+                                color: Colors.grey[300],
+                                child: const Icon(
+                                  Icons.broken_image,
+                                  color: Colors.grey,
+                                  size: 50,
+                                ),
+                              );
+                            },
                           ),
                 ),
               ),
