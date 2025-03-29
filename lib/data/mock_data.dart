@@ -10,7 +10,7 @@ Product mockIpad = Product(
   description: "The latest iPad Pro with M2 chip and Liquid Retina display.",
   rating: 4.8,
   salesCount: 250,
-  totalReviews: 40,
+  totalReviews: 6,
   images: [
     "https://picsum.photos/250?image=1",
     "https://picsum.photos/250?image=2",
