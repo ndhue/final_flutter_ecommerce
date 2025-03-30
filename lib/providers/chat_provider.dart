@@ -51,7 +51,23 @@ class ChatProvider extends ChangeNotifier {
   // Props callback to here
   Future<void> fetchChats() async {
     setLoading(true);
-    _chats = await _chatRepository.getChatsOnce();
+    final rawChats = await _chatRepository.getChatsOnce();
+
+    // Map raw chats to include customerName
+    _chats = await Future.wait(
+      rawChats.map((chat) async {
+        final customer = await _userRepository.getUserDetails(chat.userId);
+        return Chat(
+          id: chat.id,
+          userId: chat.userId,
+          userName: customer?.fullName ?? "Unknown", // Use customer name
+          lastMessage: chat.lastMessage,
+          lastMessageTimestamp: chat.lastMessageTimestamp,
+          unreadCount: chat.unreadCount,
+        );
+      }),
+    );
+
     await fetchUnreadMessagesCount(_userRepository.currentUserId!);
     notifyListeners();
     setLoading(false);
@@ -152,7 +168,6 @@ class ChatProvider extends ChangeNotifier {
 
   // Replace temporary message with final image URLs after upload
   void replaceTempMessage(Message tempMessage, List<String> finalUrls) {
-    debugPrint("Replacing temp message...");
     int index = _messages.indexWhere((msg) => msg.id == tempMessage.id);
     if (index != -1) {
       _messages[index] = Message(

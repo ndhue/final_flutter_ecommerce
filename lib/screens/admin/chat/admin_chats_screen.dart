@@ -1,4 +1,5 @@
 import 'package:final_ecommerce/providers/chat_provider.dart';
+import 'package:final_ecommerce/providers/user_provider.dart';
 import 'package:final_ecommerce/routes/route_constants.dart';
 import 'package:final_ecommerce/utils/constants.dart';
 import 'package:final_ecommerce/widgets/skeletons.dart';
@@ -40,13 +41,15 @@ class _AdminChatsScreenState extends State<AdminChatsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final userProvider = context.watch<UserProvider>();
+    final user = userProvider.user;
+
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: primaryColor,
-        foregroundColor: Colors.white,
+        centerTitle: false,
         title: const Text(
           "Customer Chats",
-          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          style: TextStyle(fontSize: 18, fontWeight: FontWeight.w500),
         ),
       ),
       body: Container(
@@ -70,6 +73,9 @@ class _AdminChatsScreenState extends State<AdminChatsScreen> {
                 final chat = chatProvider.chats[index];
                 int unreadCount = chatProvider.unreadMessages;
 
+                // Check if the last message is sent by the admin
+                final isLastMessageFromAdmin = chat.userId == user?.id;
+
                 return Column(
                   children: [
                     ListTile(
@@ -81,9 +87,10 @@ class _AdminChatsScreenState extends State<AdminChatsScreen> {
                         spacing: 16.0,
                         children: [
                           Text(
-                            chat.lastMessage.length > 30
-                                ? '${chat.lastMessage.substring(0, 30)}...'
-                                : chat.lastMessage,
+                            (isLastMessageFromAdmin ? "You: " : "") +
+                                (chat.lastMessage.length > 30
+                                    ? '${chat.lastMessage.substring(0, 30)}...'
+                                    : chat.lastMessage),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: const TextStyle(

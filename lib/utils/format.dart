@@ -10,4 +10,8 @@ class FormatHelper {
   static String formatCurrency(num amount) {
     return _currencyFormat.format(amount);
   }
+
+  static String formatDateTime(DateTime dateTime) {
+    return DateFormat('dd/MM/yyyy HH:mm').format(dateTime);
+  }
 }

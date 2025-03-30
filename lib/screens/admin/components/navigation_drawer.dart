@@ -7,7 +7,14 @@ import 'package:flutter/material.dart';
 import '../../profile/components/change_password.dart';
 
 class CustomDrawer extends StatelessWidget {
-  const CustomDrawer({super.key});
+  final String selectedItem;
+  final Function(String) onItemSelected; // Callback for item selection
+
+  const CustomDrawer({
+    super.key,
+    required this.selectedItem,
+    required this.onItemSelected,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -17,7 +24,7 @@ class CustomDrawer extends StatelessWidget {
         children: [
           // Close Button & Logo
           SizedBox(
-            height: 90, // Đặt chiều cao mong muốn
+            height: 150,
             child: DrawerHeader(
               decoration: BoxDecoration(
                 border: Border(
@@ -42,13 +49,21 @@ class CustomDrawer extends StatelessWidget {
             child: ListView(
               padding: EdgeInsets.zero,
               children: [
-                _buildNavItem(Icons.home, "Home"),
+                _buildNavItem(
+                  Icons.home,
+                  "Home",
+                  onTap: () => onItemSelected("Home"),
+                ),
                 _buildExpandableNavItem(
                   context: context,
                   icon: Icons.filter_alt_outlined,
                   title: "Products",
                   children: [
-                    _buildSubNavItem("Dashboard", isSelected: true),
+                    _buildSubNavItem(
+                      "Dashboard",
+                      onTap: () => onItemSelected("Products"),
+                      isSelected: selectedItem == "Products",
+                    ),
                     _buildSubNavItem("Add Product"),
                   ],
                 ),
@@ -57,22 +72,29 @@ class CustomDrawer extends StatelessWidget {
                   icon: Icons.people_outline,
                   title: "Customers",
                   children: [
-                    _buildSubNavItem("Dashboard", isSelected: true),
+                    _buildSubNavItem("Dashboard"),
                     _buildSubNavItem(
                       "Chats",
-                      onTap: () {
-                        Navigator.pushNamed(context, adminChatsRoute);
-                      },
+                      onTap: () => onItemSelected("Chats"),
                     ),
                   ],
                 ),
-                _buildNavItem(Icons.storefront, "Shop"),
                 _buildExpandableNavItem(
                   context: context,
                   icon: Icons.pie_chart_outline,
                   title: "Income",
                 ),
-                _buildNavItem(Icons.campaign_outlined, "Promote"),
+                _buildNavItem(
+                  Icons.discount_outlined,
+                  "Coupons",
+                  onTap: () => onItemSelected("Coupons"),
+                ),
+                _buildNavItem(
+                  Icons.storefront,
+                  "Shop",
+                  onTap:
+                      () => Navigator.pushNamed(context, entryPointScreenRoute),
+                ),
               ],
             ),
           ),
@@ -109,10 +131,7 @@ class CustomDrawer extends StatelessWidget {
       ),
       child: ExpansionTile(
         leading: Icon(icon, color: Colors.black54),
-        title: Text(
-          title,
-          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
-        ),
+        title: Text(title, style: TextStyle(fontSize: 16)),
         children:
             children
                 ?.map((child) => _styledChild(child, activeItem, context))
@@ -134,8 +153,8 @@ class CustomDrawer extends StatelessWidget {
                 tileColor:
                     (child.title is Text &&
                             (child.title as Text).data == activeItem)
-                        ? Theme.of(context).primaryColor.withOpacity(
-                          0.2,
+                        ? Theme.of(context).primaryColor.withValues(
+                          alpha: 0.2,
                         ) // Active highlight
                         : Colors.transparent,
               )
