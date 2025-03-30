@@ -3,16 +3,15 @@ import 'package:final_ecommerce/utils/constants.dart';
 import 'package:final_ecommerce/widgets/buttons/cart_button.dart';
 import 'package:flutter/material.dart';
 import 'package:final_ecommerce/models/models_export.dart';
-import 'package:provider/provider.dart';
 import 'package:flutter_rating_bar/flutter_rating_bar.dart';
+import 'package:provider/provider.dart';
+import 'package:collection/collection.dart';
 
 class ProductDetails extends StatefulWidget {
   const ProductDetails({super.key, required this.product});
-
   final Product product;
 
   @override
-  // ignore: library_private_types_in_public_api
   _ProductDetailsState createState() => _ProductDetailsState();
 }
 
@@ -21,24 +20,40 @@ class _ProductDetailsState extends State<ProductDetails> {
   int _currentImageIndex = 0;
   String? _selectedStorage;
   Color? _selectedColor;
+  Variant? _selectedVariant;
   double _rating = 0;
   int _totalReview = 0;
   int _visibleReviews = 5;
+
   @override
   void initState() {
     super.initState();
     productSelected = widget.product;
-    _selectedColor =
-        productSelected.variants.isNotEmpty
-            ? productSelected.variants[0].color
-            : null;
-    _selectedStorage =
-        productSelected.variants.isNotEmpty
-            ? productSelected.variants[0].name
-            : null;
+    _selectedColor = productSelected.variants.first.color;
+    _selectedStorage = productSelected.variants.first.size ?? '';
     _rating = productSelected.rating;
     _totalReview = productSelected.totalReviews;
-    //_comment =productSelected.
+    _updateSelectedVariant();
+  }
+
+  void _updateSelectedVariant() {
+    setState(() {
+      _selectedVariant = productSelected.variants.firstWhereOrNull(
+        (v) => v.color == _selectedColor && v.size == _selectedStorage,
+      );
+    });
+  }
+
+  void _selectColor(Color color) {
+    _selectedColor = color;
+    _updateSelectedVariant();
+  }
+
+  void _selectStorage(String storage) {
+    setState(() {
+      _selectedStorage = storage;
+      _updateSelectedVariant();
+    });
   }
 
   void _nextImage() {
@@ -49,24 +64,6 @@ class _ProductDetailsState extends State<ProductDetails> {
     }
   }
 
-  void _showMoreReviews() {
-    setState(() {
-      _visibleReviews += 5; // Tăng số lượng bình luận hiển thị thêm 5
-    });
-  }
-
-  void _selectColor(Color color) {
-    setState(() {
-      _selectedColor = color;
-    });
-  }
-
-  void _selectStorage(String storage) {
-    setState(() {
-      _selectedStorage = storage;
-    });
-  }
-
   void _previousImage() {
     if (_currentImageIndex > 0) {
       setState(() {
@@ -75,11 +72,43 @@ class _ProductDetailsState extends State<ProductDetails> {
     }
   }
 
+  void _showMoreReviews() {
+    setState(() {
+      _visibleReviews += 5;
+    });
+  }
+
+  void _addToCart(BuildContext context) {
+    if (_selectedVariant == null) return;
+    Provider.of<CartProvider>(
+      context,
+      listen: false,
+    ).addToCart(productSelected, _selectedVariant!);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          '${productSelected.name} (${_selectedVariant!.name}) đã được thêm vào giỏ hàng',
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    final hasColorOptions = productSelected.variants.any(
-      (variant) => variant.isColor,
-    );
+    final hasColorOptions = productSelected.variants.any((v) => v.isColor);
+    final colors =
+        productSelected.variants.map((v) => v.color).whereType<Color>().toSet();
+    final sizes =
+        productSelected.variants.map((v) => v.size).whereType<String>().toSet();
+
+    final List<String> reviewImages = [
+      '/assets/images/review-1.jpg',
+      '/assets/images/order-2.jpg',
+      '',
+      '/assets/images/order-3.jpg',
+      '',
+      '/assets/images/review-1.jpg',
+    ];
 
     return Scaffold(
       appBar: AppBar(
@@ -111,14 +140,17 @@ class _ProductDetailsState extends State<ProductDetails> {
                 Positioned(
                   left: 10,
                   child: IconButton(
-                    icon: Icon(Icons.arrow_back_ios, color: Colors.white),
+                    icon: const Icon(Icons.arrow_back_ios, color: Colors.white),
                     onPressed: _currentImageIndex > 0 ? _previousImage : null,
                   ),
                 ),
                 Positioned(
                   right: 10,
                   child: IconButton(
-                    icon: Icon(Icons.arrow_forward_ios, color: Colors.white),
+                    icon: const Icon(
+                      Icons.arrow_forward_ios,
+                      color: Colors.white,
+                    ),
                     onPressed:
                         _currentImageIndex < productSelected.images.length - 1
                             ? _nextImage
@@ -133,7 +165,7 @@ class _ProductDetailsState extends State<ProductDetails> {
               children: List.generate(
                 productSelected.images.length,
                 (index) => Container(
-                  margin: EdgeInsets.symmetric(horizontal: 4),
+                  margin: const EdgeInsets.symmetric(horizontal: 4),
                   width: 8,
                   height: 8,
                   decoration: BoxDecoration(
@@ -160,7 +192,9 @@ class _ProductDetailsState extends State<ProductDetails> {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    '\$${productSelected.variants[0].sellingPrice}',
+                    _selectedVariant != null
+                        ? '\$${_selectedVariant!.sellingPrice}'
+                        : 'Không có biến thể phù hợp',
                     style: const TextStyle(fontSize: 16, color: Colors.grey),
                   ),
                   if (hasColorOptions) ...[
@@ -173,19 +207,16 @@ class _ProductDetailsState extends State<ProductDetails> {
                       ),
                     ),
                     const SizedBox(height: 8),
-                    Row(
+                    Wrap(
+                      spacing: 8.0,
                       children:
-                          productSelected.variants
-                              .where((variant) => variant.isColor)
+                          colors
                               .map(
-                                (variant) => GestureDetector(
-                                  onTap:
-                                      () => _selectColor(
-                                        variant.color ?? Colors.transparent,
-                                      ),
+                                (color) => GestureDetector(
+                                  onTap: () => _selectColor(color),
                                   child: ColorOption(
-                                    variant.color ?? Colors.transparent,
-                                    isSelected: _selectedColor == variant.color,
+                                    color,
+                                    isSelected: _selectedColor == color,
                                   ),
                                 ),
                               )
@@ -193,32 +224,35 @@ class _ProductDetailsState extends State<ProductDetails> {
                     ),
                   ],
                   const SizedBox(height: 20),
-                  const Text(
-                    'Choose the storage',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 10),
-                  Wrap(
-                    spacing: 8.0,
-                    runSpacing: 10.0,
-                    children:
-                        productSelected.variants.map((variant) {
-                          return GestureDetector(
-                            onTap: () => _selectStorage(variant.name),
-                            child: StorageOption(
-                              variant.name,
-                              isSelected: _selectedStorage == variant.name,
-                            ),
-                          );
-                        }).toList(),
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    'Description of product',
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
+                  if (sizes.isNotEmpty) ...[
+                    const Text(
+                      'Choose the storage',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
+                    const SizedBox(height: 10),
+                    Wrap(
+                      spacing: 8.0,
+                      children:
+                          sizes
+                              .map(
+                                (size) => GestureDetector(
+                                  onTap: () => _selectStorage(size),
+                                  child: StorageOption(
+                                    size,
+                                    isSelected: _selectedStorage == size,
+                                  ),
+                                ),
+                              )
+                              .toList(),
+                    ),
+                  ],
+                  const SizedBox(height: 16),
+                  const Text(
+                    'Description of product',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 8),
                   Text(
@@ -226,7 +260,6 @@ class _ProductDetailsState extends State<ProductDetails> {
                     style: const TextStyle(fontSize: 14, color: Colors.grey),
                   ),
                   const SizedBox(height: 16),
-                  // Rating Section
                   const Text(
                     'Rating',
                     style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
@@ -263,29 +296,20 @@ class _ProductDetailsState extends State<ProductDetails> {
                       ),
                     ],
                   ),
-                  const SizedBox(height: 16),
-                  // Comment Section
+                  const SizedBox(height: 8),
                   Text(
-                    '($_totalReview reviews)', // Hiển thị tổng số đánh giá
+                    '($_totalReview reviews)',
                     style: const TextStyle(fontSize: 12, color: Colors.grey),
                   ),
                   const SizedBox(height: 8),
                   ListView.builder(
                     shrinkWrap: true,
                     physics: const NeverScrollableScrollPhysics(),
-                    itemCount: _visibleReviews>_totalReview ?_totalReview :_visibleReviews, // Replace with actual comment count
+                    itemCount:
+                        _visibleReviews > _totalReview
+                            ? _totalReview
+                            : _visibleReviews,
                     itemBuilder: (context, index) {
-                      // Dữ liệu mẫu cho ảnh (thay bằng dữ liệu thực tế)
-                      final List<String> reviewImages = [
-                        '/assets/images/review-1.jpg',
-                        '/assets/images/order-2.jpg',
-                        '',
-                        '/assets/images/order-3.jpg',
-
-                        '',
-                        '/assets/images/review-1.jpg'
-                      ];
-
                       return Padding(
                         padding: const EdgeInsets.symmetric(vertical: 8.0),
                         child: Row(
@@ -304,19 +328,19 @@ class _ProductDetailsState extends State<ProductDetails> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    'Anonymous Participant $index',
+                                    'Người dùng $index',
                                     style: const TextStyle(
                                       fontWeight: FontWeight.bold,
                                     ),
                                   ),
                                   const SizedBox(height: 4),
                                   const Text(
-                                    'Hàng xịn.',
+                                    'Sản phẩm tuyệt vời!',
                                     style: TextStyle(color: Colors.grey),
                                   ),
                                   const SizedBox(height: 8),
-                                  // Hiển thị ảnh nếu có
-                                  if (reviewImages[index].isNotEmpty)
+                                  if (reviewImages.length > index &&
+                                      reviewImages[index].isNotEmpty)
                                     ClipRRect(
                                       borderRadius: BorderRadius.circular(8),
                                       child: Image.network(
@@ -334,9 +358,7 @@ class _ProductDetailsState extends State<ProductDetails> {
                       );
                     },
                   ),
-
-                  if (_visibleReviews <
-                      _totalReview) // Hiển thị nút "Xem thêm" nếu còn bình luận chưa hiển thị
+                  if (_visibleReviews < _totalReview)
                     TextButton(
                       onPressed: _showMoreReviews,
                       child: const Text(
@@ -344,8 +366,6 @@ class _ProductDetailsState extends State<ProductDetails> {
                         style: TextStyle(color: primaryColor),
                       ),
                     ),
-                  const SizedBox(height: 16),
-                  const SizedBox(height: 16),
                 ],
               ),
             ),
@@ -360,19 +380,8 @@ class _ProductDetailsState extends State<ProductDetails> {
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.zero),
             minimumSize: const Size(double.infinity, 50),
           ),
-          onPressed: () {
-            Provider.of<CartProvider>(
-              context,
-              listen: false,
-            ).addToCart(productSelected);
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(
-                  '${productSelected.name} đã được thêm vào giỏ hàng',
-                ),
-              ),
-            );
-          },
+          onPressed:
+              _selectedVariant == null ? null : () => _addToCart(context),
           child: const Text(
             'Add to Cart',
             style: TextStyle(color: Colors.white),
@@ -385,9 +394,8 @@ class _ProductDetailsState extends State<ProductDetails> {
 
 class StorageOption extends StatelessWidget {
   final String storage;
-  const StorageOption(this.storage, {this.isSelected = false});
   final bool isSelected;
-
+  const StorageOption(this.storage, {this.isSelected = false});
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -411,9 +419,8 @@ class StorageOption extends StatelessWidget {
 
 class ColorOption extends StatelessWidget {
   final Color color;
-  const ColorOption(this.color, {this.isSelected = false});
   final bool isSelected;
-
+  const ColorOption(this.color, {this.isSelected = false});
   @override
   Widget build(BuildContext context) {
     return Container(
