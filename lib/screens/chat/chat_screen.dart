@@ -216,9 +216,11 @@ class _ChatScreenState extends State<ChatScreen> {
 
     return Scaffold(
       appBar: AppBar(
+        backgroundColor: primaryColor,
+        foregroundColor: Colors.white,
         title: Text(
           widget.isAdmin ? _userName : "Chat with Admin",
-          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w500),
         ),
       ),
       body:

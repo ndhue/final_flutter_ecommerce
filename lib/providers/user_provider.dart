@@ -14,6 +14,12 @@ class UserProvider with ChangeNotifier {
   UserModel? get user => _user;
   bool get isLoading => _isLoading;
 
+  // Check if the user is logged in
+  bool get isLoggedIn => _user != null;
+
+  // Check if the user is an admin
+  bool get isAdmin => _user?.role == 'admin';
+
   // Fetch user details from Firestore
   Future<void> fetchUser(String uid) async {
     try {
