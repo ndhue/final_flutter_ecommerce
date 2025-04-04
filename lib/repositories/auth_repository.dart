@@ -1,34 +1,19 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class AuthRepository {
   final FirebaseAuth _auth = FirebaseAuth.instance;
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   // Sign up new user
   Future<UserCredential?> signUp(String email, String password) async {
     try {
-      UserCredential userCredential = await _auth
-          .createUserWithEmailAndPassword(email: email, password: password);
-
-      // Store user profile in Firestore
-      await _firestore.collection('users').doc(userCredential.user!.uid).set({
-        'id': userCredential.user!.uid,
-        'email': email,
-        'role': 'user', // Default role
-        'createdAt': FieldValue.serverTimestamp(),
-      });
-
-      // Save login data locally
-      await _saveUserData(userCredential);
-
-      return userCredential;
+      return await _auth.createUserWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
     } on FirebaseAuthException catch (e) {
-      if (kDebugMode) {
-        print("Sign Up Error: ${e.message}");
-      }
+      debugPrint("Firebase Auth SignUp Error: ${e.message}");
       return null;
     }
   }
@@ -42,7 +27,7 @@ class AuthRepository {
       );
 
       // Save login data locally
-      await _saveUserData(userCredential);
+      await saveUserData(userCredential);
 
       return userCredential;
     } on FirebaseAuthException catch (e) {
@@ -64,7 +49,7 @@ class AuthRepository {
   User? get currentUser => _auth.currentUser;
 
   // Save user data & token locally
-  Future<void> _saveUserData(UserCredential userCredential) async {
+  Future<void> saveUserData(UserCredential userCredential) async {
     final prefs = await SharedPreferences.getInstance();
     final idToken = await userCredential.user!.getIdToken();
 
@@ -96,5 +81,15 @@ class AuthRepository {
       'email': prefs.getString('email') ?? "",
       'idToken': prefs.getString('idToken') ?? "",
     };
+  }
+}
+
+// Send password reset email
+Future<void> sendPasswordResetEmail(String email) async {
+  try {
+    await FirebaseAuth.instance.sendPasswordResetEmail(email: email);
+    debugPrint('Password reset email sent to $email');
+  } catch (e) {
+    debugPrint('Failed to send reset email: $e');
   }
 }

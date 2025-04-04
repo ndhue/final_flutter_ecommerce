@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
@@ -36,7 +37,12 @@ class AuthProvider extends ChangeNotifier {
   }
 
   // Sign up
-  Future<bool> signUp(String email, String password) async {
+  Future<bool> signUp(
+    String email,
+    String password,
+    String fullName,
+    String shippingAddress,
+  ) async {
     _isLoading = true;
     notifyListeners();
 
@@ -48,6 +54,31 @@ class AuthProvider extends ChangeNotifier {
     if (userCredential != null) {
       _user = userCredential.user;
       _startTokenRefreshTimer();
+
+      final timestamp = FieldValue.serverTimestamp();
+
+      try {
+        await FirebaseFirestore.instance
+            .collection('users')
+            .doc(_user!.uid)
+            .set({
+              'uid': _user!.uid,
+              'email': email,
+              'fullName': fullName,
+              'shippingAddress': shippingAddress,
+              'createdAt': timestamp,
+            });
+
+        await _authRepository.saveUserData(userCredential);
+
+        _user = user;
+        _startTokenRefreshTimer();
+      } catch (e) {
+        _isLoading = false;
+        notifyListeners();
+        return false;
+      }
+
       _isLoading = false;
       notifyListeners();
       return true;

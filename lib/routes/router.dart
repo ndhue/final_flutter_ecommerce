@@ -33,6 +33,9 @@ Route<dynamic> generateRoute(RouteSettings settings) {
     case authScreenRoute:
       page = LoginScreen();
       break;
+    case forgotPasswordRoute:
+      page = ForgotPasswordScreen();
+      break;
     case shippingAddressScreenRoute:
       page = ShippingAddress();
       break;

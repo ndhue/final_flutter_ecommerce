@@ -1,3 +1,4 @@
+export 'auth/forgot_password_screen.dart';
 export 'auth/login_screen.dart';
 export 'auth/registration_screen.dart';
 export 'cart/cart_screen.dart';
@@ -8,6 +9,7 @@ export 'help/help_center_screen.dart';
 export 'home/home_screen.dart';
 export 'orders/order_history.dart';
 export 'orders/orders_screen.dart';
+export 'product/product_details.dart';
 export 'product/product_search.dart';
 export 'product/search_result.dart';
 export 'profile/profile_FAQs.dart';
@@ -16,4 +18,3 @@ export 'profile/profile_payment_method.dart';
 export 'profile/profile_pravicy&policy.dart';
 export 'profile/profile_screen.dart';
 export 'profile/profile_shipping_address.dart';
-export 'product/product_details.dart';

@@ -126,7 +126,7 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  // 🔹 Xây dựng form đăng nhập
+  // Xây dựng form đăng nhập
   Widget _buildForm() {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 10),
@@ -211,8 +211,6 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
           ),
 
-          const SizedBox(height: 15),
-
           // Sign Up Text
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -243,9 +241,11 @@ class _LoginScreenState extends State<LoginScreen> {
 
           // Forget Password
           Align(
-            alignment: Alignment.center,
+            alignment: Alignment.topCenter,
             child: TextButton(
-              onPressed: () {},
+              onPressed: () {
+                Navigator.pushNamed(context, forgotPasswordRoute);
+              },
               child: const Text(
                 'Forgot password?',
                 style: TextStyle(
