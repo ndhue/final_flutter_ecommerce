@@ -70,7 +70,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     Icons.payment,
                     "Payment Method",
                     context,
-                    paymentMethodScreenRoute,
+                    null,
                   ),
                   _buildMenuItem(
                     Icons.history,
@@ -136,7 +136,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     IconData icon,
     String title,
     BuildContext context,
-    String destination,
+    String? destination,
   ) {
     return Card(
       color: Colors.grey[50],
@@ -146,7 +146,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
         title: Text(title),
         trailing: Icon(Icons.arrow_forward_ios, size: 16, color: iconColor),
         onTap: () {
-          Navigator.pushNamed(context, destination);
+          destination != null
+              ? Navigator.pushNamed(context, destination)
+              : null;
         },
       ),
     );
