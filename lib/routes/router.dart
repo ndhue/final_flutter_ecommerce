@@ -77,10 +77,7 @@ Route<dynamic> generateRoute(RouteSettings settings) {
     case chatScreenRoute:
       if (settings.arguments is Map<String, dynamic>) {
         final args = settings.arguments as Map<String, dynamic>;
-        page = ChatScreen(
-          userId: args['userId'],
-          isAdmin: args['isAdmin'] ?? false,
-        );
+        page = ChatScreen(userId: args['userId']);
       } else {
         return MaterialPageRoute(builder: (context) => const EntryPoint());
       }
@@ -98,7 +95,8 @@ Route<dynamic> generateRoute(RouteSettings settings) {
     case adminSingleChat:
       if (settings.arguments is Map<String, dynamic>) {
         final args = settings.arguments as Map<String, dynamic>;
-        page = ChatScreen(userId: args['userId'], isAdmin: true);
+        page = ChatScreen(userId: args['userId']);
+        settings = RouteSettings(name: adminSingleChat, arguments: args);
       } else {
         return MaterialPageRoute(
           builder: (context) => const AdminChatsScreen(),

@@ -20,11 +20,7 @@ class _HelpsSupport extends State<HelpsSupport> {
     String? uid = prefs.getString('uid');
 
     if (uid != null && context.mounted) {
-      Navigator.pushNamed(
-        context,
-        chatScreenRoute,
-        arguments: {"userId": uid, "isAdmin": false},
-      );
+      Navigator.pushNamed(context, chatScreenRoute, arguments: {"userId": uid});
     } else {
       _showSnackBar("Please log in to chat");
     }
