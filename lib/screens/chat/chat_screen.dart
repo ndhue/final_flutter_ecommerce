@@ -4,6 +4,7 @@ import 'package:final_ecommerce/models/models_export.dart';
 import 'package:final_ecommerce/providers/providers_export.dart';
 import 'package:final_ecommerce/services/cloudinary_service.dart';
 import 'package:final_ecommerce/utils/constants.dart';
+import 'package:final_ecommerce/utils/utils.dart';
 import 'package:final_ecommerce/widgets/widgets_export.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -15,15 +16,8 @@ import 'package:provider/provider.dart';
 
 class ChatScreen extends StatefulWidget {
   final String userId;
-  final String? userName; // This can be null initially
-  final bool isAdmin;
 
-  const ChatScreen({
-    super.key,
-    required this.userId,
-    this.userName,
-    required this.isAdmin,
-  });
+  const ChatScreen({super.key, required this.userId});
 
   @override
   State<ChatScreen> createState() => _ChatScreenState();
@@ -34,24 +28,22 @@ class _ChatScreenState extends State<ChatScreen> {
   final ScrollController _scrollController = ScrollController();
   final List<dynamic> _viewImages = [];
   final List<XFile> _selectedImages = [];
-  late String _userName;
+  late UserModel user;
   bool _isFirstLoad = true; // Track if this is the first load
 
   @override
   void initState() {
     super.initState();
 
-    _userName = "";
-
     final chatProvider = context.read<ChatProvider>();
-    final userProvider = context.read<UserProvider>();
+    final userProvider = context.watch<UserProvider>();
+    user = userProvider.user!;
 
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (chatProvider.messages.isEmpty) {
         setState(() => _isFirstLoad = true);
         await chatProvider.ensureChatExists(widget.userId);
         await userProvider.fetchUser(widget.userId);
-        _userName = userProvider.user!.fullName;
 
         chatProvider.listenToMessages(widget.userId).listen((messages) {
           setState(() => _isFirstLoad = false);
@@ -59,7 +51,6 @@ class _ChatScreenState extends State<ChatScreen> {
 
         chatProvider.markChatAsRead(widget.userId);
       } else {
-        _userName = userProvider.user?.fullName ?? "Unknown";
         setState(() => _isFirstLoad = false);
       }
     });
@@ -68,7 +59,6 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   void _onScroll() async {
-    // debugPrint(_scrollController.offset.toString());
     final chatProvider = context.read<ChatProvider>();
     if (_scrollController.position.pixels >=
             _scrollController.position.maxScrollExtent - 100 &&
@@ -157,8 +147,8 @@ class _ChatScreenState extends State<ChatScreen> {
           _selectedImages.map((_) => "loading").toList();
       Message tempMessage = Message(
         id: tempMessageId,
-        senderId: widget.isAdmin ? "admin" : widget.userId,
-        senderName: widget.isAdmin ? "Admin" : (widget.userName ?? _userName),
+        senderId: user.role == "admin" ? "admin" : widget.userId,
+        senderName: user.fullName,
         message: messageText,
         timestamp: DateTime.now(),
         imageUrls: tempImageUrls,
@@ -186,8 +176,8 @@ class _ChatScreenState extends State<ChatScreen> {
       // Send the final message to Firestore
       await chatProvider.sendMessage(
         widget.userId,
-        widget.isAdmin ? "admin" : widget.userId,
-        widget.isAdmin ? "Admin" : (widget.userName ?? _userName),
+        user.id,
+        user.fullName,
         messageText,
         imageUrls: uploadedImageUrls,
       );
@@ -219,7 +209,7 @@ class _ChatScreenState extends State<ChatScreen> {
         backgroundColor: primaryColor,
         foregroundColor: Colors.white,
         title: Text(
-          widget.isAdmin ? _userName : "Chat with Admin",
+          isAdmin(user) ? user.fullName : "Chat with Admin",
           style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w500),
         ),
       ),
@@ -255,7 +245,7 @@ class _ChatScreenState extends State<ChatScreen> {
                                           chatProvider.messages[index];
                                       final bool isCurrentUser =
                                           message.senderId ==
-                                          (widget.isAdmin
+                                          (isAdmin(user)
                                               ? "admin"
                                               : widget.userId);
                                       final bool showTime =

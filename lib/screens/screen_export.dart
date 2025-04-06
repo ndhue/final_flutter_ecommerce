@@ -5,7 +5,6 @@ export 'cart/cart_screen.dart';
 export 'categories/categories_screen.dart';
 export 'chat/chat_screen.dart';
 export 'entry_point.dart';
-export 'help/help_center_screen.dart';
 export 'home/home_screen.dart';
 export 'orders/order_history.dart';
 export 'orders/orders_screen.dart';

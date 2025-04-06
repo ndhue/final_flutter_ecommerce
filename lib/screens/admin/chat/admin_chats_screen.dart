@@ -132,11 +132,7 @@ class _AdminChatsScreenState extends State<AdminChatsScreen> {
                         Navigator.pushNamed(
                           context,
                           adminSingleChat,
-                          arguments: {
-                            "userId": chat.userId,
-                            "userName": chat.userName,
-                            "isAdmin": true,
-                          },
+                          arguments: {"userId": chat.userId},
                         );
                       },
                     ),
