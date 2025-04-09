@@ -72,17 +72,19 @@ class CustomDrawer extends StatelessWidget {
                   icon: Icons.people_outline,
                   title: "Customers",
                   children: [
-                    _buildSubNavItem("Dashboard"),
+                    _buildSubNavItem("Dashboard",
+                    onTap: () => onItemSelected("Customers"),
+                    ),
                     _buildSubNavItem(
                       "Chats",
                       onTap: () => onItemSelected("Chats"),
                     ),
                   ],
                 ),
-                _buildExpandableNavItem(
-                  context: context,
-                  icon: Icons.pie_chart_outline,
-                  title: "Income",
+                _buildNavItem(
+                  Icons.pie_chart_outline,
+                  "Income",
+                  onTap: () => onItemSelected("Income"),
                 ),
                 _buildNavItem(
                   Icons.discount_outlined,

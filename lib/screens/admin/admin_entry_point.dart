@@ -1,3 +1,4 @@
+import 'package:final_ecommerce/screens/admin/Home/home_screen.dart';
 import 'package:final_ecommerce/screens/admin/admin_screens_export.dart';
 import 'package:final_ecommerce/utils/constants.dart';
 import 'package:flutter/material.dart';
@@ -41,19 +42,19 @@ class _AdminEntryPointState extends State<AdminEntryPoint> {
   Widget _buildBody() {
     switch (_selectedItem) {
       case "Home":
-        return Center(child: Text("Home Screen"));
-      case "Products":
-        return Center(child: Text("Products Screen"));
+        return DashboardScreen();
       case "Customers":
-        return Center(child: Text("Customers Screen"));
+        return AdminCustomersScreen();
       case "Chats":
         return AdminChatsScreen();
       case "Shop":
         return Center(child: Text("Shop Screen"));
       case "Income":
-        return Center(child: Text("Income Screen"));
+        return AdminIcomeScreen();
       case "Coupons":
         return AdminCouponScreen();
+      case "Products":
+        return AdminProductScreen();
       default:
         return Center(child: Text("Unknown Screen"));
     }
