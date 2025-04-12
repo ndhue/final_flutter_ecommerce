@@ -4,7 +4,7 @@ import 'package:final_ecommerce/utils/constants.dart';
 import 'package:flutter/material.dart';
 
 class CategoriesGridView extends StatelessWidget {
-  final Function(String) onCategorySelected; // Callback để truyền danh mục được chọn
+  final Function(String) onCategorySelected;
 
   const CategoriesGridView({super.key, required this.onCategorySelected});
 
@@ -16,10 +16,10 @@ class CategoriesGridView extends StatelessWidget {
       alignment: WrapAlignment.start, // Center align items
       children: categories.map((category) {
         return SizedBox(
-          width: MediaQuery.of(context).size.width / 3 - 18, // Ensures 3 items per row
+          width: MediaQuery.of(context).size.width / 3 - 18, 
           child: CategoryCard(
             category: category,
-            onTap: () => onCategorySelected(category.name), // Truyền danh mục được chọn
+            onTap: () => onCategorySelected(category.name), 
           ),
         );
       }).toList(),
@@ -29,7 +29,7 @@ class CategoriesGridView extends StatelessWidget {
 
 class CategoryCard extends StatelessWidget {
   final Category category;
-  final VoidCallback onTap; // Callback khi click vào danh mục
+  final VoidCallback onTap;
 
   const CategoryCard({
     super.key,

@@ -1,15 +1,15 @@
+import 'package:final_ecommerce/models/new_product_model.dart';
 import 'package:final_ecommerce/screens/screen_export.dart';
 import 'package:final_ecommerce/utils/constants.dart';
 import 'package:flutter/material.dart';
 
-import '../models/product_model.dart';
 import 'product_card.dart';
 
 class ProductListSlider extends StatelessWidget {
   final String title;
-  final List<Product> products;
+  final List<NewProduct> products;
   final VoidCallback? onSeeAllPressed;
-  final Function(Product)? onProductSelected; // Thêm callback này
+  final Function(NewProduct)? onProductSelected; // Thêm callback này
 
   const ProductListSlider({
     super.key,

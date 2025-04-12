@@ -1,4 +1,4 @@
-import 'package:final_ecommerce/models/product_model.dart';
+import 'package:final_ecommerce/models/models_export.dart';
 import 'package:final_ecommerce/screens/admin/admin_screens_export.dart';
 import 'package:final_ecommerce/screens/screen_export.dart';
 import 'package:flutter/material.dart';
@@ -58,8 +58,8 @@ Route<dynamic> generateRoute(RouteSettings settings) {
       break;
 
     case productDetailsRoute:
-      if (settings.arguments is Product) {
-        final product = settings.arguments as Product;
+      if (settings.arguments is NewProduct) {
+        final product = settings.arguments as NewProduct;
         page = ProductDetails(product: product);
       } else {
         page = const EntryPoint(); // Nếu không có sản phẩm, quay về trang chính

@@ -1,22 +1,20 @@
 import 'package:final_ecommerce/utils/constants.dart';
 import 'package:final_ecommerce/utils/format.dart';
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+
 import '../models/models_export.dart';
-import '../providers/cart_provider.dart';
-import '../screens/product/product_details.dart'; // <-- Đổi tên đúng với class bạn dùng
 
 class ProductCard extends StatelessWidget {
-  final Product product;
+  final NewProduct product;
   final VoidCallback onTap;
 
   const ProductCard({super.key, required this.product, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
-    final variant = product.variants.first;
-    final hasDiscount = variant.discount > 0;
-    final discountPercent = (variant.discount * 100).round();
+    final hasDiscount = product.discount > 0;
+    final discountPercent = (product.discount * 100).round();
+    final discountPrice = product.sellingPrice * (100 - discountPercent) / 100;
 
     return Container(
       margin: const EdgeInsets.only(right: 12),
@@ -84,7 +82,7 @@ class ProductCard extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        FormatHelper.formatCurrency(variant.currentPrice),
+                        FormatHelper.formatCurrency(discountPrice),
                         style: const TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
@@ -93,7 +91,7 @@ class ProductCard extends StatelessWidget {
                       ),
                       if (hasDiscount)
                         Text(
-                          FormatHelper.formatCurrency(variant.sellingPrice),
+                          FormatHelper.formatCurrency(product.sellingPrice),
                           style: const TextStyle(
                             fontSize: 12,
                             decoration: TextDecoration.lineThrough,
@@ -116,30 +114,14 @@ class ProductCard extends StatelessWidget {
                       foregroundColor: Colors.white,
                     ),
                     onPressed: () {
-                      if (product.variants.length > 1) {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder:
-                                (context) => ProductDetails(product: product),
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            '${product.name} đã được thêm vào giỏ hàng',
                           ),
-                        );
-                      } else {
-                        final variant = product.variants.first;
-                        Provider.of<CartProvider>(
-                          context,
-                          listen: false,
-                        ).addToCart(product, variant);
-
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(
-                              '${product.name} đã được thêm vào giỏ hàng',
-                            ),
-                            duration: const Duration(seconds: 2),
-                          ),
-                        );
-                      }
+                          duration: const Duration(seconds: 2),
+                        ),
+                      );
                     },
                     child: const Text("Add to Cart"),
                   ),
