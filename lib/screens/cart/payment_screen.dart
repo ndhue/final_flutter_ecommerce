@@ -2,6 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/cart_provider.dart';
 import '../cart/addressPicker.dart';
+import '../orders/orderTabScreen.dart';
+import '../orders/order_history.dart';
+import '../../providers/order_provider.dart';
+import '../../providers/user_provider.dart';
 
 class PaymentScreen extends StatefulWidget {
   const PaymentScreen({Key? key}) : super(key: key);
@@ -17,30 +21,31 @@ class _PaymentScreenState extends State<PaymentScreen> {
   TextEditingController _discountController = TextEditingController();
   String _appliedDiscountCode = "";
   double _discountValue = 0.0;
-  String _selectedDeliveryOption = "Express"; // Default delivery method
-  String _selectedPaymentMethod = "Credit Card"; // Default payment method
+  double _shippingFee = 14.99;
+  String _selectedDeliveryOption = "Express";
+  String _selectedPaymentMethod = "Credit Card";
 
   @override
   Widget build(BuildContext context) {
     final cartProvider = Provider.of<CartProvider>(context);
     final selectedItems = cartProvider.selectedItems.toList();
     final totalPrice = cartProvider.selectedTotalPrice;
-    final discountedPrice = totalPrice * (1 - _discountValue);
+    final discount = totalPrice * _discountValue;
+    final finalTotalPrice = totalPrice - discount + _shippingFee;
     final totalItems = selectedItems.length;
 
-    // Nếu có nhiều hơn 3 sản phẩm, chỉ hiển thị 3 sản phẩm đầu tiên
     final displayedItems =
         showAllItems ? selectedItems : selectedItems.take(3).toList();
 
     return Scaffold(
-      appBar: AppBar(title: Text('Thanh toán')),
+      appBar: AppBar(title: const Text('Payment')),
       body: SingleChildScrollView(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _buildAddressSection(context, cartProvider),
             const SizedBox(height: 16),
-            _buildCartItems(displayedItems), // Hiển thị các mặt hàng
+            _buildCartItems(displayedItems),
             if (selectedItems.length > 3)
               TextButton(
                 onPressed: () {
@@ -51,11 +56,16 @@ class _PaymentScreenState extends State<PaymentScreen> {
                 child: Text(showAllItems ? 'Hide list' : 'Show all items'),
               ),
             _buildExpandableSections(),
-            _buildOrderSummary(totalItems, discountedPrice),
-            _buildPaymentButton(selectedItems),
+            _buildOrderSummary(
+              totalItems,
+              totalPrice,
+              discount,
+              finalTotalPrice,
+            ),
           ],
         ),
       ),
+      bottomNavigationBar: _buildPaymentButton(selectedItems, finalTotalPrice),
     );
   }
 
@@ -64,7 +74,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
       children: [
         ListView.builder(
           shrinkWrap: true,
-          physics: NeverScrollableScrollPhysics(),
+          physics: const NeverScrollableScrollPhysics(),
           itemCount: selectedItems.length,
           itemBuilder: (context, index) {
             final item = selectedItems[index];
@@ -78,22 +88,22 @@ class _PaymentScreenState extends State<PaymentScreen> {
                 ),
                 title: Text(
                   item.product.name,
-                  style: TextStyle(fontWeight: FontWeight.bold),
+                  style: const TextStyle(fontWeight: FontWeight.bold),
                 ),
                 subtitle: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       '${item.price}₫',
-                      style: TextStyle(color: Colors.green, fontSize: 14),
+                      style: const TextStyle(color: Colors.green, fontSize: 14),
                     ),
                     Text(
                       'Số lượng: ${item.quantity}',
-                      style: TextStyle(fontSize: 14),
+                      style: const TextStyle(fontSize: 14),
                     ),
                     Text(
                       'Tổng: ${item.price * item.quantity}₫',
-                      style: TextStyle(
+                      style: const TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.bold,
                         color: Colors.red,
@@ -114,9 +124,8 @@ class _PaymentScreenState extends State<PaymentScreen> {
       padding: const EdgeInsets.symmetric(horizontal: 16.0),
       child: Column(
         children: [
-          // Chọn phương thức giao hàng
           ExpansionTile(
-            title: Text(
+            title: const Text(
               'Select the delivery option',
               style: TextStyle(fontWeight: FontWeight.bold),
             ),
@@ -127,9 +136,10 @@ class _PaymentScreenState extends State<PaymentScreen> {
                 onChanged: (value) {
                   setState(() {
                     _selectedDeliveryOption = value!;
+                    _shippingFee = 14.99;
                   });
                 },
-                title: Text('Express: 1-3 days delivery - \$14.99'),
+                title: const Text('Express: 1-3 days delivery - \$14.99'),
               ),
               RadioListTile<String>(
                 value: "Regular",
@@ -137,9 +147,10 @@ class _PaymentScreenState extends State<PaymentScreen> {
                 onChanged: (value) {
                   setState(() {
                     _selectedDeliveryOption = value!;
+                    _shippingFee = 7.99;
                   });
                 },
-                title: Text('Regular: 2-4 days delivery - \$7.99'),
+                title: const Text('Regular: 2-4 days delivery - \$7.99'),
               ),
               RadioListTile<String>(
                 value: "Cargo",
@@ -147,26 +158,23 @@ class _PaymentScreenState extends State<PaymentScreen> {
                 onChanged: (value) {
                   setState(() {
                     _selectedDeliveryOption = value!;
+                    _shippingFee = 2.99;
                   });
                 },
-                title: Text('Cargo: 7-14 days delivery - \$2.99'),
+                title: const Text('Cargo: 7-14 days delivery - \$2.99'),
               ),
             ],
           ),
-
-          // Hiển thị kết quả đã chọn cho phương thức giao hàng
           _buildSelectedOption('Delivery Option', _selectedDeliveryOption),
-
-          // Nhập mã giảm giá
           ExpansionTile(
-            title: Text(
+            title: const Text(
               'Apply a discount',
               style: TextStyle(fontWeight: FontWeight.bold),
             ),
             children: [
               TextField(
                 controller: _discountController,
-                decoration: InputDecoration(
+                decoration: const InputDecoration(
                   labelText: 'Enter discount code',
                   border: OutlineInputBorder(),
                 ),
@@ -179,14 +187,15 @@ class _PaymentScreenState extends State<PaymentScreen> {
                     setState(() {
                       _appliedDiscountCode =
                           _discountController.text.trim().toUpperCase();
-                      if (_appliedDiscountCode == "SALE10") {
-                        _discountValue = 0.1; // Apply 10% discount
+                      if (_appliedDiscountCode == "SALE10" ||
+                          _appliedDiscountCode == "HAG") {
+                        _discountValue = 0.1;
                       } else {
                         _discountValue = 0.0;
                       }
                     });
                   },
-                  child: Text('Apply'),
+                  child: const Text('Apply'),
                 ),
               ),
               if (_appliedDiscountCode.isNotEmpty)
@@ -201,13 +210,9 @@ class _PaymentScreenState extends State<PaymentScreen> {
                 ),
             ],
           ),
-
-          // Hiển thị kết quả đã chọn cho mã giảm giá
           _buildSelectedOption('Discount Code', _appliedDiscountCode),
-
-          // Chọn phương thức thanh toán
           ExpansionTile(
-            title: Text(
+            title: const Text(
               'Select Payment Method',
               style: TextStyle(fontWeight: FontWeight.bold),
             ),
@@ -220,7 +225,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
                     _selectedPayment = value!;
                   });
                 },
-                title: Text('Credit Card'),
+                title: const Text('Credit Card'),
               ),
               RadioListTile<int>(
                 value: 2,
@@ -230,12 +235,10 @@ class _PaymentScreenState extends State<PaymentScreen> {
                     _selectedPayment = value!;
                   });
                 },
-                title: Text('Cash on Delivery'),
+                title: const Text('Cash on Delivery'),
               ),
             ],
           ),
-
-          // Hiển thị kết quả đã chọn cho phương thức thanh toán
           _buildSelectedOption(
             'Payment Method',
             _selectedPayment == 1 ? 'Credit Card' : 'Cash on Delivery',
@@ -245,7 +248,6 @@ class _PaymentScreenState extends State<PaymentScreen> {
     );
   }
 
-  // Hàm hiển thị kết quả đã chọn
   Widget _buildSelectedOption(String title, String selectedValue) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
@@ -254,25 +256,38 @@ class _PaymentScreenState extends State<PaymentScreen> {
         children: [
           Text(
             title,
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            style: const TextStyle(
+              fontSize: 14, // nhỏ hơn 16
+              fontWeight: FontWeight.w500,
+              color: Colors.grey, // màu nhạt
+            ),
           ),
           Text(
             selectedValue.isNotEmpty ? selectedValue : 'None',
-            style: TextStyle(fontSize: 16),
+            style: const TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
+              color: Colors.black, // bạn có thể để grey nếu muốn cả 2 nhạt
+            ),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildOrderSummary(int totalItems, double totalPrice) {
+  Widget _buildOrderSummary(
+    int totalItems,
+    double totalPrice,
+    double discount,
+    double finalTotal,
+  ) {
     return Container(
       padding: const EdgeInsets.all(16.0),
       color: Colors.grey[200],
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
+          const Text(
             'Order Summary',
             style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
           ),
@@ -283,7 +298,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
               Text('Total items: $totalItems'),
               Text(
                 '\$${totalPrice.toStringAsFixed(2)}',
-                style: TextStyle(fontWeight: FontWeight.bold),
+                style: const TextStyle(fontWeight: FontWeight.bold),
               ),
             ],
           ),
@@ -291,22 +306,36 @@ class _PaymentScreenState extends State<PaymentScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('Discount'),
+              const Text('Discount'),
               Text(
-                '-\$${(totalPrice * _discountValue).toStringAsFixed(2)}',
-                style: TextStyle(color: Colors.red),
+                '-\$${discount.toStringAsFixed(2)}',
+                style: const TextStyle(color: Colors.red),
               ),
             ],
           ),
           const SizedBox(height: 8),
-          Divider(),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('Total', style: TextStyle(fontWeight: FontWeight.bold)),
+              const Text('Shipping Fee'),
               Text(
-                '\$${(totalPrice * (1 - _discountValue)).toStringAsFixed(2)}',
+                '+\$${_shippingFee.toStringAsFixed(2)}',
+                style: const TextStyle(color: Colors.blue),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          const Divider(),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                'Total',
                 style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              Text(
+                '\$${finalTotal.toStringAsFixed(2)}',
+                style: const TextStyle(fontWeight: FontWeight.bold),
               ),
             ],
           ),
@@ -315,22 +344,74 @@ class _PaymentScreenState extends State<PaymentScreen> {
     );
   }
 
-  Widget _buildPaymentButton(List selectedItems) {
-    return Padding(
-      padding: const EdgeInsets.all(16.0),
+  Widget _buildPaymentButton(List selectedItems, double finalTotalPrice) {
+    final hasSelectedItems = selectedItems.isNotEmpty;
+    final buttonText =
+        hasSelectedItems
+            ? 'Select payment method'
+            : 'Please select product(s) to continue';
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        border: Border(top: BorderSide(color: Colors.grey.shade300)),
+        color: Colors.white,
+      ),
       child: ElevatedButton(
         onPressed:
-            selectedItems.isNotEmpty
-                ? () {
-                  print("🚚 Delivery option: $_selectedDeliveryOption");
-                  print("💳 Payment method: $_selectedPayment");
-                  print(
-                    "🏷️ Discount applied: $_appliedDiscountCode (${_discountValue * 100}%)",
+            hasSelectedItems
+                ? () async {
+                  final orderProvider = Provider.of<OrderProvider>(
+                    context,
+                    listen: false,
                   );
-                  // Proceed to payment
+                  orderProvider.addOrder(
+                    Order(
+                      id: DateTime.now().millisecondsSinceEpoch.toString(),
+                      productName: selectedItems
+                          .map((e) => e.product.name)
+                          .join(", "),
+                      price: finalTotalPrice, // ✅ tên đúng
+                      quantity: selectedItems
+                          .map((item) => item.quantity)
+                          .cast<int>()
+                          .fold<int>(0, (sum, qty) => sum + qty),
+
+                      status: "pending",
+                    ),
+                  );
+
+                  await showDialog(
+                    context: context,
+                    builder:
+                        (context) => AlertDialog(
+                          title: const Text('Success'),
+                          content: const Text('Đặt hàng thành công!'),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.of(context).pop(),
+                              child: const Text('OK'),
+                            ),
+                          ],
+                        ),
+                  );
+
+                  Navigator.pushReplacement(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const OrderTabsScreen(),
+                    ),
+                  );
                 }
                 : null,
-        child: Text('Proceed to Payment'),
+        style: ElevatedButton.styleFrom(
+          backgroundColor:
+              hasSelectedItems ? Colors.green : Colors.grey.shade300,
+          foregroundColor: hasSelectedItems ? Colors.white : Colors.black54,
+          minimumSize: const Size(double.infinity, 56),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        ),
+        child: Text(buttonText, style: const TextStyle(fontSize: 16)),
       ),
     );
   }
