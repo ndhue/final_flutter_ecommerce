@@ -1,17 +1,13 @@
-import 'package:final_ecommerce/screens/screen_export.dart';
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import '/models/models_export.dart';
-import '/widgets/product_card.dart';
-import '/data/mock_data.dart';
-import '/widgets/buttons/cart_button.dart';
+
 import '/routes/route_constants.dart';
+import '/widgets/buttons/cart_button.dart';
 
 class SearchResults extends StatefulWidget {
   const SearchResults({super.key});
 
   @override
-  _SearchResultsState createState() => _SearchResultsState();
+  State<SearchResults> createState() => _SearchResultsState();
 }
 
 class _SearchResultsState extends State<SearchResults> {
@@ -30,14 +26,14 @@ class _SearchResultsState extends State<SearchResults> {
     }
   }
 
-  List<Product> get filteredProducts {
-    return products
-        .where(
-          (product) =>
-              product.name.toLowerCase().contains(searchQuery.toLowerCase()),
-        )
-        .toList();
-  }
+  // List<Product> get filteredProducts {
+  //   return products
+  //       .where(
+  //         (product) =>
+  //             product.name.toLowerCase().contains(searchQuery.toLowerCase()),
+  //       )
+  //       .toList();
+  // }
 
   @override
   Widget build(BuildContext context) {
@@ -94,38 +90,40 @@ class _SearchResultsState extends State<SearchResults> {
             const SizedBox(height: 8),
             Expanded(
               child:
-                  filteredProducts.isEmpty
-                      ? const Center(
-                        child: Text(
-                          'No products found.',
-                          style: TextStyle(fontSize: 16, color: Colors.grey),
-                        ),
-                      )
-                      : GridView.builder(
-                        gridDelegate:
-                            const SliverGridDelegateWithFixedCrossAxisCount(
-                              crossAxisCount: 2,
-                              childAspectRatio: 0.75,
-                              crossAxisSpacing: 10,
-                              mainAxisSpacing: 10,
-                            ),
-                        itemCount: filteredProducts.length,
-                        itemBuilder: (context, index) {
-                          return ProductCard(
-                            product: filteredProducts[index],
-                            onTap: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder:
-                                      (context) =>
-                                          ProductDetails(product: filteredProducts[index]),
-                                ),
-                              );
-                            },
-                          );
-                        },
-                      ),
+              // filteredProducts.isEmpty
+              // ?
+              const Center(
+                child: Text(
+                  'No products found.',
+                  style: TextStyle(fontSize: 16, color: Colors.grey),
+                ),
+              ),
+              // : GridView.builder(
+              //   gridDelegate:
+              //       const SliverGridDelegateWithFixedCrossAxisCount(
+              //         crossAxisCount: 2,
+              //         childAspectRatio: 0.75,
+              //         crossAxisSpacing: 10,
+              //         mainAxisSpacing: 10,
+              //       ),
+              //   itemCount: filteredProducts.length,
+              //   itemBuilder: (context, index) {
+              //     return ProductCard(
+              //       product: filteredProducts[index],
+              //       onTap: () {
+              //         Navigator.push(
+              //           context,
+              //           MaterialPageRoute(
+              //             builder:
+              //                 (context) => ProductDetails(
+              //                   product: filteredProducts[index],
+              //                 ),
+              //           ),
+              //         );
+              //       },
+              //     );
+              //   },
+              // ),
             ),
           ],
         ),

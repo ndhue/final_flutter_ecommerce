@@ -1,4 +1,4 @@
-import 'package:final_ecommerce/screens/product/productCatalog.dart';
+import 'package:final_ecommerce/screens/product/product_catalog.dart';
 import 'package:final_ecommerce/utils/constants.dart';
 import 'package:flutter/material.dart';
 
@@ -28,7 +28,6 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
             const SizedBox(height: defaultPadding),
             CategoriesGridView(
               onCategorySelected: (category) {
-                  // Khi người dùng click vào một danh mục, chuyển đến trang ProductCatalog
                   Navigator.push(
                     context,
                     MaterialPageRoute(

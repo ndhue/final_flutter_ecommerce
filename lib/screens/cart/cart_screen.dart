@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+
 import '../../providers/cart_provider.dart';
 import '../../utils/format.dart';
 import '../../widgets/buttons/cart_button.dart';
-import 'payment_screen.dart';
 import 'addressPicker.dart';
-import '../product/product_details.dart'; // thêm dòng này để điều hướng
+import 'payment_screen.dart';
 
 class CartScreen extends StatelessWidget {
   const CartScreen({super.key});
@@ -109,12 +109,12 @@ class CartScreen extends StatelessWidget {
 
         return ListTile(
           onTap: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => ProductDetails(product: product),
-              ),
-            );
+            // Navigator.push(
+            //   context,
+            //   MaterialPageRoute(
+            //     builder: (context) => ProductDetails(product: product),
+            //   ),
+            // );
           },
           leading: Row(
             mainAxisSize: MainAxisSize.min,

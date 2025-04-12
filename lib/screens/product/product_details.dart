@@ -1,24 +1,26 @@
-import 'package:final_ecommerce/providers/cart_provider.dart';
+import 'package:final_ecommerce/models/models_export.dart';
+import 'package:final_ecommerce/providers/providers_export.dart';
 import 'package:final_ecommerce/utils/constants.dart';
+import 'package:final_ecommerce/utils/format.dart';
+import 'package:final_ecommerce/utils/utils.dart';
 import 'package:final_ecommerce/widgets/buttons/cart_button.dart';
 import 'package:flutter/material.dart';
-import 'package:final_ecommerce/models/models_export.dart';
 import 'package:flutter_rating_bar/flutter_rating_bar.dart';
 import 'package:provider/provider.dart';
-import 'package:collection/collection.dart';
 
 class ProductDetails extends StatefulWidget {
   const ProductDetails({super.key, required this.product});
-  final Product product;
+  final NewProduct product;
 
   @override
-  _ProductDetailsState createState() => _ProductDetailsState();
+  State<ProductDetails> createState() => _ProductDetailsState();
 }
 
 class _ProductDetailsState extends State<ProductDetails> {
-  late Product productSelected;
+  late VariantProvider _variantProvider;
+  late NewProduct productSelected;
+  late NewVariant? variantSelected;
   int _currentImageIndex = 0;
-  String? _selectedStorage;
   Color? _selectedColor;
   Variant? _selectedVariant;
   double _rating = 0;
@@ -29,30 +31,30 @@ class _ProductDetailsState extends State<ProductDetails> {
   void initState() {
     super.initState();
     productSelected = widget.product;
-    _selectedColor = productSelected.variants.first.color;
-    _selectedStorage = productSelected.variants.first.size ?? '';
+    _selectedColor = hexToColor(productSelected.availableColors[0]);
     _rating = productSelected.rating;
     _totalReview = productSelected.totalReviews;
-    _updateSelectedVariant();
+    variantSelected = null;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _variantProvider = Provider.of<VariantProvider>(context, listen: false);
+      _fetchVariantByColor(productSelected.availableColors[0]);
+    });
   }
 
-  void _updateSelectedVariant() {
+  Future<void> _fetchVariantByColor(String colorCode) async {
+    await _variantProvider.fetchVariantByColor(
+      productId: productSelected.id,
+      colorCode: colorCode,
+    );
     setState(() {
-      _selectedVariant = productSelected.variants.firstWhereOrNull(
-        (v) => v.color == _selectedColor && v.size == _selectedStorage,
-      );
+      variantSelected = _variantProvider.selectedVariant;
     });
   }
 
   void _selectColor(Color color) {
-    _selectedColor = color;
-    _updateSelectedVariant();
-  }
-
-  void _selectStorage(String storage) {
+    _fetchVariantByColor(colorToHex(color));
     setState(() {
-      _selectedStorage = storage;
-      _updateSelectedVariant();
+      _selectedColor = color;
     });
   }
 
@@ -78,37 +80,38 @@ class _ProductDetailsState extends State<ProductDetails> {
     });
   }
 
-  void _addToCart(BuildContext context) {
-    if (_selectedVariant == null) return;
-    Provider.of<CartProvider>(
-      context,
-      listen: false,
-    ).addToCart(productSelected, _selectedVariant!);
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          '${productSelected.name} (${_selectedVariant!.name}) đã được thêm vào giỏ hàng',
-        ),
-      ),
-    );
-  }
+  // void _addToCart(BuildContext context) {
+  //   if (_selectedVariant == null) return;
+  //   Provider.of<CartProvider>(
+  //     context,
+  //     listen: false,
+  //   ).addToCart(productSelected, _selectedVariant!);
+  //   ScaffoldMessenger.of(context).showSnackBar(
+  //     SnackBar(
+  //       content: Text(
+  //         '${productSelected.name} (${_selectedVariant!.name}) đã được thêm vào giỏ hàng',
+  //       ),
+  //     ),
+  //   );
+  // }
 
   @override
   Widget build(BuildContext context) {
-    final hasColorOptions = productSelected.variants.any((v) => v.isColor);
     final colors =
-        productSelected.variants.map((v) => v.color).whereType<Color>().toSet();
-    final sizes =
-        productSelected.variants.map((v) => v.size).whereType<String>().toSet();
+        productSelected.availableColors
+            .map((colorHex) => hexToColor(colorHex))
+            .toSet();
 
     final List<String> reviewImages = [
-      '/assets/images/review-1.jpg',
-      '/assets/images/order-2.jpg',
-      '',
-      '/assets/images/order-3.jpg',
-      '',
-      '/assets/images/review-1.jpg',
+      'assets/images/order-1.jpg',
+      'assets/images/order-2.jpg',
+      'assets/images/order-3.jpg',
     ];
+
+    final hasDiscount = productSelected.discount > 0;
+    final discountPercent = (productSelected.discount * 100).round();
+    final discountPrice =
+        productSelected.sellingPrice * (100 - discountPercent) / 100;
 
     return Scaffold(
       appBar: AppBar(
@@ -134,7 +137,25 @@ class _ProductDetailsState extends State<ProductDetails> {
                 Center(
                   child: Image.network(
                     productSelected.images[_currentImageIndex],
+                    width:
+                        MediaQuery.of(context).size.width > 600
+                            ? 500
+                            : MediaQuery.of(context).size.width,
+                    height: 300,
                     fit: BoxFit.cover,
+                    loadingBuilder: (context, child, loadingProgress) {
+                      if (loadingProgress == null) return child;
+                      return const Center(child: CircularProgressIndicator());
+                    },
+                    errorBuilder: (context, error, stackTrace) {
+                      return const Center(
+                        child: Icon(
+                          Icons.broken_image,
+                          size: 50,
+                          color: Colors.grey,
+                        ),
+                      );
+                    },
                   ),
                 ),
                 Positioned(
@@ -184,21 +205,48 @@ class _ProductDetailsState extends State<ProductDetails> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    productSelected.name,
+                    '${productSelected.name} ${variantSelected?.colorName}',
                     style: const TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
                   const SizedBox(height: 8),
-                  Text(
-                    _selectedVariant != null
-                        ? '\$${_selectedVariant!.sellingPrice}'
-                        : 'Không có biến thể phù hợp',
-                    style: const TextStyle(fontSize: 16, color: Colors.grey),
+                  Row(
+                    children: [
+                      Text(
+                        FormatHelper.formatCurrency(discountPrice),
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: darkTextColor,
+                        ),
+                      ),
+                      if (hasDiscount) ...[
+                        const SizedBox(width: 8),
+                        Text(
+                          FormatHelper.formatCurrency(
+                            productSelected.sellingPrice,
+                          ),
+                          style: const TextStyle(
+                            fontSize: 12,
+                            decoration: TextDecoration.lineThrough,
+                            color: Colors.grey,
+                          ),
+                        ),
+                      ],
+                    ],
                   ),
-                  if (hasColorOptions) ...[
-                    const SizedBox(height: 16),
+                  const SizedBox(height: 8),
+                  if (variantSelected != null &&
+                      variantSelected!.inventory == 0) ...[
+                    const Text(
+                      'Out of stock',
+                      style: TextStyle(fontSize: 14, color: Colors.red),
+                    ),
+                  ],
+                  const SizedBox(height: 8),
+                  if (colors.isNotEmpty) ...[
                     const Text(
                       'Choose the color',
                       style: TextStyle(
@@ -217,32 +265,6 @@ class _ProductDetailsState extends State<ProductDetails> {
                                   child: ColorOption(
                                     color,
                                     isSelected: _selectedColor == color,
-                                  ),
-                                ),
-                              )
-                              .toList(),
-                    ),
-                  ],
-                  const SizedBox(height: 20),
-                  if (sizes.isNotEmpty) ...[
-                    const Text(
-                      'Choose the storage',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-                    Wrap(
-                      spacing: 8.0,
-                      children:
-                          sizes
-                              .map(
-                                (size) => GestureDetector(
-                                  onTap: () => _selectStorage(size),
-                                  child: StorageOption(
-                                    size,
-                                    isSelected: _selectedStorage == size,
                                   ),
                                 ),
                               )
@@ -343,7 +365,7 @@ class _ProductDetailsState extends State<ProductDetails> {
                                       reviewImages[index].isNotEmpty)
                                     ClipRRect(
                                       borderRadius: BorderRadius.circular(8),
-                                      child: Image.network(
+                                      child: Image.asset(
                                         reviewImages[index],
                                         height: 100,
                                         width: 100,
@@ -362,7 +384,7 @@ class _ProductDetailsState extends State<ProductDetails> {
                     TextButton(
                       onPressed: _showMoreReviews,
                       child: const Text(
-                        'Xem thêm',
+                        'Read more',
                         style: TextStyle(color: primaryColor),
                       ),
                     ),
@@ -373,15 +395,30 @@ class _ProductDetailsState extends State<ProductDetails> {
         ),
       ),
       bottomNavigationBar: Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.fromLTRB(16.0, 16.0, 16.0, 32.0),
         child: ElevatedButton(
           style: ElevatedButton.styleFrom(
-            backgroundColor: primaryColor,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+            backgroundColor:
+                variantSelected != null && variantSelected!.inventory > 0
+                    ? primaryColor
+                    : Colors.grey,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(4.0),
+            ),
             minimumSize: const Size(double.infinity, 50),
           ),
           onPressed:
-              _selectedVariant == null ? null : () => _addToCart(context),
+              variantSelected != null && variantSelected!.inventory > 0
+                  ? () {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          '${productSelected.name} (${variantSelected!.colorName}) đã được thêm vào giỏ hàng',
+                        ),
+                      ),
+                    );
+                  }
+                  : null,
           child: const Text(
             'Add to Cart',
             style: TextStyle(color: Colors.white),
@@ -392,35 +429,10 @@ class _ProductDetailsState extends State<ProductDetails> {
   }
 }
 
-class StorageOption extends StatelessWidget {
-  final String storage;
-  final bool isSelected;
-  const StorageOption(this.storage, {this.isSelected = false});
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 4),
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      decoration: BoxDecoration(
-        color: isSelected ? primaryColor : Colors.grey,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(
-          color: isSelected ? Colors.blue : Colors.grey,
-          width: 2,
-        ),
-      ),
-      child: Text(
-        storage,
-        style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
-      ),
-    );
-  }
-}
-
 class ColorOption extends StatelessWidget {
   final Color color;
   final bool isSelected;
-  const ColorOption(this.color, {this.isSelected = false});
+  const ColorOption(this.color, {super.key, this.isSelected = false});
   @override
   Widget build(BuildContext context) {
     return Container(

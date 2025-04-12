@@ -4,12 +4,10 @@ import 'package:final_ecommerce/utils/constants.dart';
 import 'package:flutter/material.dart';
 
 class CategoriesSection extends StatelessWidget {
-  final Function(String) onCategorySelected; // Callback để truyền danh mục được chọn
+  final Function(String)
+  onCategorySelected; // Callback để truyền danh mục được chọn
 
-  CategoriesSection({
-    super.key,
-    required this.onCategorySelected,
-  });
+  CategoriesSection({super.key, required this.onCategorySelected});
 
   // Create a new Category instance for the "All" category
   final allCategory = Category(
@@ -27,12 +25,18 @@ class CategoriesSection extends StatelessWidget {
         ...categories.take(4).map((category) {
           return CategoryWidget(
             category: category,
-            navigate: () => onCategorySelected(category.name), // Gọi callback với danh mục được chọn
+            navigate:
+                () => onCategorySelected(
+                  category.name,
+                ), // Gọi callback với danh mục được chọn
           );
         }),
         CategoryWidget(
           category: allCategory,
-          navigate: () => onCategorySelected(allCategory.name), // Gọi callback với danh mục "All"
+          navigate:
+              () => onCategorySelected(
+                allCategory.name,
+              ), // Gọi callback với danh mục "All"
         ),
       ],
     );

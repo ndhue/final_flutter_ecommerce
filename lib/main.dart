@@ -1,4 +1,5 @@
 import 'package:final_ecommerce/firebase_options.dart';
+import 'package:final_ecommerce/providers/order_provider.dart';
 import 'package:final_ecommerce/providers/providers_export.dart';
 import 'package:final_ecommerce/routes/route_constants.dart';
 import 'package:final_ecommerce/routes/router.dart' as router;
@@ -6,9 +7,6 @@ import 'package:final_ecommerce/utils/constants.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-
-import 'package:final_ecommerce/providers/order_provider.dart';
-import 'package:final_ecommerce/providers/user_provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -34,6 +32,8 @@ void main() async {
       providers: [
         ChangeNotifierProvider(create: (_) => AuthProvider()),
         ChangeNotifierProvider(create: (_) => ChatProvider()),
+        ChangeNotifierProvider(create: (_) => ProductProvider()),
+        ChangeNotifierProvider(create: (_) => VariantProvider()),
         ChangeNotifierProvider(create: (_) => CartProvider()),
         ChangeNotifierProvider(create: (_) => OrderProvider()),
         ChangeNotifierProvider(create: (_) => userProvider),
