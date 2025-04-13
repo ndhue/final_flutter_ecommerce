@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:final_ecommerce/models/models_export.dart';
 
 class Order {
   final String id;
@@ -9,7 +10,7 @@ class Order {
   final int loyaltyPointsUsed;
   final List<StatusHistory> statusHistory;
   final double total;
-  final User user;
+  final UserModel user;
 
   Order({
     required this.id,
@@ -29,16 +30,18 @@ class Order {
       id: data['id'],
       createdAt: DateTime.parse(data['createdAt']),
       orderStatus: data['orderStatus'],
-      orderDetails: (data['orderDetails'] as List)
-          .map((item) => OrderDetail.fromMap(item))
-          .toList(),
+      orderDetails:
+          (data['orderDetails'] as List)
+              .map((item) => OrderDetail.fromMap(item))
+              .toList(),
       loyaltyPointsEarned: data['loyaltyPointsEarned'],
       loyaltyPointsUsed: data['loyaltyPointsUsed'],
-      statusHistory: (data['statusHistory'] as List)
-          .map((status) => StatusHistory.fromMap(status))
-          .toList(),
+      statusHistory:
+          (data['statusHistory'] as List)
+              .map((status) => StatusHistory.fromMap(status))
+              .toList(),
       total: (data['total'] as num).toDouble(),
-      user: User.fromMap(data['user']),
+      user: UserModel.fromMap(data['user']),
     );
   }
 }
@@ -79,38 +82,12 @@ class StatusHistory {
   final String status;
   final DateTime timestamp;
 
-  StatusHistory({
-    required this.status,
-    required this.timestamp,
-  });
+  StatusHistory({required this.status, required this.timestamp});
 
   factory StatusHistory.fromMap(Map<String, dynamic> data) {
     return StatusHistory(
       status: data['status'],
       timestamp: DateTime.parse(data['timestamp']),
-    );
-  }
-}
-
-class User {
-  final String id;
-  final String fullName;
-  final String email;
-  final String shippingAddress;
-
-  User({
-    required this.id,
-    required this.fullName,
-    required this.email,
-    required this.shippingAddress,
-  });
-
-  factory User.fromMap(Map<String, dynamic> data) {
-    return User(
-      id: data['id'],
-      fullName: data['fullName'],
-      email: data['email'],
-      shippingAddress: data['shippingAddress'],
     );
   }
 }

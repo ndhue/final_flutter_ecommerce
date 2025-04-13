@@ -28,13 +28,13 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
             const SizedBox(height: defaultPadding),
             CategoriesGridView(
               onCategorySelected: (category) {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => ProductCatalog(category: category),
-                    ),
-                  );
-                },
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => ProductCatalog(category: category),
+                  ),
+                );
+              },
             ),
           ],
         ),

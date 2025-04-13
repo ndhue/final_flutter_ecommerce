@@ -16,6 +16,7 @@ const String productSearchRoute = "procduct_search";
 const String searchResultRoute = "search_result";
 const String productDetailsRoute = "product_details";
 const String forgotPasswordRoute = "forgot_password";
+const String paymentScreenRoute = "payment";
 
 // ADMIN
 const String adminChatsRoute = "dashboard/admin_chats";

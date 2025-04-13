@@ -11,6 +11,11 @@ class ProductProvider with ChangeNotifier {
   bool _hasMore = true;
   bool _isLoading = false;
 
+  // Các danh sách sản phẩm lưu cache
+  List<NewProduct> _newProducts = [];
+  List<NewProduct> _promotionalProducts = [];
+  List<NewProduct> _bestSellers = [];
+
   List<NewProduct> get products => _products;
   bool get hasMore => _hasMore;
   bool get isLoading => _isLoading;
@@ -33,55 +38,75 @@ class ProductProvider with ChangeNotifier {
     _isLoading = true;
     notifyListeners();
 
-    if (isInitial) {
-      _products.clear();
-      _lastDocument = null;
-      _hasMore = true;
-    }
+    try {
+      if (isInitial) {
+        _products.clear();
+        _lastDocument = null;
+        _hasMore = true;
+      }
 
-    final result = await _repository.fetchProducts(
-      lastDocument: _lastDocument,
+      final result = await _repository.fetchProducts(
+        lastDocument: _lastDocument,
+        limit: 10,
+        orderBy: orderBy,
+        descending: descending,
+        brand: brand,
+        category: category,
+        minPrice: minPrice,
+        maxPrice: maxPrice,
+      );
+
+      if (result.length < 10) {
+        _hasMore = false;
+      }
+
+      if (result.isNotEmpty) {
+        _lastDocument = result.last.docSnapshot;
+        _products.addAll(result);
+      }
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  // New Products - Cache logic
+  Future<List<NewProduct>> getNewProducts() async {
+    if (_newProducts.isNotEmpty) {
+      return _newProducts;
+    }
+    _newProducts = await _repository.fetchNewProducts(limit: 10);
+    return _newProducts;
+  }
+
+  // Promotional Products - Cache logic
+  Future<List<NewProduct>> getPromotionalProducts() async {
+    if (_promotionalProducts.isNotEmpty) {
+      return _promotionalProducts;
+    }
+    _promotionalProducts = await _repository.fetchPromotionalProducts(
       limit: 10,
-      orderBy: orderBy,
-      descending: descending,
-      brand: brand,
-      category: category,
-      minPrice: minPrice,
-      maxPrice: maxPrice,
     );
+    return _promotionalProducts;
+  }
 
-    if (result.length < 10) {
-      _hasMore = false;
+  // Best Sellers - Cache logic
+  Future<List<NewProduct>> getBestSellers() async {
+    if (_bestSellers.isNotEmpty) {
+      return _bestSellers;
     }
-
-    if (result.isNotEmpty) {
-      _lastDocument = result.last.docSnapshot;
-      _products.addAll(result);
-    }
-
-    _isLoading = false;
-    notifyListeners();
+    _bestSellers = await _repository.fetchBestSellers(limit: 10);
+    return _bestSellers;
   }
 
-  // New Products
-  Future<List<NewProduct>> getNewProducts() {
-    return _repository.fetchNewProducts(limit: 10);
-  }
-
-  // Promotional Products
-  Future<List<NewProduct>> getPromotionalProducts() {
-    return _repository.fetchPromotionalProducts(limit: 10);
-  }
-
-  // Best Sellers
-  Future<List<NewProduct>> getBestSellers() {
-    return _repository.fetchBestSellers(limit: 10);
-  }
-
+  // Reset pagination and cache
   void resetPagination() {
     _lastDocument = null;
     _products.clear();
     _hasMore = true;
+    _newProducts.clear();
+    _promotionalProducts.clear();
+    _bestSellers.clear();
     notifyListeners();
   }
 
@@ -94,28 +119,30 @@ class ProductProvider with ChangeNotifier {
     _isLoading = true;
     notifyListeners();
 
-    if (isInitial) {
-      _products.clear();
-      _lastDocument = null;
-      _hasMore = true;
+    try {
+      if (isInitial) {
+        _products.clear();
+        _lastDocument = null;
+        _hasMore = true;
+      }
+
+      final result = await _repository.fetchProductsByCategory(
+        category: category,
+        lastDocument: _lastDocument,
+        limit: 10,
+      );
+
+      if (result.length < 10) {
+        _hasMore = false;
+      }
+
+      if (result.isNotEmpty) {
+        _lastDocument = result.last.docSnapshot;
+        _products.addAll(result);
+      }
+    } finally {
+      _isLoading = false;
+      notifyListeners();
     }
-
-    final result = await _repository.fetchProductsByCategory(
-      category: category,
-      lastDocument: _lastDocument,
-      limit: 10,
-    );
-
-    if (result.length < 10) {
-      _hasMore = false;
-    }
-
-    if (result.isNotEmpty) {
-      _lastDocument = result.last.docSnapshot;
-      _products.addAll(result);
-    }
-
-    _isLoading = false;
-    notifyListeners();
   }
 }

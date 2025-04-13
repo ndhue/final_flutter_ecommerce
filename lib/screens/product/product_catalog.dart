@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '/widgets/product_card.dart';
+import '/widgets/skeletons.dart';
 
 class ProductCatalog extends StatefulWidget {
   final String category;
@@ -18,21 +19,27 @@ class ProductCatalog extends StatefulWidget {
 
 class _ProductCatalogState extends State<ProductCatalog> {
   late ProductProvider _productProvider;
+  late String _currentCategory;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _productProvider = Provider.of<ProductProvider>(context, listen: false);
+      _currentCategory = widget.category;
       _fetchInitialProducts();
     });
   }
 
   Future<void> _fetchInitialProducts() async {
-    await _productProvider.fetchProductsByCategory(
-      category: widget.category,
-      isInitial: true,
-    );
+    if (_productProvider.products.isEmpty ||
+        _currentCategory != widget.category) {
+      _currentCategory = widget.category;
+      await _productProvider.fetchProductsByCategory(
+        category: widget.category,
+        isInitial: true,
+      );
+    }
   }
 
   @override
@@ -68,7 +75,7 @@ class _ProductCatalogState extends State<ProductCatalog> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 if (provider.isLoading && filteredProducts.isEmpty)
-                  const Center(child: CircularProgressIndicator()),
+                  const Expanded(child: ProductCatalogSkeleton()),
 
                 if (!provider.isLoading && filteredProducts.isNotEmpty)
                   Align(
@@ -80,47 +87,47 @@ class _ProductCatalogState extends State<ProductCatalog> {
 
                 const SizedBox(height: 20),
 
-                Expanded(
-                  child:
-                      provider.isLoading && filteredProducts.isEmpty
-                          ? const SizedBox()
-                          : filteredProducts.isEmpty
-                          ? const Center(
-                            child: Text(
-                              'No products found.',
-                              style: TextStyle(
-                                fontSize: 16,
-                                color: Colors.grey,
-                              ),
-                            ),
-                          )
-                          : GridView.builder(
-                            gridDelegate:
-                                const SliverGridDelegateWithFixedCrossAxisCount(
-                                  crossAxisCount: 2,
-                                  childAspectRatio: 0.75,
-                                  crossAxisSpacing: 10,
-                                  mainAxisSpacing: 10,
+                if (!provider.isLoading || filteredProducts.isNotEmpty)
+                  Expanded(
+                    child:
+                        filteredProducts.isEmpty
+                            ? const Center(
+                              child: Text(
+                                'No products found.',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  color: Colors.grey,
                                 ),
-                            itemCount: filteredProducts.length,
-                            itemBuilder: (context, index) {
-                              final product = filteredProducts[index];
-                              return ProductCard(
-                                product: product,
-                                onTap: () {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder:
-                                          (context) =>
-                                              ProductDetails(product: product),
-                                    ),
-                                  );
-                                },
-                              );
-                            },
-                          ),
-                ),
+                              ),
+                            )
+                            : GridView.builder(
+                              gridDelegate:
+                                  const SliverGridDelegateWithFixedCrossAxisCount(
+                                    crossAxisCount: 2,
+                                    childAspectRatio: 0.75,
+                                    crossAxisSpacing: 10,
+                                    mainAxisSpacing: 10,
+                                  ),
+                              itemCount: filteredProducts.length,
+                              itemBuilder: (context, index) {
+                                final product = filteredProducts[index];
+                                return ProductCard(
+                                  product: product,
+                                  onTap: () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder:
+                                            (context) => ProductDetails(
+                                              product: product,
+                                            ),
+                                      ),
+                                    );
+                                  },
+                                );
+                              },
+                            ),
+                  ),
 
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,

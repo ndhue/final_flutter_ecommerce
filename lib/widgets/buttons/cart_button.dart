@@ -1,10 +1,31 @@
-import 'package:final_ecommerce/providers/cart_provider.dart';
+import 'package:final_ecommerce/providers/providers_export.dart';
 import 'package:final_ecommerce/routes/route_constants.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-class CartButton extends StatelessWidget {
+class CartButton extends StatefulWidget {
   const CartButton({super.key});
+
+  @override
+  State<CartButton> createState() => _CartButtonState();
+}
+
+class _CartButtonState extends State<CartButton> {
+  @override
+  void initState() {
+    super.initState();
+
+    final currentUser = context.read<UserProvider>().user;
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final cartProvider = Provider.of<CartProvider>(context, listen: false);
+
+      if (currentUser != null) {
+        cartProvider.setUser(currentUser.id);
+        cartProvider.loadUserAddress(currentUser);
+      }
+    });
+  }
 
   @override
   Widget build(BuildContext context) {

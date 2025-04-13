@@ -30,6 +30,9 @@ Route<dynamic> generateRoute(RouteSettings settings) {
     case cartScreenRoute:
       page = const CartScreen();
       break;
+    case paymentScreenRoute:
+      page = const PaymentScreen();
+      break;
     case authScreenRoute:
       page = LoginScreen();
       break;
