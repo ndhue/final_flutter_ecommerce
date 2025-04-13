@@ -1,16 +1,14 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:final_ecommerce/models/models_export.dart';
-
 class Order {
   final String id;
   final DateTime createdAt;
-  final String orderStatus;
+  final List<OrderStatus> orderStatus;
   final List<OrderDetail> orderDetails;
   final int loyaltyPointsEarned;
   final int loyaltyPointsUsed;
   final List<StatusHistory> statusHistory;
   final double total;
-  final UserModel user;
+  final OrderUserDetails user;
+  final String? coupon;
 
   Order({
     required this.id,
@@ -22,72 +20,140 @@ class Order {
     required this.statusHistory,
     required this.total,
     required this.user,
+    this.coupon,
   });
 
-  factory Order.fromSnapshot(DocumentSnapshot snapshot) {
-    final data = snapshot.data() as Map<String, dynamic>;
-    return Order(
-      id: data['id'],
-      createdAt: DateTime.parse(data['createdAt']),
-      orderStatus: data['orderStatus'],
-      orderDetails:
-          (data['orderDetails'] as List)
-              .map((item) => OrderDetail.fromMap(item))
-              .toList(),
-      loyaltyPointsEarned: data['loyaltyPointsEarned'],
-      loyaltyPointsUsed: data['loyaltyPointsUsed'],
-      statusHistory:
-          (data['statusHistory'] as List)
-              .map((status) => StatusHistory.fromMap(status))
-              .toList(),
-      total: (data['total'] as num).toDouble(),
-      user: UserModel.fromMap(data['user']),
-    );
-  }
+  factory Order.fromJson(Map<String, dynamic> json) => Order(
+    id: json['id'],
+    createdAt: DateTime.parse(json['createdAt']),
+    orderStatus:
+        (json['orderStatus'] as List)
+            .map((e) => OrderStatus.fromJson(e))
+            .toList(),
+    orderDetails:
+        (json['orderDetails'] as List)
+            .map((e) => OrderDetail.fromJson(e))
+            .toList(),
+    loyaltyPointsEarned: json['loyaltyPointsEarned'],
+    loyaltyPointsUsed: json['loyaltyPointsUsed'],
+    statusHistory:
+        (json['statusHistory'] as List)
+            .map((e) => StatusHistory.fromJson(e))
+            .toList(),
+    total: json['total'],
+    user: OrderUserDetails.fromMap(json['user']),
+    coupon: json['coupon'],
+  );
+
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'createdAt': createdAt.toIso8601String(),
+    'orderStatus': orderStatus.map((e) => e.toJson()).toList(),
+    'orderDetails': orderDetails.map((e) => e.toJson()).toList(),
+    'loyaltyPointsEarned': loyaltyPointsEarned,
+    'loyaltyPointsUsed': loyaltyPointsUsed,
+    'statusHistory': statusHistory.map((e) => e.toJson()).toList(),
+    'total': total,
+    'user': user.toMap(),
+    'coupon': coupon,
+  };
 }
 
 class OrderDetail {
-  final String id;
-  final String name;
-  final String variant;
+  final String productId;
+  final String productName;
+  final String imageUrl;
+  final String variantId;
+  final String colorName;
   final int quantity;
   final double price;
-  final double finalPrice;
-  final double discountApplied;
 
   OrderDetail({
-    required this.id,
-    required this.name,
-    required this.variant,
+    required this.productId,
+    required this.productName,
+    required this.imageUrl,
+    required this.variantId,
+    required this.colorName,
     required this.quantity,
     required this.price,
-    required this.finalPrice,
-    required this.discountApplied,
   });
 
-  factory OrderDetail.fromMap(Map<String, dynamic> data) {
-    return OrderDetail(
-      id: data['id'],
-      name: data['name'],
-      variant: data['variant'],
-      quantity: data['quantity'],
-      price: (data['price'] as num).toDouble(),
-      finalPrice: double.parse(data['finalPrice']),
-      discountApplied: (data['discountApplied'] as num).toDouble(),
-    );
-  }
+  factory OrderDetail.fromJson(Map<String, dynamic> json) => OrderDetail(
+    productId: json['productId'],
+    productName: json['productName'],
+    imageUrl: json['imageUrl'],
+    variantId: json['variantId'],
+    quantity: json['quantity'],
+    price: json['price'],
+    colorName: '${json['colorName']}',
+  );
+
+  Map<String, dynamic> toJson() => {
+    'productId': productId,
+    'productName': productName,
+    'imageUrl': imageUrl,
+    'variantId': variantId,
+    'colorName': colorName,
+    'quantity': quantity,
+    'price': price,
+  };
+}
+
+class OrderStatus {
+  final String status;
+  final DateTime time;
+
+  OrderStatus({required this.status, required this.time});
+
+  factory OrderStatus.fromJson(Map<String, dynamic> json) =>
+      OrderStatus(status: json['status'], time: DateTime.parse(json['time']));
+
+  Map<String, dynamic> toJson() => {
+    'status': status,
+    'time': time.toIso8601String(),
+  };
 }
 
 class StatusHistory {
   final String status;
-  final DateTime timestamp;
+  final DateTime time;
 
-  StatusHistory({required this.status, required this.timestamp});
+  StatusHistory({required this.status, required this.time});
 
-  factory StatusHistory.fromMap(Map<String, dynamic> data) {
-    return StatusHistory(
-      status: data['status'],
-      timestamp: DateTime.parse(data['timestamp']),
-    );
-  }
+  factory StatusHistory.fromJson(Map<String, dynamic> json) =>
+      StatusHistory(status: json['status'], time: DateTime.parse(json['time']));
+
+  Map<String, dynamic> toJson() => {
+    'status': status,
+    'time': time.toIso8601String(),
+  };
+}
+
+class OrderUserDetails {
+  final String userId;
+  final String name;
+  final String email;
+  final String shippingAddress;
+
+  OrderUserDetails({
+    required this.userId,
+    required this.name,
+    required this.email,
+    required this.shippingAddress,
+  });
+
+  factory OrderUserDetails.fromMap(Map<String, dynamic> json) =>
+      OrderUserDetails(
+        userId: json['userId'],
+        name: json['name'],
+        email: json['email'],
+        shippingAddress: json['shippingAddress'],
+      );
+
+  Map<String, dynamic> toMap() => {
+    'userId': userId,
+    'name': name,
+    'email': email,
+    'shippingAddress': shippingAddress,
+  };
 }

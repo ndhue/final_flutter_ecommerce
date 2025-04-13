@@ -77,7 +77,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
           ClipRRect(
             borderRadius: BorderRadius.circular(8),
             child: Image.network(
-              item.product.images.first,
+              item.product.imageUrl,
               width: 60,
               height: 60,
               fit: BoxFit.cover,
@@ -105,7 +105,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
                 Text(
                   FormatHelper.formatCurrency(
                     item.quantity *
-                        item.product.sellingPrice *
+                        item.product.price *
                         (1 - item.product.discount),
                   ),
                   style: const TextStyle(

@@ -14,7 +14,7 @@ class VariantRepository {
             .doc(productId)
             .collection('variantInventory')
             .where('colorCode', isEqualTo: colorCode)
-            .limit(1)
+            .orderBy('createdAt') // sort theo createdAt tăng dần
             .get();
 
     if (querySnapshot.docs.isNotEmpty) {

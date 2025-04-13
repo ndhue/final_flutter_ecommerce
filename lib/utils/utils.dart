@@ -1,4 +1,5 @@
-import 'dart:ui';
+import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 
 import '../models/user_model.dart';
 
@@ -16,4 +17,65 @@ Color hexToColor(String hex) {
 
 String colorToHex(Color color) {
   return '#${color.toARGB32().toRadixString(16).padLeft(8, '0').toUpperCase().substring(2)}';
+}
+
+// Hàm map status sang màu
+Color getStatusColor(String status) {
+  switch (status) {
+    case 'Pending':
+      return Colors.orange;
+    case 'Confirmed':
+      return Colors.blue;
+    case 'Shipping':
+      return Colors.deepPurple;
+    case 'Delivered':
+      return Colors.green;
+    case 'Cancelled':
+      return Colors.red;
+    default:
+      return Colors.grey; // fallback
+  }
+}
+
+List<String> getActionsForStatus(String status) {
+  switch (status) {
+    case 'Pending':
+      return ['Cancel'];
+    case 'Confirmed':
+      return ['Cancel'];
+    case 'Shipping':
+      return ['Track'];
+    case 'Delivered':
+      return ['Return', 'Exchange'];
+    case 'Cancelled':
+      return [];
+    default:
+      return [];
+  }
+}
+
+String getDaySuffix(int day) {
+  if (day >= 11 && day <= 13) {
+    return 'th';
+  }
+  switch (day % 10) {
+    case 1:
+      return 'st';
+    case 2:
+      return 'nd';
+    case 3:
+      return 'rd';
+    default:
+      return 'th';
+  }
+}
+
+// Hàm format DateTime -> "8th Jan 2025"
+String formatDate(DateTime date) {
+  final day = date.day;
+  final month = DateFormat('MMM').format(date); // Jan, Feb, Mar...
+  final year = date.year;
+  final suffix = getDaySuffix(day);
+
+  return '$day$suffix $month $year';
 }

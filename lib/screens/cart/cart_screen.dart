@@ -126,7 +126,7 @@ class _CartScreenState extends State<CartScreen> {
           ClipRRect(
             borderRadius: BorderRadius.circular(8),
             child: Image.network(
-              item.product.images.first,
+              item.product.imageUrl,
               width: 60,
               height: 60,
               fit: BoxFit.cover,
@@ -153,7 +153,7 @@ class _CartScreenState extends State<CartScreen> {
                 const SizedBox(height: 4),
                 Text(
                   FormatHelper.formatCurrency(
-                    item.product.sellingPrice * (1 - item.product.discount),
+                    item.product.price * (1 - item.product.discount),
                   ),
                   style: const TextStyle(
                     fontWeight: FontWeight.bold,
@@ -224,7 +224,9 @@ class _CartScreenState extends State<CartScreen> {
   Widget _buildBottomBar(BuildContext context, double totalPrice) {
     final cartProvider = Provider.of<CartProvider>(context);
 
-    final hasSelectedItems = cartProvider.selectedItemIds.isNotEmpty;
+    final hasSelectedItems =
+        cartProvider.selectedItemIds.isNotEmpty &&
+        cartProvider.cartItems.isNotEmpty;
 
     return Container(
       padding: const EdgeInsets.fromLTRB(16.0, 16.0, 16.0, 32.0),
@@ -255,6 +257,12 @@ class _CartScreenState extends State<CartScreen> {
             width: double.infinity,
             height: 50,
             child: ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: hasSelectedItems ? primaryColor : Colors.grey,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
               onPressed:
                   hasSelectedItems
                       ? () {

@@ -14,15 +14,17 @@ class CategoriesGridView extends StatelessWidget {
       spacing: 10, // Horizontal space between items
       runSpacing: 10, // Vertical space between rows
       alignment: WrapAlignment.start, // Center align items
-      children: categories.map((category) {
-        return SizedBox(
-          width: MediaQuery.of(context).size.width / 3 - 18, 
-          child: CategoryCard(
-            category: category,
-            onTap: () => onCategorySelected(category.name), 
-          ),
-        );
-      }).toList(),
+      children:
+          categories.map((category) {
+            return SizedBox(
+              key: ValueKey(category.name),
+              width: MediaQuery.of(context).size.width / 3 - 18,
+              child: CategoryCard(
+                category: category,
+                onTap: () => onCategorySelected(category.name),
+              ),
+            );
+          }).toList(),
     );
   }
 }
@@ -31,11 +33,7 @@ class CategoryCard extends StatelessWidget {
   final Category category;
   final VoidCallback onTap;
 
-  const CategoryCard({
-    super.key,
-    required this.category,
-    required this.onTap,
-  });
+  const CategoryCard({super.key, required this.category, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -53,10 +51,10 @@ class CategoryCard extends StatelessWidget {
               category.icon != null
                   ? category.icon!
                   : Image.asset(
-                      'assets/images/categories/${category.image}',
-                      height: 40,
-                      width: 40,
-                    ),
+                    'assets/images/categories/${category.image}',
+                    height: 40,
+                    width: 40,
+                  ),
               const SizedBox(height: 8),
               Text(
                 category.name,

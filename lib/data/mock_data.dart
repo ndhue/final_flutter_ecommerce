@@ -243,3 +243,51 @@ List<Category> specialCategories = [
     description: "Discover the most popular and highly rated products.",
   ),
 ];
+
+List<Order> mockOrders = [
+  Order(
+    id: 'order_001',
+    createdAt: DateTime.now().subtract(Duration(days: 2)),
+    orderStatus: [
+      OrderStatus(
+        status: 'Order Received',
+        time: DateTime.now().subtract(Duration(days: 2)),
+      ),
+      OrderStatus(
+        status: 'Delivered',
+        time: DateTime.now().subtract(Duration(days: 1)),
+      ),
+    ],
+    orderDetails: [
+      OrderDetail(
+        productId: 'dell_xps13plus_1tb_32gb',
+        productName: 'Dell XPS 13 Plus',
+        imageUrl: 'https://picsum.photos/300/200?random=111',
+        variantId: 'dell_xps13plus_black',
+        colorName: "Matte Black",
+        quantity: 1,
+        price: 2999000,
+      ),
+    ],
+    loyaltyPointsEarned: 30,
+    loyaltyPointsUsed: 0,
+    statusHistory: [
+      StatusHistory(
+        status: 'Order Received',
+        time: DateTime.now().subtract(Duration(days: 2)),
+      ),
+      StatusHistory(
+        status: 'Delivered',
+        time: DateTime.now().subtract(Duration(days: 1)),
+      ),
+    ],
+    total: 2999000,
+    user: OrderUserDetails(
+      userId: 'u01',
+      name: 'Ella',
+      email: 'ell@email.com',
+      shippingAddress: '123 Main St, City, Country',
+    ),
+    coupon: 'SALE2025',
+  ),
+];
