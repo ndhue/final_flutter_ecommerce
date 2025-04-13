@@ -6,6 +6,7 @@ import 'package:final_ecommerce/utils/utils.dart';
 import 'package:final_ecommerce/widgets/buttons/cart_button.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_rating_bar/flutter_rating_bar.dart';
+import 'package:fluttertoast/fluttertoast.dart';
 import 'package:provider/provider.dart';
 
 class ProductDetails extends StatefulWidget {
@@ -22,7 +23,6 @@ class _ProductDetailsState extends State<ProductDetails> {
   late NewVariant? variantSelected;
   int _currentImageIndex = 0;
   Color? _selectedColor;
-  Variant? _selectedVariant;
   double _rating = 0;
   int _totalReview = 0;
   int _visibleReviews = 5;
@@ -80,20 +80,21 @@ class _ProductDetailsState extends State<ProductDetails> {
     });
   }
 
-  // void _addToCart(BuildContext context) {
-  //   if (_selectedVariant == null) return;
-  //   Provider.of<CartProvider>(
-  //     context,
-  //     listen: false,
-  //   ).addToCart(productSelected, _selectedVariant!);
-  //   ScaffoldMessenger.of(context).showSnackBar(
-  //     SnackBar(
-  //       content: Text(
-  //         '${productSelected.name} (${_selectedVariant!.name}) đã được thêm vào giỏ hàng',
-  //       ),
-  //     ),
-  //   );
-  // }
+  void _addToCart(BuildContext context) {
+    Provider.of<CartProvider>(context, listen: false).addToCart(
+      CartItem(
+        product: productSelected,
+        variant: variantSelected!,
+        quantity: 1,
+      ),
+    );
+    Fluttertoast.showToast(
+      msg:
+          '${productSelected.name} (${variantSelected!.colorName}) has been added to the cart',
+      toastLength: Toast.LENGTH_SHORT,
+      gravity: ToastGravity.CENTER,
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -410,13 +411,7 @@ class _ProductDetailsState extends State<ProductDetails> {
           onPressed:
               variantSelected != null && variantSelected!.inventory > 0
                   ? () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(
-                          '${productSelected.name} (${variantSelected!.colorName}) đã được thêm vào giỏ hàng',
-                        ),
-                      ),
-                    );
+                    _addToCart(context);
                   }
                   : null,
           child: const Text(

@@ -12,7 +12,7 @@ const Color errorColor = Color(0xFFEA5B5B);
 const Color darkTextColor = Color.fromARGB(255, 101, 104, 105);
 const Color lightGrey = Color(0xFFFAFAFC);
 const Color borderColor = Color.fromARGB(255, 201, 199, 199);
-const Color bubbleChat = Color.fromARGB(255, 126, 227, 195);
+const Color bubbleChat = Color.fromARGB(255, 144, 241, 210);
 
 const double defaultPadding = 16.0;
 const double defaultBorderRadius = 12.0;

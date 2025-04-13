@@ -35,15 +35,17 @@ class _ChatScreenState extends State<ChatScreen> {
   void initState() {
     super.initState();
 
-    final chatProvider = context.read<ChatProvider>();
-    final userProvider = context.watch<UserProvider>();
-    user = userProvider.user!;
+    final currentUser = context.read<UserProvider>().user;
+    if (currentUser != null) {
+      user = currentUser;
+    }
 
     WidgetsBinding.instance.addPostFrameCallback((_) async {
+      final chatProvider = context.read<ChatProvider>();
+
       if (chatProvider.messages.isEmpty) {
         setState(() => _isFirstLoad = true);
         await chatProvider.ensureChatExists(widget.userId);
-        await userProvider.fetchUser(widget.userId);
 
         chatProvider.listenToMessages(widget.userId).listen((messages) {
           setState(() => _isFirstLoad = false);
@@ -66,12 +68,6 @@ class _ChatScreenState extends State<ChatScreen> {
         !chatProvider.isLoadingMore) {
       chatProvider.fetchMessages(widget.userId, loadMore: true);
     }
-    // Use for set background for appBar
-    if (_scrollController.offset.abs() ==
-        _scrollController.position.maxScrollExtent) {
-      debugPrint("On the top!");
-    }
-    // debugPrint(_scrollController.position.maxScrollExtent.toString());
   }
 
   Future<void> _pickImage() async {
@@ -361,10 +357,7 @@ class _ChatScreenState extends State<ChatScreen> {
                 padding: EdgeInsets.only(
                   top: message.imageUrls.isNotEmpty ? 8 : 0,
                 ),
-                child: Text(
-                  message.message,
-                  style: const TextStyle(fontWeight: FontWeight.w500),
-                ),
+                child: Text(message.message),
               ),
           ],
         ),

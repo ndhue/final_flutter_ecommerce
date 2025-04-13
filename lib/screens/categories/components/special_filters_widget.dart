@@ -19,15 +19,19 @@ class SpecialFiltersWidget extends StatelessWidget {
               width:
                   MediaQuery.of(context).size.width / 3 -
                   18, // Ensures 3 items per row
-              child: CategoryCard(category: category, onTap: () { 
-                // Handle tap event
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => ProductCatalog(category: category.name),
-                  ),
-                );
-               },),
+              child: CategoryCard(
+                category: category,
+                onTap: () {
+                  // Handle tap event
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder:
+                          (context) => ProductCatalog(category: category.name),
+                    ),
+                  );
+                },
+              ),
             );
           }).toList(),
     );

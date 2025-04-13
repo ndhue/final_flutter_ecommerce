@@ -2,6 +2,7 @@ export 'auth/forgot_password_screen.dart';
 export 'auth/login_screen.dart';
 export 'auth/registration_screen.dart';
 export 'cart/cart_screen.dart';
+export 'cart/payment_screen.dart';
 export 'categories/categories_screen.dart';
 export 'chat/chat_screen.dart';
 export 'entry_point.dart';

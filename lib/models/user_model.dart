@@ -6,6 +6,9 @@ class UserModel {
   final bool activated;
   final int loyaltyPoints;
   final int loyaltyPointsUsed;
+  final String city;
+  final String district;
+  final String ward;
   final String shippingAddress;
 
   UserModel({
@@ -16,8 +19,15 @@ class UserModel {
     required this.activated,
     required this.loyaltyPoints,
     required this.loyaltyPointsUsed,
+    required this.city,
+    required this.district,
+    required this.ward,
     required this.shippingAddress,
   });
+
+  String get fullShippingAddress {
+    return '$shippingAddress, $ward, $district, $city';
+  }
 
   // Convert Firestore document to UserModel
   factory UserModel.fromMap(Map<String, dynamic> data) {
@@ -29,6 +39,9 @@ class UserModel {
       activated: data['activated'] ?? false,
       loyaltyPoints: data['loyaltyPoints'] ?? 0,
       loyaltyPointsUsed: data['loyaltyPointsUsed'] ?? 0,
+      city: data['city'] ?? '',
+      district: data['district'] ?? '',
+      ward: data['ward'] ?? '',
       shippingAddress: data['shippingAddress'] ?? '',
     );
   }
@@ -43,6 +56,9 @@ class UserModel {
       'activated': activated,
       'loyaltyPoints': loyaltyPoints,
       'loyaltyPointsUsed': loyaltyPointsUsed,
+      'city': city,
+      'district': district,
+      'ward': ward,
       'shippingAddress': shippingAddress,
     };
   }

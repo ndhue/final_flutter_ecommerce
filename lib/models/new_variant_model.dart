@@ -1,3 +1,5 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 class NewVariant {
   final String variantId;
   final String colorCode;
@@ -13,14 +15,27 @@ class NewVariant {
     required this.activated,
   });
 
-  factory NewVariant.fromMap(Map<String, dynamic> map) {
-    return NewVariant(
-      variantId: map['variantId'],
-      colorCode: map['colorCode'],
-      colorName: map['colorName'],
-      inventory: map['inventory'],
-      activated: map['activated'],
-    );
+  factory NewVariant.fromMap(dynamic source) {
+    if (source is Map<String, dynamic>) {
+      return NewVariant(
+        variantId: source['variantId'],
+        colorCode: source['colorCode'],
+        colorName: source['colorName'],
+        inventory: source['inventory'],
+        activated: source['activated'],
+      );
+    } else if (source is DocumentSnapshot) {
+      final data = source.data() as Map<String, dynamic>;
+      return NewVariant(
+        variantId: data['variantId'],
+        colorCode: data['colorCode'],
+        colorName: data['colorName'],
+        inventory: data['inventory'],
+        activated: data['activated'],
+      );
+    } else {
+      throw TypeError();
+    }
   }
 
   Map<String, dynamic> toMap() {

@@ -1,6 +1,7 @@
 import 'package:final_ecommerce/providers/auth_provider.dart';
 import 'package:final_ecommerce/screens/screen_export.dart';
 import 'package:final_ecommerce/utils/constants.dart';
+import 'package:final_ecommerce/widgets/address_picker_registration.dart';
 import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:provider/provider.dart';
@@ -20,6 +21,29 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
 
   bool _isObscure = true;
   bool _isLoading = false;
+
+  String? selectedCity;
+  String? selectedDistrict;
+  String? selectedWard;
+
+  void _showAddressPicker() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder:
+          (context) => AddressPickerRegistration(
+            onAddressSelected: (city, district, ward, detailedAddress) {
+              setState(() {
+                selectedCity = city;
+                selectedDistrict = district;
+                selectedWard = ward;
+                _addressController.text =
+                    '$detailedAddress, $ward, $district, $city';
+              });
+            },
+          ),
+    );
+  }
 
   Future<void> handleSignUp() async {
     if (!mounted) return;
@@ -188,6 +212,8 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
 
           TextField(
             controller: _addressController,
+            readOnly: true,
+            onTap: _showAddressPicker,
             decoration: InputDecoration(
               labelText: 'Shipping Address',
               prefixIcon: const Icon(Icons.home, color: primaryColor),

@@ -1,150 +1,161 @@
+import 'dart:convert';
+
+import 'package:final_ecommerce/models/models_export.dart';
 import 'package:flutter/material.dart';
-import '../models/product_model.dart';
-import '../models/variant_model.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
-/// **Mô hình CartItem**
-class CartItem {
-  final Product product;
-  final Variant variant;
-  int quantity;
+class CartProvider with ChangeNotifier {
+  List<CartItem> _cartItems = [];
+  Set<String> _selectedItemIds = {};
+  String _userId = 'guest';
+  AddressInfo? _addressInfo;
 
-  CartItem({required this.product, required this.variant, this.quantity = 1});
-
-  String get imageUrl => product.images.isNotEmpty ? product.images.first : '';
-  double get price => variant.currentPrice.toDouble();
-
-  /// ✅ Mã định danh duy nhất cho mỗi CartItem (bao gồm màu + size nếu có)
-  String get cartKey {
-    final colorHex =
-        variant.isColor ? variant.color?.value.toRadixString(16) ?? '' : '';
-    final size = variant.isSize ? variant.size ?? '' : '';
-    return '${product.id}_${variant.variantId}_${colorHex}_$size';
+  CartProvider() {
+    loadCart();
   }
-}
-
-/// **Provider quản lý giỏ hàng**
-class CartProvider extends ChangeNotifier {
-  final List<CartItem> _cartItems = [];
-  final Set<String> _selectedKeys = {}; // Chứa cartKey
-
-  String _city = "Hồ Chí Minh";
-  String _district = "Quận 1";
-  String _ward = "Phường Bến Nghé";
-  String _address = "";
-  String _receiverName = "";
-  String _phoneNumber = "";
 
   List<CartItem> get cartItems => _cartItems;
-  Set<CartItem> get selectedItems =>
-      _cartItems.where((item) => _selectedKeys.contains(item.cartKey)).toSet();
+  Set<String> get selectedItemIds => _selectedItemIds;
+  AddressInfo? get addressInfo => _addressInfo;
 
-  String get city => _city;
-  String get district => _district;
-  String get ward => _ward;
-  String get address => _address;
-  String get receiverName => _receiverName;
-  String get phoneNumber => _phoneNumber;
-
-  void updateAddress(
-    String city,
-    String district,
-    String ward,
-    String address,
-    String receiverName,
-    String phoneNumber,
-  ) {
-    _city = city;
-    _district = district;
-    _ward = ward;
-    _address = address.isNotEmpty ? address : "Chưa nhập địa chỉ";
-    _receiverName = receiverName;
-    _phoneNumber = phoneNumber;
+  // Cập nhật địa chỉ cho user/guest
+  void updateAddress(AddressInfo info) {
+    _addressInfo = info;
     notifyListeners();
   }
 
-  double get totalPrice => _cartItems.fold(
-    0.0,
-    (total, item) => total + (item.price * item.quantity),
-  );
-
-  double get selectedTotalPrice => selectedItems.fold(
-    0.0,
-    (total, item) => total + (item.price * item.quantity),
-  );
-
-  String _buildCartKey(Product product, Variant variant) {
-    final colorHex =
-        variant.isColor ? variant.color?.value.toRadixString(16) ?? '' : '';
-    final size = variant.isSize ? variant.size ?? '' : '';
-    return '${product.id}_${variant.variantId}_${colorHex}_$size';
-  }
-
-  void addToCart(Product product, Variant variant) {
-    final key = _buildCartKey(product, variant);
-    final index = _cartItems.indexWhere((item) => item.cartKey == key);
-
-    if (index != -1) {
-      _cartItems[index].quantity += 1;
+  // Load địa chỉ từ thông tin user nếu đã đăng nhập
+  void loadUserAddress(UserModel? user) {
+    if (user != null) {
+      _addressInfo = AddressInfo(
+        city: user.city,
+        district: user.district,
+        ward: user.ward,
+        detailedAddress: user.shippingAddress,
+        receiverName: user.fullName,
+      );
     } else {
-      _cartItems.add(CartItem(product: product, variant: variant));
+      // Nếu là guest thì bỏ trống
+      _addressInfo = null;
     }
     notifyListeners();
   }
 
-  void removeFromCart(Product product, Variant variant) {
-    final key = _buildCartKey(product, variant);
-    _cartItems.removeWhere((item) => item.cartKey == key);
-    _selectedKeys.remove(key);
-    notifyListeners();
+  // Cập nhật userId, reload giỏ hàng tương ứng
+  void setUser(String? userId) {
+    _userId = userId ?? 'guest';
+    loadCart();
   }
 
-  void increaseQuantity(Product product, Variant variant) {
-    final key = _buildCartKey(product, variant);
-    final index = _cartItems.indexWhere((item) => item.cartKey == key);
-    if (index != -1) {
-      _cartItems[index].quantity += 1;
-      notifyListeners();
-    }
-  }
-
-  void decreaseQuantity(Product product, Variant variant) {
-    final key = _buildCartKey(product, variant);
-    final index = _cartItems.indexWhere((item) => item.cartKey == key);
-    if (index != -1) {
-      if (_cartItems[index].quantity > 1) {
-        _cartItems[index].quantity -= 1;
-      } else {
-        _cartItems.removeAt(index);
-        _selectedKeys.remove(key);
-      }
-      notifyListeners();
-    }
-  }
-
-  void toggleSelection(Product product, Variant variant) {
-    final key = _buildCartKey(product, variant);
-    if (_selectedKeys.contains(key)) {
-      _selectedKeys.remove(key);
+  // Toggle chọn sản phẩm
+  void toggleItemSelection(String productId) {
+    if (_selectedItemIds.contains(productId)) {
+      _selectedItemIds.remove(productId);
     } else {
-      _selectedKeys.add(key);
+      _selectedItemIds.add(productId);
     }
     notifyListeners();
   }
 
-  void clearCart() {
+  // Chọn/bỏ chọn toàn bộ
+  void toggleSelectAll(bool selectAll) {
+    if (selectAll) {
+      _selectedItemIds = _cartItems.map((item) => item.product.id).toSet();
+    } else {
+      _selectedItemIds.clear();
+    }
+    notifyListeners();
+  }
+
+  bool isAllSelected() => _selectedItemIds.length == _cartItems.length;
+
+  bool isSelected(String productId) => _selectedItemIds.contains(productId);
+
+  // Thêm sản phẩm vào giỏ
+  Future<void> addToCart(CartItem newItem) async {
+    final index = _cartItems.indexWhere(
+      (item) =>
+          item.product.id == newItem.product.id &&
+          item.variant.variantId == newItem.variant.variantId,
+    );
+
+    if (index >= 0) {
+      _cartItems[index].quantity += newItem.quantity;
+    } else {
+      _cartItems.add(newItem);
+    }
+
+    await saveCart();
+    notifyListeners();
+  }
+
+  // Lưu giỏ hàng vào local
+  Future<void> saveCart() async {
+    final prefs = await SharedPreferences.getInstance();
+    final cartJson = jsonEncode(_cartItems.map((e) => e.toMap()).toList());
+    await prefs.setString('cart_$_userId', cartJson);
+  }
+
+  // Load giỏ hàng từ local
+  Future<void> loadCart() async {
+    final prefs = await SharedPreferences.getInstance();
+    final cartJson = prefs.getString('cart_$_userId');
+
+    if (cartJson != null) {
+      final List decoded = jsonDecode(cartJson);
+      _cartItems = decoded.map((e) => CartItem.fromMap(e)).toList();
+    } else {
+      _cartItems = [];
+    }
+
+    notifyListeners();
+  }
+
+  // Xoá toàn bộ giỏ
+  Future<void> clearCart() async {
     _cartItems.clear();
-    _selectedKeys.clear();
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('cart_$_userId');
     notifyListeners();
   }
 
-  void selectAll() {
-    _selectedKeys.clear();
-    _selectedKeys.addAll(_cartItems.map((item) => item.cartKey));
+  // Bỏ chọn hết
+  void clearSelection() {
+    _cartItems.removeWhere(
+      (item) => _selectedItemIds.contains(item.product.id),
+    );
+    _selectedItemIds.clear();
+    saveCart();
     notifyListeners();
   }
 
-  void deselectAll() {
-    _selectedKeys.clear();
+  // Xoá sản phẩm theo productId
+  void removeItem(String productId) {
+    _cartItems.removeWhere((item) => item.product.id == productId);
     notifyListeners();
+  }
+
+  // Tính tổng số tiền của các sản phẩm đã chọn
+  double get totalAmount {
+    return _cartItems
+        .where((item) => _selectedItemIds.contains(item.product.id))
+        .fold(
+          0,
+          (sum, item) =>
+              sum +
+              item.product.sellingPrice *
+                  (1 - item.product.discount) *
+                  item.quantity,
+        );
+  }
+
+  // Cập nhật số lượng sản phẩm
+  void updateItemQuantity(String productId, int newQuantity) {
+    final index = _cartItems.indexWhere((item) => item.product.id == productId);
+    if (index != -1) {
+      _cartItems[index].quantity = newQuantity;
+      saveCart();
+      notifyListeners();
+    }
   }
 }
