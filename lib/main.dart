@@ -58,6 +58,7 @@ class MainApp extends StatelessWidget {
       onGenerateRoute: router.generateRoute,
       initialRoute: initialRoute,
       theme: ThemeData(
+        primaryColor: primaryColor,
         scaffoldBackgroundColor: Colors.white,
         appBarTheme: const AppBarTheme(color: Colors.white, elevation: 0),
         dialogTheme: DialogThemeData(
@@ -76,6 +77,19 @@ class MainApp extends StatelessWidget {
           style: ElevatedButton.styleFrom(
             backgroundColor: primaryColor,
             foregroundColor: Colors.white,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8.0),
+            ),
+            textStyle: const TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ),
+        outlinedButtonTheme: OutlinedButtonThemeData(
+          style: OutlinedButton.styleFrom(
+            foregroundColor: primaryColor,
+            side: BorderSide(color: borderColor),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(8.0),
             ),
@@ -121,6 +135,21 @@ class MainApp extends StatelessWidget {
             }
             return Colors.white;
           }),
+        ),
+        sliderTheme: SliderThemeData(
+          activeTrackColor: primaryColor,
+          inactiveTrackColor: primaryColor.withValues(alpha: 0.5),
+          thumbColor: primaryColor,
+          overlayColor: primaryColor.withValues(alpha: 0.2),
+          valueIndicatorColor: primaryColor,
+        ),
+        chipTheme: ChipThemeData(
+          selectedColor: primaryColor,
+          disabledColor: Colors.grey.shade400,
+          labelStyle: const TextStyle(color: Colors.black),
+          secondaryLabelStyle: const TextStyle(color: Colors.white),
+          brightness: Brightness.light,
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
         ),
       ),
     );

@@ -17,6 +17,7 @@ class _HomeScreenState extends State<HomeScreen> {
     return ProductListSlider(
       title: title,
       onProductSelected: (product) {
+        debugPrint('Product tapped: ${product.name}');
         Navigator.push(
           context,
           MaterialPageRoute(

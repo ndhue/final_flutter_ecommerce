@@ -83,8 +83,18 @@ class _ProductDetailsState extends State<ProductDetails> {
   void _addToCart(BuildContext context) {
     Provider.of<CartProvider>(context, listen: false).addToCart(
       CartItem(
-        product: productSelected,
-        variant: variantSelected!,
+        product: CartProduct(
+          id: productSelected.id,
+          name: productSelected.name,
+          imageUrl: productSelected.images[0],
+          price: productSelected.sellingPrice,
+          discount: productSelected.discount,
+        ),
+        variant: CartVariant(
+          variantId: variantSelected!.variantId,
+          colorCode: variantSelected!.colorCode,
+          colorName: variantSelected!.colorName,
+        ),
         quantity: 1,
       ),
     );

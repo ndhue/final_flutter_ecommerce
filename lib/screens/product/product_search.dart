@@ -7,7 +7,7 @@ class ProductSearch extends StatefulWidget {
   const ProductSearch({super.key});
 
   @override
-  _ProductSearchState createState() => _ProductSearchState();
+  State<ProductSearch> createState() => _ProductSearchState();
 }
 
 class _ProductSearchState extends State<ProductSearch> {

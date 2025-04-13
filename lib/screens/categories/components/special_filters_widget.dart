@@ -20,6 +20,7 @@ class SpecialFiltersWidget extends StatelessWidget {
                   MediaQuery.of(context).size.width / 3 -
                   18, // Ensures 3 items per row
               child: CategoryCard(
+                key: ValueKey(category.name),
                 category: category,
                 onTap: () {
                   // Handle tap event

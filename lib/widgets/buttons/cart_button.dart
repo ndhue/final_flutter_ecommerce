@@ -15,15 +15,14 @@ class _CartButtonState extends State<CartButton> {
   void initState() {
     super.initState();
 
-    final currentUser = context.read<UserProvider>().user;
-
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final cartProvider = Provider.of<CartProvider>(context, listen: false);
+      final userProvider = Provider.of<UserProvider>(context, listen: false);
+      final currentUser = userProvider.user;
 
-      if (currentUser != null) {
-        cartProvider.setUser(currentUser.id);
-        cartProvider.loadUserAddress(currentUser);
-      }
+      cartProvider.setUser(currentUser?.id);
+      cartProvider.loadUserAddress(currentUser);
+      cartProvider.loadCart();
     });
   }
 

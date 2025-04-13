@@ -25,15 +25,15 @@ class ProductProvider with ChangeNotifier {
 
   // Fetch paginated products with filters & sorting
   Future<void> fetchProducts({
-    String? orderBy,
+    String orderBy = 'sellingPrice',
     bool descending = false,
-    String? brand,
-    String? category,
+    List<String>? brand,
+    List<String>? category,
     int? minPrice,
     int? maxPrice,
     bool isInitial = false,
   }) async {
-    if (_isLoading) return;
+    if ((_isLoading || !_hasMore) && !isInitial) return;
 
     _isLoading = true;
     notifyListeners();
@@ -50,20 +50,24 @@ class ProductProvider with ChangeNotifier {
         limit: 10,
         orderBy: orderBy,
         descending: descending,
-        brand: brand,
-        category: category,
+        brands: brand,
+        categories: category,
         minPrice: minPrice,
         maxPrice: maxPrice,
       );
 
+      // Nếu số lượng sản phẩm trả về ít hơn limit => hết dữ liệu
       if (result.length < 10) {
         _hasMore = false;
       }
 
+      // Nếu có sản phẩm trả về thì cập nhật lastDocument
       if (result.isNotEmpty) {
         _lastDocument = result.last.docSnapshot;
         _products.addAll(result);
       }
+    } catch (e) {
+      rethrow;
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -107,6 +111,11 @@ class ProductProvider with ChangeNotifier {
     _newProducts.clear();
     _promotionalProducts.clear();
     _bestSellers.clear();
+    notifyListeners();
+  }
+
+  void resetLoadingState() {
+    _isLoading = false;
     notifyListeners();
   }
 

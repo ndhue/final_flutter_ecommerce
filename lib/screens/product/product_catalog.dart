@@ -1,4 +1,5 @@
 import 'package:final_ecommerce/providers/product_provider.dart';
+import 'package:final_ecommerce/screens/product/components/filter_section.dart';
 import 'package:final_ecommerce/screens/product/product_details.dart';
 import 'package:final_ecommerce/utils/constants.dart';
 import 'package:final_ecommerce/widgets/buttons/cart_button.dart';
@@ -19,27 +20,78 @@ class ProductCatalog extends StatefulWidget {
 
 class _ProductCatalogState extends State<ProductCatalog> {
   late ProductProvider _productProvider;
-  late String _currentCategory;
+  late List<String> _selectedCategies;
+  late List<String> _selectedBrands;
+  late RangeValues _selectedRange;
+  late String _selectedSortOption;
 
   @override
   void initState() {
     super.initState();
+    _selectedCategies = [widget.category];
+    _selectedBrands = [];
+    _selectedSortOption = 'sellingPrice_asc';
+    _selectedRange = const RangeValues(0, 100000000);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _productProvider = Provider.of<ProductProvider>(context, listen: false);
-      _currentCategory = widget.category;
       _fetchInitialProducts();
     });
   }
 
   Future<void> _fetchInitialProducts() async {
-    if (_productProvider.products.isEmpty ||
-        _currentCategory != widget.category) {
-      _currentCategory = widget.category;
-      await _productProvider.fetchProductsByCategory(
-        category: widget.category,
+    await _productProvider.fetchProducts(
+      category: [widget.category],
+      isInitial: true,
+    );
+  }
+
+  @override
+  void didUpdateWidget(ProductCatalog oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.category != widget.category) {
+      _selectedCategies = [widget.category];
+      _fetchInitialProducts();
+    }
+  }
+
+  void onSortPressed() {
+    showSortByBottomSheet(context, (sortOption) {
+      setState(() {
+        _selectedSortOption = sortOption;
+      });
+      _productProvider.fetchProducts(
+        orderBy: sortOption.split('_')[0],
+        descending: sortOption.contains('_desc'),
+        category: _selectedCategies,
+        brand: _selectedBrands,
+        minPrice: _selectedRange.start.toInt(),
+        maxPrice: _selectedRange.end.toInt(),
         isInitial: true,
       );
-    }
+    });
+  }
+
+  void onFilterPressed() {
+    showFilterBottomSheet(
+      context,
+      currentRange: _selectedRange,
+      currentCategories: _selectedCategies,
+      currentBrands: _selectedBrands,
+      onApplyFilter: (categories, brands, range) {
+        setState(() {
+          _selectedCategies = categories;
+          _selectedBrands = brands;
+          _selectedRange = range;
+        });
+        _productProvider.fetchProducts(
+          category: categories,
+          brand: brands,
+          minPrice: range.start.toInt(),
+          maxPrice: range.end.toInt(),
+          isInitial: true,
+        );
+      },
+    );
   }
 
   @override
@@ -84,7 +136,11 @@ class _ProductCatalogState extends State<ProductCatalog> {
                       style: TextStyle(fontSize: 16, color: iconColor),
                     ),
                   ),
-
+                FilterSection(
+                  onSortPressed: onSortPressed,
+                  onFilterPressed: onFilterPressed,
+                  selectedSortOption: _selectedSortOption,
+                ),
                 const SizedBox(height: 20),
 
                 if (!provider.isLoading || filteredProducts.isNotEmpty)
@@ -112,6 +168,7 @@ class _ProductCatalogState extends State<ProductCatalog> {
                               itemBuilder: (context, index) {
                                 final product = filteredProducts[index];
                                 return ProductCard(
+                                  key: ValueKey(product.id),
                                   product: product,
                                   onTap: () {
                                     Navigator.push(
@@ -128,30 +185,6 @@ class _ProductCatalogState extends State<ProductCatalog> {
                               },
                             ),
                   ),
-
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: [
-                    Column(
-                      children: [
-                        IconButton(
-                          icon: Icon(Icons.filter_alt, color: iconColor),
-                          onPressed: () {},
-                        ),
-                        const Text('Filter'),
-                      ],
-                    ),
-                    Column(
-                      children: [
-                        IconButton(
-                          icon: const Icon(Icons.filter_list, color: iconColor),
-                          onPressed: () {},
-                        ),
-                        const Text('Sort by'),
-                      ],
-                    ),
-                  ],
-                ),
                 const SizedBox(height: 8),
               ],
             ),

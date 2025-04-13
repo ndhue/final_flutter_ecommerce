@@ -9,6 +9,7 @@ class CartProvider with ChangeNotifier {
   Set<String> _selectedItemIds = {};
   String _userId = 'guest';
   AddressInfo? _addressInfo;
+  final String _guestCartKey = 'cart_guest';
 
   CartProvider() {
     loadCart();
@@ -41,10 +42,41 @@ class CartProvider with ChangeNotifier {
     notifyListeners();
   }
 
+  // Save guest cart before switching to logged-in user
+  Future<void> _saveGuestCart() async {
+    final prefs = await SharedPreferences.getInstance();
+    final guestCartJson = jsonEncode(_cartItems.map((e) => e.toMap()).toList());
+    await prefs.setString(_guestCartKey, guestCartJson);
+  }
+
+  // Load guest cart when logging out
+  Future<void> _loadGuestCart() async {
+    final prefs = await SharedPreferences.getInstance();
+    final guestCartJson = prefs.getString(_guestCartKey);
+
+    if (guestCartJson != null) {
+      final List decoded = jsonDecode(guestCartJson);
+      _cartItems = decoded.map((e) => CartItem.fromMap(e)).toList();
+    } else {
+      _cartItems = [];
+    }
+
+    notifyListeners();
+  }
+
   // Cập nhật userId, reload giỏ hàng tương ứng
   void setUser(String? userId) {
+    if (_userId == 'guest' && userId != null) {
+      _saveGuestCart();
+    }
+
     _userId = userId ?? 'guest';
-    loadCart();
+
+    if (_userId == 'guest') {
+      _loadGuestCart();
+    } else {
+      loadCart();
+    }
   }
 
   // Toggle chọn sản phẩm
@@ -143,9 +175,7 @@ class CartProvider with ChangeNotifier {
           0,
           (sum, item) =>
               sum +
-              item.product.sellingPrice *
-                  (1 - item.product.discount) *
-                  item.quantity,
+              item.product.price * (1 - item.product.discount) * item.quantity,
         );
   }
 
