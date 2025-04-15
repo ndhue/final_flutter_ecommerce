@@ -37,7 +37,7 @@ void main() async {
         ChangeNotifierProvider(create: (_) => VariantProvider()),
         ChangeNotifierProvider(create: (_) => CartProvider()),
         ChangeNotifierProvider(create: (_) => OrderProvider()),
-
+        ChangeNotifierProvider(create: (_) => CouponProvider()),
         ChangeNotifierProvider(create: (_) => CouponProvider()),
       ],
       child: MainApp(initialRoute: initialRoute),
@@ -136,6 +136,7 @@ class MainApp extends StatelessWidget {
             return Colors.white;
           }),
         ),
+
         sliderTheme: SliderThemeData(
           activeTrackColor: primaryColor,
           inactiveTrackColor: primaryColor.withValues(alpha: 0.5),

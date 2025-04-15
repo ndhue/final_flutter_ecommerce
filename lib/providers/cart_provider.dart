@@ -7,6 +7,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 class CartProvider with ChangeNotifier {
   List<CartItem> _cartItems = [];
   Set<String> _selectedItemIds = {};
+  Set<String> _selectedItemKeys = {}; // productId_variantId
   String _userId = 'guest';
   AddressInfo? _addressInfo;
   final String _guestCartKey = 'cart_guest';
@@ -99,7 +100,9 @@ class CartProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  bool isAllSelected() => _selectedItemIds.length == _cartItems.length;
+  bool isAllSelected() =>
+      _cartItems.isNotEmpty &&
+      _cartItems.every((item) => _selectedItemIds.contains(item.product.id));
 
   bool isSelected(String productId) => _selectedItemIds.contains(productId);
 

@@ -1,5 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+enum CouponType { fixed, percent } //
+
 class Coupon {
   final String id;
   final String code;
@@ -8,6 +10,7 @@ class Coupon {
   final int maxUses;
   final int timesUsed;
   final double value;
+  final CouponType type;
   final List<String> ordersApplied;
 
   Coupon({
@@ -19,6 +22,7 @@ class Coupon {
     required this.timesUsed,
     required this.value,
     required this.ordersApplied,
+    required this.type,
   });
 
   factory Coupon.fromMap(DocumentSnapshot doc) {
@@ -32,6 +36,7 @@ class Coupon {
       timesUsed: data['timesUsed'],
       value: (data['value'] as num).toDouble(),
       ordersApplied: List<String>.from(data['ordersApplied']),
+      type: data['type'] == 'fixed' ? CouponType.fixed : CouponType.percent, //
     );
   }
 
@@ -45,6 +50,7 @@ class Coupon {
       'timesUsed': timesUsed,
       'value': value,
       'ordersApplied': ordersApplied,
+      'type': type == CouponType.fixed ? 'fixed' : 'percent', //
     };
   }
 }
