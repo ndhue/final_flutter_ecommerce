@@ -13,7 +13,6 @@ class SearchBarWidget extends StatelessWidget {
   Widget build(BuildContext context) {
     return InkWell(
       onTap: () => onSearch(context),
-      onLongPress: () => onSearch(context),
       child: Container(
         height: 50,
         padding: const EdgeInsets.symmetric(horizontal: 15),

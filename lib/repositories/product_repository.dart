@@ -177,4 +177,125 @@ class ProductRepository {
       return [];
     }
   }
+
+  Future<void> addProductReview({
+    required String productId,
+    required String username,
+    String? comment,
+    double? rating,
+  }) async {
+    try {
+      final review = {
+        'username': username,
+        'rating': rating,
+        'comment': comment ?? '',
+        'createdAt': Timestamp.now(),
+      };
+
+      await _products.doc(productId).collection('reviews').add(review);
+
+      if (rating != null) {
+        final productSnapshot = await _products.doc(productId).get();
+        final productData = productSnapshot.data() as Map<String, dynamic>;
+
+        final currentTotalReviews = (productData['totalReviews'] ?? 0) as int;
+
+        final currentRatingRaw = productData['rating'] ?? 0;
+        final currentRating =
+            (currentRatingRaw is int)
+                ? currentRatingRaw.toDouble()
+                : (currentRatingRaw as double);
+
+        final newTotalReviews = currentTotalReviews + 1;
+        final newRating =
+            ((currentRating * currentTotalReviews) + rating) / newTotalReviews;
+
+        final roundedNewRating = double.parse(newRating.toStringAsFixed(1));
+
+        await _products.doc(productId).update({
+          'totalReviews': newTotalReviews,
+          'rating': roundedNewRating,
+        });
+      } else {
+        // Nếu không có rating thì chỉ tăng số review
+        await _products.doc(productId).update({
+          'totalReviews': FieldValue.increment(1),
+        });
+      }
+    } catch (e) {
+      debugPrint('Error adding product review: $e');
+      rethrow;
+    }
+  }
+
+  Future<List<ProductReview>> fetchProductReviews({
+    required String productId,
+    DocumentSnapshot? lastDocument,
+    int limit = 10,
+  }) async {
+    try {
+      Query query = _products
+          .doc(productId)
+          .collection('reviews')
+          .orderBy('createdAt', descending: true);
+
+      if (lastDocument != null) {
+        query = query.startAfterDocument(lastDocument);
+      }
+
+      final snapshot = await query.limit(limit).get();
+      return snapshot.docs
+          .map(
+            (doc) => ProductReview.fromMap(
+              doc.data() as Map<String, dynamic>,
+              snapshot: doc, // Pass the DocumentSnapshot
+            ),
+          )
+          .toList();
+    } catch (e) {
+      debugPrint('Error fetching product reviews: $e');
+      return [];
+    }
+  }
+
+  Future<NewProduct> fetchProductById(String productId) async {
+    try {
+      final doc = await _products.doc(productId).get();
+      if (doc.exists) {
+        return NewProduct.fromMap(doc.data() as Map<String, dynamic>);
+      } else {
+        throw Exception('Product not found');
+      }
+    } catch (e) {
+      debugPrint('Error fetching product by ID: $e');
+      rethrow;
+    }
+  }
+
+  Future<List<NewProduct>> fetchProductsByKeyword({
+    required String keyword,
+    DocumentSnapshot? lastDocument,
+    int limit = 10,
+    String orderBy = 'name',
+    bool descending = false,
+  }) async {
+    try {
+      Query query = _products
+          .orderBy('name', descending: descending)
+          .where('name', isGreaterThanOrEqualTo: keyword)
+          .where('name', isLessThanOrEqualTo: '$keyword\uf8ff');
+
+      if (lastDocument != null) {
+        query = query.startAfterDocument(lastDocument);
+      }
+
+      final snapshot = await query.limit(limit).get();
+      return snapshot.docs
+          .map((doc) => NewProduct.fromMap(doc.data() as Map<String, dynamic>))
+          .toList();
+    } catch (e) {
+      debugPrint('Error fetching products by keyword: $e');
+      return [];
+    }
+  }
 }

@@ -62,4 +62,32 @@ class UserModel {
       'shippingAddress': shippingAddress,
     };
   }
+
+  UserModel copyWith({
+    String? id,
+    String? fullName,
+    String? email,
+    String? role,
+    bool? activated,
+    int? loyaltyPoints,
+    int? loyaltyPointsUsed,
+    String? city,
+    String? district,
+    String? ward,
+    String? shippingAddress,
+  }) {
+    return UserModel(
+      id: id ?? this.id,
+      fullName: fullName ?? this.fullName,
+      email: email ?? this.email,
+      role: role ?? this.role,
+      activated: activated ?? this.activated,
+      loyaltyPoints: loyaltyPoints ?? this.loyaltyPoints,
+      loyaltyPointsUsed: loyaltyPointsUsed ?? this.loyaltyPointsUsed,
+      city: city ?? this.city,
+      district: district ?? this.district,
+      ward: ward ?? this.ward,
+      shippingAddress: shippingAddress ?? this.shippingAddress,
+    );
+  }
 }

@@ -118,7 +118,7 @@ class OrderListView extends StatelessWidget {
   }
 
   Widget _buildOrderItem(BuildContext context, Order order) {
-    var latestStatus = order.statusHistory.last;
+    var latestStatus = order.statusHistory.first;
     Color statusColor = getStatusColor(latestStatus.status);
     String date = formatDate(latestStatus.time);
     String imageUrl = order.orderDetails[0].imageUrl;
@@ -135,56 +135,75 @@ class OrderListView extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Status
-            Row(
-              children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Icon(Icons.circle, color: statusColor, size: 12),
-                        const SizedBox(width: 8),
-                        Text(
-                          latestStatus.status,
-                          style: TextStyle(color: statusColor),
-                        ),
-                      ],
-                    ),
+            InkWell(
+              onTap: () {
+                Navigator.pushNamed(
+                  context,
+                  orderDetailsScreenRoute,
+                  arguments: order,
+                );
+              },
+              onLongPress: () {
+                Navigator.pushNamed(
+                  context,
+                  orderDetailsScreenRoute,
+                  arguments: order,
+                );
+              },
+              child: Row(
+                children: [
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(Icons.circle, color: statusColor, size: 12),
+                          const SizedBox(width: 8),
+                          Text(
+                            latestStatus.status,
+                            style: TextStyle(color: statusColor),
+                          ),
+                        ],
+                      ),
 
-                    Padding(
-                      padding: const EdgeInsets.only(left: 20),
-                      child: Text(
-                        date,
-                        style: const TextStyle(
-                          color: Colors.grey,
-                          fontSize: 12,
+                      Padding(
+                        padding: const EdgeInsets.only(left: 20),
+                        child: Text(
+                          date,
+                          style: const TextStyle(
+                            color: Colors.grey,
+                            fontSize: 12,
+                          ),
                         ),
                       ),
-                    ),
-                  ],
-                ),
-                const Spacer(),
-                const Icon(Icons.navigate_next, color: iconColor, size: 32),
-              ],
+                    ],
+                  ),
+                  const Spacer(),
+                  const Icon(Icons.navigate_next, color: iconColor, size: 32),
+                ],
+              ),
             ),
             const Divider(height: 20),
             // Product info
             Row(
               children: [
-                Image.network(
-                  imageUrl,
-                  height: 70,
-                  width: 70,
-                  fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) {
-                    return const Center(
-                      child: Icon(
-                        Icons.broken_image,
-                        size: 70,
-                        color: Colors.grey,
-                      ),
-                    );
-                  },
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(4),
+                  child: Image.network(
+                    imageUrl,
+                    height: 70,
+                    width: 70,
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) {
+                      return const Center(
+                        child: Icon(
+                          Icons.broken_image,
+                          size: 70,
+                          color: Colors.grey,
+                        ),
+                      );
+                    },
+                  ),
                 ),
                 const SizedBox(width: 12),
                 Expanded(

@@ -1,5 +1,6 @@
 import 'package:final_ecommerce/routes/route_constants.dart';
 import 'package:final_ecommerce/utils/constants.dart';
+import 'package:final_ecommerce/utils/search_history_storage.dart';
 import 'package:final_ecommerce/widgets/buttons/cart_button.dart';
 import 'package:flutter/material.dart';
 
@@ -11,32 +12,54 @@ class ProductSearch extends StatefulWidget {
 }
 
 class _ProductSearchState extends State<ProductSearch> {
-  List<String> recentSearches = [
-    "Iphone 12 pro max",
-    "Camera fujifilm",
-    "Tripod Mini",
-    "Bluetooth speaker",
-    "Drawing pad",
-  ];
-  TextEditingController searchController = TextEditingController();
+  List<String> recentSearches = [];
+  final TextEditingController searchController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSearchHistory();
+  }
 
   @override
   void dispose() {
-    super.dispose();
     searchController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _loadSearchHistory() async {
+    final history = await SearchHistoryStorage.loadSearchHistory();
+    setState(() {
+      recentSearches = history;
+    });
+  }
+
+  Future<void> _saveSearchHistory() async {
+    await SearchHistoryStorage.saveSearchHistory(recentSearches);
   }
 
   void _searchProduct(String query) {
     if (query.isNotEmpty) {
       setState(() {
         if (!recentSearches.contains(query)) {
-          recentSearches.insert(0, query); // Lưu vào lịch sử tìm kiếm
+          recentSearches.insert(0, query); // Add to recent searches
+          if (recentSearches.length > 10) {
+            recentSearches.removeLast(); // Limit history to 10 items
+          }
         }
       });
+      _saveSearchHistory();
 
-      // Chuyển sang trang SearchResults và truyền query
+      // Navigate to SearchResults screen with the query
       Navigator.pushNamed(context, searchResultRoute, arguments: query);
     }
+  }
+
+  void _clearSearchHistory() {
+    setState(() {
+      recentSearches.clear();
+    });
+    SearchHistoryStorage.clearSearchHistory();
   }
 
   @override
@@ -45,8 +68,9 @@ class _ProductSearchState extends State<ProductSearch> {
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
-        leading: BackButton(
-          style: ButtonStyle(iconSize: WidgetStateProperty.all(20)),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.black),
+          onPressed: () => Navigator.pop(context),
         ),
         title: TextField(
           controller: searchController,
@@ -56,9 +80,9 @@ class _ProductSearchState extends State<ProductSearch> {
             border: InputBorder.none,
             prefixIcon: Icon(Icons.search, color: iconColor),
           ),
-          onSubmitted: _searchProduct, // Khi nhấn Enter, gọi hàm tìm kiếm
+          onSubmitted: _searchProduct, // Trigger search on Enter
         ),
-        actions: [CartButton()],
+        actions: const [CartButton()],
       ),
       backgroundColor: Colors.white,
       body: Container(
@@ -82,10 +106,7 @@ class _ProductSearchState extends State<ProductSearch> {
                   ),
                 ),
                 TextButton(
-                  onPressed:
-                      () => setState(() {
-                        recentSearches.clear();
-                      }),
+                  onPressed: _clearSearchHistory,
                   child: const Text(
                     "Clear all",
                     style: TextStyle(color: Colors.red),
@@ -102,15 +123,16 @@ class _ProductSearchState extends State<ProductSearch> {
                     title: Text(recentSearches[index]),
                     trailing: IconButton(
                       icon: const Icon(Icons.close, color: Colors.grey),
-                      onPressed:
-                          () => setState(() {
-                            recentSearches.removeAt(index);
-                          }),
+                      onPressed: () {
+                        setState(() {
+                          recentSearches.removeAt(
+                            index,
+                          ); // Remove specific search
+                        });
+                        _saveSearchHistory();
+                      },
                     ),
-                    onTap:
-                        () => _searchProduct(
-                          recentSearches[index],
-                        ), // Khi click vào, tìm lại từ khóa
+                    onTap: () => _searchProduct(recentSearches[index]),
                   );
                 },
               ),

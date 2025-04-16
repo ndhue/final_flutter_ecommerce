@@ -1,6 +1,7 @@
 import 'package:final_ecommerce/utils/constants.dart';
 import 'package:final_ecommerce/utils/format.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_rating_bar/flutter_rating_bar.dart';
 
 import '../models/models_export.dart';
 
@@ -105,25 +106,30 @@ class ProductCard extends StatelessWidget {
                   SizedBox(
                     width: double.infinity,
                     height: 32,
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(4.0),
+                    child: Row(
+                      children: [
+                        RatingBar.builder(
+                          initialRating: product.rating,
+                          minRating: 1,
+                          direction: Axis.horizontal,
+                          allowHalfRating: true,
+                          itemCount: 5,
+                          itemSize: 20,
+                          ignoreGestures: true,
+                          itemBuilder:
+                              (context, _) =>
+                                  const Icon(Icons.star, color: Colors.amber),
+                          onRatingUpdate: (rating) {},
                         ),
-                        backgroundColor: primaryColor,
-                        foregroundColor: Colors.white,
-                      ),
-                      onPressed: () {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(
-                              '${product.name} đã được thêm vào giỏ hàng',
-                            ),
-                            duration: const Duration(seconds: 2),
+                        const SizedBox(width: 8),
+                        Text(
+                          '(${product.totalReviews})',
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey,
                           ),
-                        );
-                      },
-                      child: const Text("Add to Cart"),
+                        ),
+                      ],
                     ),
                   ),
                 ],

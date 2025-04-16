@@ -19,7 +19,6 @@ String colorToHex(Color color) {
   return '#${color.toARGB32().toRadixString(16).padLeft(8, '0').toUpperCase().substring(2)}';
 }
 
-// Hàm map status sang màu
 Color getStatusColor(String status) {
   switch (status) {
     case 'Pending':
@@ -46,7 +45,6 @@ List<String> getActionsForStatus(String status) {
     case 'Shipping':
       return ['Track'];
     case 'Delivered':
-      return ['Return', 'Exchange'];
     case 'Cancelled':
       return [];
     default:
@@ -78,4 +76,9 @@ String formatDate(DateTime date) {
   final suffix = getDaySuffix(day);
 
   return '$day$suffix $month $year';
+}
+
+String formatDateTime(DateTime dateTime) {
+  final DateFormat formatter = DateFormat('HH:mm dd/MM/yyyy');
+  return formatter.format(dateTime);
 }

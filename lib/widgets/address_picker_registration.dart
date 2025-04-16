@@ -1,3 +1,4 @@
+import 'package:final_ecommerce/models/models_export.dart';
 import 'package:flutter/material.dart';
 
 class AddressPickerRegistration extends StatefulWidget {
@@ -9,7 +10,13 @@ class AddressPickerRegistration extends StatefulWidget {
   )
   onAddressSelected;
 
-  const AddressPickerRegistration({super.key, required this.onAddressSelected});
+  final AddressInfo? defaultAddress;
+
+  const AddressPickerRegistration({
+    super.key,
+    required this.onAddressSelected,
+    this.defaultAddress,
+  });
 
   @override
   State<AddressPickerRegistration> createState() =>
@@ -17,9 +24,9 @@ class AddressPickerRegistration extends StatefulWidget {
 }
 
 class _AddressPickerRegistrationState extends State<AddressPickerRegistration> {
-  late String selectedCity = "";
-  late String selectedDistrict = "";
-  late String selectedWard = "";
+  late String selectedCity;
+  late String selectedDistrict;
+  late String selectedWard;
   late TextEditingController detailedAddressController;
 
   final List<String> cities = ["Hồ Chí Minh", "Hà Nội", "Đà Nẵng"];
@@ -43,8 +50,12 @@ class _AddressPickerRegistrationState extends State<AddressPickerRegistration> {
   @override
   void initState() {
     super.initState();
-    detailedAddressController =
-        TextEditingController(); // Initialize the controller
+    selectedCity = widget.defaultAddress?.city ?? "";
+    selectedDistrict = widget.defaultAddress?.district ?? "";
+    selectedWard = widget.defaultAddress?.ward ?? "";
+    detailedAddressController = TextEditingController(
+      text: widget.defaultAddress?.detailedAddress ?? "",
+    );
   }
 
   @override

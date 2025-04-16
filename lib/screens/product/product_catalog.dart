@@ -24,6 +24,7 @@ class _ProductCatalogState extends State<ProductCatalog> {
   late List<String> _selectedBrands;
   late RangeValues _selectedRange;
   late String _selectedSortOption;
+  final ScrollController _scrollController = ScrollController();
 
   @override
   void initState() {
@@ -36,6 +37,14 @@ class _ProductCatalogState extends State<ProductCatalog> {
       _productProvider = Provider.of<ProductProvider>(context, listen: false);
       _fetchInitialProducts();
     });
+
+    _scrollController.addListener(_onScroll);
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
   }
 
   Future<void> _fetchInitialProducts() async {
@@ -51,6 +60,22 @@ class _ProductCatalogState extends State<ProductCatalog> {
     if (oldWidget.category != widget.category) {
       _selectedCategies = [widget.category];
       _fetchInitialProducts();
+    }
+  }
+
+  void _onScroll() {
+    if (_scrollController.position.pixels >=
+            _scrollController.position.maxScrollExtent &&
+        !_productProvider.isLoading &&
+        _productProvider.hasMore) {
+      _productProvider.fetchProducts(
+        orderBy: _selectedSortOption.split('_')[0],
+        descending: _selectedSortOption.contains('_desc'),
+        category: _selectedCategies,
+        brand: _selectedBrands,
+        minPrice: _selectedRange.start.toInt(),
+        maxPrice: _selectedRange.end.toInt(),
+      );
     }
   }
 
@@ -156,33 +181,51 @@ class _ProductCatalogState extends State<ProductCatalog> {
                                 ),
                               ),
                             )
-                            : GridView.builder(
-                              gridDelegate:
-                                  const SliverGridDelegateWithFixedCrossAxisCount(
-                                    crossAxisCount: 2,
-                                    childAspectRatio: 0.75,
-                                    crossAxisSpacing: 10,
-                                    mainAxisSpacing: 10,
-                                  ),
-                              itemCount: filteredProducts.length,
-                              itemBuilder: (context, index) {
-                                final product = filteredProducts[index];
-                                return ProductCard(
-                                  key: ValueKey(product.id),
-                                  product: product,
-                                  onTap: () {
-                                    Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder:
-                                            (context) => ProductDetails(
-                                              product: product,
-                                            ),
-                                      ),
-                                    );
-                                  },
-                                );
+                            : NotificationListener<ScrollNotification>(
+                              onNotification: (scrollNotification) {
+                                if (scrollNotification
+                                    is ScrollEndNotification) {
+                                  _onScroll();
+                                }
+                                return false;
                               },
+                              child: GridView.builder(
+                                controller: _scrollController,
+                                gridDelegate:
+                                    const SliverGridDelegateWithFixedCrossAxisCount(
+                                      crossAxisCount: 2,
+                                      childAspectRatio: 0.75,
+                                      crossAxisSpacing: 10,
+                                      mainAxisSpacing: 10,
+                                    ),
+                                itemCount:
+                                    filteredProducts.length +
+                                    (provider.isLoading ? 1 : 0),
+                                itemBuilder: (context, index) {
+                                  if (index == filteredProducts.length &&
+                                      provider.isLoading) {
+                                    return const Center(
+                                      child: CircularProgressIndicator(),
+                                    );
+                                  }
+                                  final product = filteredProducts[index];
+                                  return ProductCard(
+                                    key: ValueKey(product.id),
+                                    product: product,
+                                    onTap: () {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder:
+                                              (context) => ProductDetails(
+                                                product: product,
+                                              ),
+                                        ),
+                                      );
+                                    },
+                                  );
+                                },
+                              ),
                             ),
                   ),
                 const SizedBox(height: 8),
