@@ -74,6 +74,12 @@ class ProductProvider with ChangeNotifier {
     }
   }
 
+  //Add new product
+  Future<void> addProduct(NewProduct product) async {
+    await _repository.addProduct(product);
+    notifyListeners();
+  }
+
   // New Products - Cache logic
   Future<List<NewProduct>> getNewProducts() async {
     if (_newProducts.isNotEmpty) {
