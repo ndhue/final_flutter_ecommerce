@@ -1,7 +1,12 @@
+import 'package:final_ecommerce/providers/product_provider.dart';
+import 'package:final_ecommerce/screens/product/product_details.dart';
+import 'package:final_ecommerce/widgets/product_card.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 import '/routes/route_constants.dart';
 import '/widgets/buttons/cart_button.dart';
+import 'components/filter_section.dart';
 
 class SearchResults extends StatefulWidget {
   const SearchResults({super.key});
@@ -13,27 +18,41 @@ class SearchResults extends StatefulWidget {
 class _SearchResultsState extends State<SearchResults> {
   TextEditingController searchController = TextEditingController();
   String searchQuery = "Search result";
+  String _selectedSortOption = 'sellingPrice_asc';
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
     final args = ModalRoute.of(context)?.settings.arguments;
     if (args is String) {
-      setState(() {
-        searchQuery = args;
-        searchController.text = args;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        setState(() {
+          searchQuery = args;
+          searchController.text = args;
+        });
+        _fetchSearchResults();
       });
     }
   }
 
-  // List<Product> get filteredProducts {
-  //   return products
-  //       .where(
-  //         (product) =>
-  //             product.name.toLowerCase().contains(searchQuery.toLowerCase()),
-  //       )
-  //       .toList();
-  // }
+  void _fetchSearchResults() {
+    final provider = Provider.of<ProductProvider>(context, listen: false);
+    provider.fetchProductsByKeyword(
+      keyword: searchQuery,
+      orderBy: _selectedSortOption.split('_')[0],
+      descending: _selectedSortOption.contains('_desc'),
+      isInitial: true,
+    );
+  }
+
+  void onSortPressed() {
+    showSortByBottomSheet(context, (sortOption) {
+      setState(() {
+        _selectedSortOption = sortOption;
+      });
+      _fetchSearchResults();
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -47,7 +66,7 @@ class _SearchResultsState extends State<SearchResults> {
             if (Navigator.canPop(context)) {
               Navigator.pop(context);
             } else {
-              Navigator.pushReplacementNamed(context, productSearchRoute);
+              Navigator.pushReplacementNamed(context, categoriesScreenRoute);
             }
           },
         ),
@@ -58,75 +77,84 @@ class _SearchResultsState extends State<SearchResults> {
             border: InputBorder.none,
             prefixIcon: Icon(Icons.search, color: Colors.grey),
           ),
-          onChanged: (value) {
+          onSubmitted: (value) {
             setState(() {
               searchQuery = value.isEmpty ? "Search result" : value;
             });
+            _fetchSearchResults();
           },
         ),
         actions: const [CartButton()],
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      body: Consumer<ProductProvider>(
+        builder: (context, provider, child) {
+          final filteredProducts = provider.products;
+
+          return Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  'Search result for "$searchQuery"',
-                  style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Search result for "$searchQuery"',
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.sort, color: Colors.black),
+                      onPressed: onSortPressed,
+                    ),
+                  ],
                 ),
-                IconButton(
-                  icon: const Icon(Icons.filter_list, color: Colors.black),
-                  onPressed: () {},
+                const SizedBox(height: 8),
+                Expanded(
+                  child:
+                      filteredProducts.isEmpty
+                          ? const Center(
+                            child: Text(
+                              'No products found.',
+                              style: TextStyle(
+                                fontSize: 16,
+                                color: Colors.grey,
+                              ),
+                            ),
+                          )
+                          : GridView.builder(
+                            gridDelegate:
+                                const SliverGridDelegateWithFixedCrossAxisCount(
+                                  crossAxisCount: 2,
+                                  childAspectRatio: 0.75,
+                                  crossAxisSpacing: 10,
+                                  mainAxisSpacing: 10,
+                                ),
+                            itemCount: filteredProducts.length,
+                            itemBuilder: (context, index) {
+                              final product = filteredProducts[index];
+                              return ProductCard(
+                                product: product,
+                                onTap: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder:
+                                          (context) =>
+                                              ProductDetails(product: product),
+                                    ),
+                                  );
+                                },
+                              );
+                            },
+                          ),
                 ),
               ],
             ),
-            const SizedBox(height: 8),
-            Expanded(
-              child:
-              // filteredProducts.isEmpty
-              // ?
-              const Center(
-                child: Text(
-                  'No products found.',
-                  style: TextStyle(fontSize: 16, color: Colors.grey),
-                ),
-              ),
-              // : GridView.builder(
-              //   gridDelegate:
-              //       const SliverGridDelegateWithFixedCrossAxisCount(
-              //         crossAxisCount: 2,
-              //         childAspectRatio: 0.75,
-              //         crossAxisSpacing: 10,
-              //         mainAxisSpacing: 10,
-              //       ),
-              //   itemCount: filteredProducts.length,
-              //   itemBuilder: (context, index) {
-              //     return ProductCard(
-              //       product: filteredProducts[index],
-              //       onTap: () {
-              //         Navigator.push(
-              //           context,
-              //           MaterialPageRoute(
-              //             builder:
-              //                 (context) => ProductDetails(
-              //                   product: filteredProducts[index],
-              //                 ),
-              //           ),
-              //         );
-              //       },
-              //     );
-              //   },
-              // ),
-            ),
-          ],
-        ),
+          );
+        },
       ),
     );
   }

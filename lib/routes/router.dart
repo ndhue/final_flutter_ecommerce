@@ -27,6 +27,14 @@ Route<dynamic> generateRoute(RouteSettings settings) {
     case ordersScreenRoute:
       page = const OrdersScreen();
       break;
+    case orderDetailsScreenRoute:
+      if (settings.arguments is Order) {
+        final order = settings.arguments as Order;
+        page = OrderDetailScreen(order: order);
+      } else {
+        page = const EntryPoint();
+      }
+      break;
     case cartScreenRoute:
       page = const CartScreen();
       break;
@@ -54,8 +62,6 @@ Route<dynamic> generateRoute(RouteSettings settings) {
       break;
     case faqsScreenRoute:
       page = FAQs();
-    case orderHistoryRouteScreen:
-      page = OrdersHistoryScreen();
     case productSearchRoute:
       page = ProductSearch();
       break;

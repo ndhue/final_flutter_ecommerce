@@ -1,7 +1,6 @@
 import 'package:final_ecommerce/models/models_export.dart';
 import 'package:final_ecommerce/providers/providers_export.dart';
 import 'package:final_ecommerce/routes/route_constants.dart';
-import 'package:final_ecommerce/screens/cart/widgets/delivery_info.dart';
 import 'package:final_ecommerce/utils/constants.dart';
 import 'package:final_ecommerce/utils/format.dart';
 import 'package:final_ecommerce/widgets/widgets_export.dart';

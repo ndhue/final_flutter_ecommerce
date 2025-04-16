@@ -1,6 +1,6 @@
 import 'package:final_ecommerce/models/models_export.dart';
 import 'package:final_ecommerce/providers/coupon_provider.dart';
-import 'package:final_ecommerce/screens/cart/widgets/delivery_info.dart';
+import 'package:final_ecommerce/screens/cart/components/delivery_info.dart';
 import 'package:final_ecommerce/utils/constants.dart';
 import 'package:final_ecommerce/utils/format.dart';
 import 'package:flutter/material.dart';
@@ -16,7 +16,7 @@ class PaymentScreen extends StatefulWidget {
 }
 
 class _PaymentScreenState extends State<PaymentScreen> {
-  TextEditingController _discountController = TextEditingController();
+  final TextEditingController _discountController = TextEditingController();
   final double _shippingFee = 15000;
   @override
   void initState() {

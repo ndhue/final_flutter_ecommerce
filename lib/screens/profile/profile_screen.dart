@@ -1,8 +1,10 @@
+import 'package:final_ecommerce/models/models_export.dart';
 import 'package:final_ecommerce/providers/providers_export.dart';
 import 'package:final_ecommerce/routes/route_constants.dart';
 import 'package:final_ecommerce/services/auth_service.dart';
 import 'package:final_ecommerce/utils/constants.dart';
 import 'package:final_ecommerce/utils/dialog.dart';
+import 'package:final_ecommerce/widgets/address_picker_registration.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -16,6 +18,26 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
+  bool _isEditingName = false;
+  late TextEditingController _nameController;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final userProvider = context.read<UserProvider>();
+      _nameController = TextEditingController(
+        text: userProvider.user?.fullName ?? '',
+      );
+    });
+  }
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     final userProvider = context.watch<UserProvider>();
@@ -45,26 +67,53 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         ),
                         radius: 30,
                       ),
-                      title: Text(
-                        user.fullName,
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
+                      title:
+                          _isEditingName
+                              ? TextField(
+                                controller: _nameController,
+                                autofocus: true,
+                                decoration: InputDecoration(
+                                  hintText: "Enter your name",
+                                  border: InputBorder.none,
+                                ),
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              )
+                              : Text(
+                                user.fullName,
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
                       subtitle: Text(user.email),
-                      trailing: Icon(Icons.edit, color: iconColor),
+                      trailing: IconButton(
+                        icon: Icon(
+                          _isEditingName ? Icons.check : Icons.edit,
+                          color: iconColor,
+                        ),
+                        onPressed: () {
+                          if (_isEditingName) {
+                            userProvider.updateFullName(_nameController.text);
+                          }
+                          setState(() {
+                            _isEditingName = !_isEditingName;
+                          });
+                        },
+                      ),
                     ),
                   ),
                   SizedBox(height: 20),
 
                   _buildSectionTitle("Personal Information"),
-
-                  _buildMenuItem(
+                  _buildMenuItemCustom(
                     Icons.local_shipping,
                     "Shipping Address",
-                    context,
-                    shippingAddressScreenRoute,
+                    () {
+                      _showAddressPicker(context);
+                    },
                   ),
                   _buildMenuItem(
                     Icons.payment,
@@ -72,13 +121,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     context,
                     null,
                   ),
-                  _buildMenuItem(
-                    Icons.history,
-                    "Order History",
-                    context,
-                    orderHistoryRouteScreen,
-                  ),
-
                   SizedBox(height: 20),
                   _buildSectionTitle("Support & Information"),
                   _buildMenuItem(
@@ -173,6 +215,36 @@ class _ProfileScreenState extends State<ProfileScreen> {
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
       builder: (context) => ChangePasswordDialog(),
+    );
+  }
+
+  void _showAddressPicker(BuildContext context) {
+    final userProvider = context.read<UserProvider>();
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder:
+          (context) => AddressPickerRegistration(
+            onAddressSelected: (city, district, ward, detailedAddress) {
+              userProvider.updateAddress(
+                city: city,
+                district: district,
+                ward: ward,
+                shippingAddress: detailedAddress,
+              );
+            },
+            defaultAddress:
+                userProvider.user?.fullShippingAddress != null
+                    ? AddressInfo(
+                      city: userProvider.user!.city,
+                      district: userProvider.user!.district,
+                      ward: userProvider.user!.ward,
+                      detailedAddress: userProvider.user!.shippingAddress,
+                      receiverName: userProvider.user!.fullName,
+                    )
+                    : null,
+          ),
     );
   }
 }

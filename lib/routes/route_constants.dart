@@ -3,6 +3,7 @@ const String entryPointScreenRoute = "/";
 const String categoriesScreenRoute = "categories";
 const String profileScreenRoute = "profile";
 const String ordersScreenRoute = "orders";
+const String orderDetailsScreenRoute = "order_details";
 const String cartScreenRoute = "cart";
 const String authScreenRoute = "auth";
 const String shippingAddressScreenRoute = "shipping_address";

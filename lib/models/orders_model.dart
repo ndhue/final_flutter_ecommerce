@@ -1,19 +1,17 @@
 class Order {
   final String id;
   final DateTime createdAt;
-  final List<OrderStatus> orderStatus;
   final List<OrderDetail> orderDetails;
   final int loyaltyPointsEarned;
   final int loyaltyPointsUsed;
   final List<StatusHistory> statusHistory;
   final double total;
   final OrderUserDetails user;
-  final String? coupon;
+  final OrderCouponDetails? coupon;
 
   Order({
     required this.id,
     required this.createdAt,
-    required this.orderStatus,
     required this.orderDetails,
     required this.loyaltyPointsEarned,
     required this.loyaltyPointsUsed,
@@ -26,10 +24,6 @@ class Order {
   factory Order.fromJson(Map<String, dynamic> json) => Order(
     id: json['id'],
     createdAt: DateTime.parse(json['createdAt']),
-    orderStatus:
-        (json['orderStatus'] as List)
-            .map((e) => OrderStatus.fromJson(e))
-            .toList(),
     orderDetails:
         (json['orderDetails'] as List)
             .map((e) => OrderDetail.fromJson(e))
@@ -48,7 +42,6 @@ class Order {
   Map<String, dynamic> toJson() => {
     'id': id,
     'createdAt': createdAt.toIso8601String(),
-    'orderStatus': orderStatus.map((e) => e.toJson()).toList(),
     'orderDetails': orderDetails.map((e) => e.toJson()).toList(),
     'loyaltyPointsEarned': loyaltyPointsEarned,
     'loyaltyPointsUsed': loyaltyPointsUsed,
@@ -67,6 +60,7 @@ class OrderDetail {
   final String colorName;
   final int quantity;
   final double price;
+  final double? discount;
 
   OrderDetail({
     required this.productId,
@@ -76,6 +70,7 @@ class OrderDetail {
     required this.colorName,
     required this.quantity,
     required this.price,
+    this.discount = 0.0,
   });
 
   factory OrderDetail.fromJson(Map<String, dynamic> json) => OrderDetail(
@@ -86,6 +81,7 @@ class OrderDetail {
     quantity: json['quantity'],
     price: json['price'],
     colorName: '${json['colorName']}',
+    discount: json['discount'] != null ? json['discount'].toDouble() : 0.0,
   );
 
   Map<String, dynamic> toJson() => {
@@ -96,21 +92,7 @@ class OrderDetail {
     'colorName': colorName,
     'quantity': quantity,
     'price': price,
-  };
-}
-
-class OrderStatus {
-  final String status;
-  final DateTime time;
-
-  OrderStatus({required this.status, required this.time});
-
-  factory OrderStatus.fromJson(Map<String, dynamic> json) =>
-      OrderStatus(status: json['status'], time: DateTime.parse(json['time']));
-
-  Map<String, dynamic> toJson() => {
-    'status': status,
-    'time': time.toIso8601String(),
+    'discount': discount,
   };
 }
 
@@ -156,4 +138,16 @@ class OrderUserDetails {
     'email': email,
     'shippingAddress': shippingAddress,
   };
+}
+
+class OrderCouponDetails {
+  final String code;
+  final double value;
+
+  OrderCouponDetails({required this.code, required this.value});
+
+  factory OrderCouponDetails.fromMap(Map<String, dynamic> json) =>
+      OrderCouponDetails(code: json['code'], value: json['value']);
+
+  Map<String, dynamic> toMap() => {'code': code, 'value': value};
 }

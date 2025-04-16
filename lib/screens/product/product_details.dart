@@ -9,6 +9,8 @@ import 'package:flutter_rating_bar/flutter_rating_bar.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:provider/provider.dart';
 
+import 'components/product_review_section.dart';
+
 class ProductDetails extends StatefulWidget {
   const ProductDetails({super.key, required this.product});
   final NewProduct product;
@@ -19,6 +21,7 @@ class ProductDetails extends StatefulWidget {
 
 class _ProductDetailsState extends State<ProductDetails> {
   late VariantProvider _variantProvider;
+  late ProductProvider _productProvider;
   late NewProduct productSelected;
   late NewVariant? variantSelected;
   int _currentImageIndex = 0;
@@ -26,6 +29,8 @@ class _ProductDetailsState extends State<ProductDetails> {
   double _rating = 0;
   int _totalReview = 0;
   int _visibleReviews = 5;
+  List<ProductReview> _reviews = [];
+  bool _isLoadingReviews = true;
 
   @override
   void initState() {
@@ -37,7 +42,9 @@ class _ProductDetailsState extends State<ProductDetails> {
     variantSelected = null;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _variantProvider = Provider.of<VariantProvider>(context, listen: false);
+      _productProvider = Provider.of<ProductProvider>(context, listen: false);
       _fetchVariantByColor(productSelected.availableColors[0]);
+      _fetchProductReviews();
     });
   }
 
@@ -48,6 +55,28 @@ class _ProductDetailsState extends State<ProductDetails> {
     );
     setState(() {
       variantSelected = _variantProvider.selectedVariant;
+    });
+  }
+
+  Future<void> _fetchProductReviews() async {
+    final reviews = await _productProvider.fetchProductReviews(
+      productId: productSelected.id,
+      isInitial: true,
+    );
+
+    // Reload the product details
+    await _productProvider.reloadProduct(productSelected.id);
+    final updatedProduct = _productProvider.products.firstWhere(
+      (product) => product.id == productSelected.id,
+      orElse: () => productSelected,
+    );
+
+    setState(() {
+      productSelected = updatedProduct;
+      _rating = productSelected.rating;
+      _totalReview = productSelected.totalReviews;
+      _reviews = reviews;
+      _isLoadingReviews = false;
     });
   }
 
@@ -112,12 +141,6 @@ class _ProductDetailsState extends State<ProductDetails> {
         productSelected.availableColors
             .map((colorHex) => hexToColor(colorHex))
             .toSet();
-
-    final List<String> reviewImages = [
-      'assets/images/order-1.jpg',
-      'assets/images/order-2.jpg',
-      'assets/images/order-3.jpg',
-    ];
 
     final hasDiscount = productSelected.discount > 0;
     final discountPercent = (productSelected.discount * 100).round();
@@ -307,21 +330,19 @@ class _ProductDetailsState extends State<ProductDetails> {
                         allowHalfRating: true,
                         itemCount: 5,
                         itemSize: 24,
+                        ignoreGestures: true,
+
                         itemPadding: const EdgeInsets.symmetric(
                           horizontal: 2.0,
                         ),
                         itemBuilder:
                             (context, _) =>
                                 const Icon(Icons.star, color: Colors.amber),
-                        onRatingUpdate: (rating) {
-                          setState(() {
-                            _rating = rating;
-                          });
-                        },
+                        onRatingUpdate: (rating) {},
                       ),
                       const SizedBox(width: 8),
                       Text(
-                        '$_rating/5',
+                        '$_rating/5.0',
                         style: const TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.bold,
@@ -335,70 +356,10 @@ class _ProductDetailsState extends State<ProductDetails> {
                     style: const TextStyle(fontSize: 12, color: Colors.grey),
                   ),
                   const SizedBox(height: 8),
-                  ListView.builder(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    itemCount:
-                        _visibleReviews > _totalReview
-                            ? _totalReview
-                            : _visibleReviews,
-                    itemBuilder: (context, index) {
-                      return Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 8.0),
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            CircleAvatar(
-                              backgroundColor: Colors.grey[300],
-                              child: const Icon(
-                                Icons.person,
-                                color: Colors.white,
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    'Người dùng $index',
-                                    style: const TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 4),
-                                  const Text(
-                                    'Sản phẩm tuyệt vời!',
-                                    style: TextStyle(color: Colors.grey),
-                                  ),
-                                  const SizedBox(height: 8),
-                                  if (reviewImages.length > index &&
-                                      reviewImages[index].isNotEmpty)
-                                    ClipRRect(
-                                      borderRadius: BorderRadius.circular(8),
-                                      child: Image.asset(
-                                        reviewImages[index],
-                                        height: 100,
-                                        width: 100,
-                                        fit: BoxFit.cover,
-                                      ),
-                                    ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                      );
-                    },
+                  ProductReviewSection(
+                    productId: productSelected.id,
+                    reviews: _isLoadingReviews ? [] : _reviews,
                   ),
-                  if (_visibleReviews < _totalReview)
-                    TextButton(
-                      onPressed: _showMoreReviews,
-                      child: const Text(
-                        'Read more',
-                        style: TextStyle(color: primaryColor),
-                      ),
-                    ),
                 ],
               ),
             ),

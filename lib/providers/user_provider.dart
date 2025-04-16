@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:fluttertoast/fluttertoast.dart';
 
 import '../models/user_model.dart';
 
@@ -39,6 +40,65 @@ class UserProvider with ChangeNotifier {
     } finally {
       _isLoading = false;
       notifyListeners();
+    }
+  }
+
+  // Update user's address in Firestore
+  Future<bool> updateAddress({
+    required String city,
+    required String district,
+    required String ward,
+    required String shippingAddress,
+  }) async {
+    if (_user == null) return false;
+
+    try {
+      await _firestore.collection('users').doc(_user!.id).update({
+        'city': city,
+        'district': district,
+        'ward': ward,
+        'shippingAddress': shippingAddress,
+      });
+
+      // Update the local user model
+      _user = _user!.copyWith(
+        city: city,
+        district: district,
+        ward: ward,
+        shippingAddress: shippingAddress,
+      );
+      notifyListeners();
+
+      // Show success toast
+      Fluttertoast.showToast(msg: "Address updated successfully");
+      return true;
+    } catch (e) {
+      // Show failure toast
+      Fluttertoast.showToast(msg: "Failed to update address");
+      return false;
+    }
+  }
+
+  // Update user's full name in Firestore
+  Future<bool> updateFullName(String fullName) async {
+    if (_user == null) return false;
+
+    try {
+      await _firestore.collection('users').doc(_user!.id).update({
+        'fullName': fullName,
+      });
+
+      // Update the local user model
+      _user = _user!.copyWith(fullName: fullName);
+      notifyListeners();
+
+      // Show success toast
+      Fluttertoast.showToast(msg: "Name updated successfully");
+      return true;
+    } catch (e) {
+      // Show failure toast
+      Fluttertoast.showToast(msg: "Failed to update name");
+      return false;
     }
   }
 

@@ -5,7 +5,7 @@ class PravicyAndPolicy extends StatefulWidget {
   const PravicyAndPolicy({super.key});
 
   @override
-  _PravicyAndPolicyState createState() => _PravicyAndPolicyState();
+  State<PravicyAndPolicy> createState() => _PravicyAndPolicyState();
 }
 
 class _PravicyAndPolicyState extends State<PravicyAndPolicy> {
@@ -25,7 +25,7 @@ class _PravicyAndPolicyState extends State<PravicyAndPolicy> {
             children: [
               Center(
                 child: Image.asset(
-                  'images/pravicy_policy.jpg', // Sửa tên file ảnh
+                  'assets/images/pravicy_policy.jpg',
                   width: double.infinity,
                   height: 200,
                   fit: BoxFit.contain,

@@ -248,16 +248,6 @@ List<Order> mockOrders = [
   Order(
     id: 'order_001',
     createdAt: DateTime.now().subtract(Duration(days: 2)),
-    orderStatus: [
-      OrderStatus(
-        status: 'Order Received',
-        time: DateTime.now().subtract(Duration(days: 2)),
-      ),
-      OrderStatus(
-        status: 'Delivered',
-        time: DateTime.now().subtract(Duration(days: 1)),
-      ),
-    ],
     orderDetails: [
       OrderDetail(
         productId: 'dell_xps13plus_1tb_32gb',
@@ -266,19 +256,67 @@ List<Order> mockOrders = [
         variantId: 'dell_xps13plus_black',
         colorName: "Matte Black",
         quantity: 1,
-        price: 2999000,
+        price: 59999000,
+      ),
+      OrderDetail(
+        productId: 'dell_xps13plus_1tb_32gb',
+        productName: 'Dell XPS 13 Plus',
+        imageUrl: 'https://picsum.photos/300/200?random=111',
+        variantId: 'dell_xps13plus_black',
+        colorName: "Matte Black",
+        quantity: 1,
+        price: 3999000,
+        discount: 0.2,
+      ),
+      OrderDetail(
+        productId: 'dell_xps13plus_1tb_32gb',
+        productName: 'Dell XPS 13 Plus',
+        imageUrl: 'https://picsum.photos/300/200?random=111',
+        variantId: 'dell_xps13plus_black',
+        colorName: "Matte Black",
+        quantity: 1,
+        price: 59999000,
+      ),
+      OrderDetail(
+        productId: 'dell_xps13plus_1tb_32gb',
+        productName: 'Dell XPS 13 Plus',
+        imageUrl: 'https://picsum.photos/300/200?random=111',
+        variantId: 'dell_xps13plus_black',
+        colorName: "Matte Black",
+        quantity: 1,
+        price: 3999000,
+        discount: 0.2,
+      ),
+           OrderDetail(
+        productId: 'dell_xps13plus_1tb_32gb',
+        productName: 'Dell XPS 13 Plus',
+        imageUrl: 'https://picsum.photos/300/200?random=111',
+        variantId: 'dell_xps13plus_black',
+        colorName: "Matte Black",
+        quantity: 1,
+        price: 59999000,
+      ),
+      OrderDetail(
+        productId: 'dell_xps13plus_1tb_32gb',
+        productName: 'Dell XPS 13 Plus',
+        imageUrl: 'https://picsum.photos/300/200?random=111',
+        variantId: 'dell_xps13plus_black',
+        colorName: "Matte Black",
+        quantity: 1,
+        price: 3999000,
+        discount: 0.2,
       ),
     ],
     loyaltyPointsEarned: 30,
     loyaltyPointsUsed: 0,
     statusHistory: [
       StatusHistory(
-        status: 'Order Received',
-        time: DateTime.now().subtract(Duration(days: 2)),
-      ),
-      StatusHistory(
         status: 'Delivered',
         time: DateTime.now().subtract(Duration(days: 1)),
+      ),
+      StatusHistory(
+        status: 'Pending',
+        time: DateTime.now().subtract(Duration(days: 2)),
       ),
     ],
     total: 2999000,
@@ -288,6 +326,6 @@ List<Order> mockOrders = [
       email: 'ell@email.com',
       shippingAddress: '123 Main St, City, Country',
     ),
-    coupon: 'SALE2025',
+    coupon: OrderCouponDetails(code: 'ABCDEF', value: 150000),
   ),
 ];

@@ -117,3 +117,44 @@ class NewProduct {
     };
   }
 }
+
+class ProductReview {
+  final String username;
+  final double? rating;
+  final String comment;
+  final Timestamp createdAt;
+  final DocumentSnapshot? docSnapshot; // Added docSnapshot field
+
+  ProductReview({
+    required this.username,
+    this.rating,
+    required this.comment,
+    required this.createdAt,
+    this.docSnapshot, // Initialize docSnapshot
+  });
+
+  factory ProductReview.fromMap(
+    Map<String, dynamic> json, {
+    DocumentSnapshot? snapshot,
+  }) {
+    return ProductReview(
+      username: json['username'],
+      rating: json['rating']?.toDouble(),
+      comment: json['comment'],
+      createdAt:
+          json['createdAt'] is Timestamp
+              ? json['createdAt'] as Timestamp
+              : Timestamp.fromDate(DateTime.parse(json['createdAt'])),
+      docSnapshot: snapshot, // Assign snapshot
+    );
+  }
+
+  Map<String, dynamic> toMap() {
+    return {
+      'username': username,
+      if (rating != null) 'rating': rating,
+      'comment': comment,
+      'createdAt': createdAt.toDate().toIso8601String(),
+    };
+  }
+}

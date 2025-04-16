@@ -1,6 +1,7 @@
 import 'package:final_ecommerce/providers/providers_export.dart';
 import 'package:final_ecommerce/utils/constants.dart';
 import 'package:flutter/material.dart';
+import 'package:fluttertoast/fluttertoast.dart';
 import 'package:provider/provider.dart';
 
 class ChangePasswordDialog extends StatefulWidget {
@@ -32,17 +33,12 @@ class _ChangePasswordDialogState extends State<ChangePasswordDialog> {
     );
 
     setState(() => _isLoading = false);
-    if (!mounted) return;
 
+    // Show a toast message based on the result
     if (result == "success") {
-      Navigator.pop(context);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Password changed successfully!")),
-      );
+      Fluttertoast.showToast(msg: "Password changed successfully");
     } else {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(result)));
+      Fluttertoast.showToast(msg: result);
     }
   }
 

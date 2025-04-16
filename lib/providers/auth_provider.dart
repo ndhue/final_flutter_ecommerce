@@ -136,7 +136,9 @@ class AuthProvider extends ChangeNotifier {
   Future<String> changePassword(String oldPassword, String newPassword) async {
     try {
       User? user = _auth.currentUser;
-      if (user == null) return "User not found";
+      if (user == null) {
+        return "User not found";
+      }
 
       String email = user.email!;
 

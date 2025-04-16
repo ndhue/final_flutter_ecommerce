@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:final_ecommerce/models/models_export.dart';
 import 'package:flutter/material.dart';
+import 'package:fluttertoast/fluttertoast.dart';
 
 import '../repositories/product_repository.dart';
 
@@ -15,6 +16,9 @@ class ProductProvider with ChangeNotifier {
   List<NewProduct> _newProducts = [];
   List<NewProduct> _promotionalProducts = [];
   List<NewProduct> _bestSellers = [];
+
+  final Map<String, List<ProductReview>> _productReviewsCache = {};
+  final Map<String, DocumentSnapshot?> _lastReviewDocuments = {};
 
   List<NewProduct> get products => _products;
   bool get hasMore => _hasMore;
@@ -56,12 +60,10 @@ class ProductProvider with ChangeNotifier {
         maxPrice: maxPrice,
       );
 
-      // Nếu số lượng sản phẩm trả về ít hơn limit => hết dữ liệu
       if (result.length < 10) {
         _hasMore = false;
       }
 
-      // Nếu có sản phẩm trả về thì cập nhật lastDocument
       if (result.isNotEmpty) {
         _lastDocument = result.last.docSnapshot;
         _products.addAll(result);
@@ -158,6 +160,125 @@ class ProductProvider with ChangeNotifier {
     } finally {
       _isLoading = false;
       notifyListeners();
+    }
+  }
+
+  Future<void> fetchProductsByKeyword({
+    required String keyword,
+    String orderBy = 'name',
+    bool descending = false,
+    bool isInitial = false,
+  }) async {
+    if (_isLoading) return;
+
+    _isLoading = true;
+    notifyListeners();
+
+    try {
+      if (isInitial) {
+        _products.clear();
+        _lastDocument = null;
+        _hasMore = true;
+      }
+
+      final result = await _repository.fetchProductsByKeyword(
+        keyword: keyword,
+        lastDocument: _lastDocument,
+        limit: 10,
+        orderBy: orderBy,
+        descending: descending,
+      );
+
+      if (result.length < 10) {
+        _hasMore = false;
+      }
+
+      if (result.isNotEmpty) {
+        _lastDocument = result.last.docSnapshot;
+        _products.addAll(result);
+      }
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  Future<void> addReview({
+    required String productId,
+    required String username,
+    String? comment,
+    double? rating,
+  }) async {
+    try {
+      await _repository.addProductReview(
+        productId: productId,
+        username: username,
+        comment: comment,
+        rating: rating,
+      );
+      Fluttertoast.showToast(
+        msg: "Review added successfully!",
+        toastLength: Toast.LENGTH_SHORT,
+        gravity: ToastGravity.BOTTOM,
+        backgroundColor: Colors.green,
+        textColor: Colors.white,
+      );
+      notifyListeners();
+    } catch (e) {
+      Fluttertoast.showToast(
+        msg: "Error adding review: $e",
+        toastLength: Toast.LENGTH_SHORT,
+        gravity: ToastGravity.BOTTOM,
+        backgroundColor: Colors.red,
+        textColor: Colors.white,
+      );
+      debugPrint('Error adding review: $e');
+    }
+  }
+
+  Future<List<ProductReview>> fetchProductReviews({
+    required String productId,
+    bool isInitial = false,
+  }) async {
+    if (_isLoading) return [];
+
+    _isLoading = true;
+    notifyListeners();
+
+    try {
+      if (isInitial) {
+        _productReviewsCache[productId] = [];
+        _lastReviewDocuments[productId] = null;
+      }
+
+      final result = await _repository.fetchProductReviews(
+        productId: productId,
+        lastDocument: _lastReviewDocuments[productId],
+        limit: 10,
+      );
+
+      if (result.isNotEmpty) {
+        _lastReviewDocuments[productId] = result.last.docSnapshot;
+        _productReviewsCache[productId]?.addAll(result);
+      }
+
+      return _productReviewsCache[productId] ?? [];
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  Future<void> reloadProduct(String productId) async {
+    try {
+      final updatedProduct = await _repository.fetchProductById(productId);
+      final index = _products.indexWhere((product) => product.id == productId);
+      if (index != -1) {
+        _products[index] = updatedProduct;
+        notifyListeners();
+      }
+    } catch (e) {
+      debugPrint('Error reloading product: $e');
     }
   }
 }
