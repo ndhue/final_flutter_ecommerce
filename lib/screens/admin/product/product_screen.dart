@@ -1,7 +1,10 @@
 import 'package:final_ecommerce/models/product_model.dart';
+import 'package:final_ecommerce/providers/product_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'package:provider/provider.dart';
 import 'package:final_ecommerce/data/mock_data.dart';
+import 'package:final_ecommerce/models/variant_model.dart';
 
 class AdminProductScreen extends StatefulWidget {
   const AdminProductScreen({super.key});
@@ -13,44 +16,49 @@ class AdminProductScreen extends StatefulWidget {
 class _AdminProductScreenState extends State<AdminProductScreen> {
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
+  bool _showEditForm = false;
+  Product? _editingProduct;
 
-  int get totalProducts {
-    int total = 0;
-    for (var product in products) {
-      for (var variant in product.variants) {
-        if (variant.inventory > 0) {
-          total = total + variant.inventory + product.salesCount;
-        }
-      }
-    }
-    return total;
+  // Form controllers
+  final _formKey = GlobalKey<FormState>();
+  final _nameController = TextEditingController();
+  final _descriptionController = TextEditingController();
+  final _imageUrlController = TextEditingController();
+  final _costPriceController = TextEditingController();
+  final _priceController = TextEditingController();
+  final _variants = <Variant>[]; // List of variants for the product
+  bool _activated = true;
+
+  @override
+  void initState() {
+    super.initState();
+    final productProvider = context.read<ProductProvider>();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      productProvider.fetchProducts();
+    });
   }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    _nameController.dispose();
+    _descriptionController.dispose();
+    _imageUrlController.dispose();
+    _costPriceController.dispose();
+    _priceController.dispose();
+    super.dispose();
+  }
+
+  // Statistics getters
+  int get totalProducts => products.length;
 
   int get inStockProducts {
     int total = 0;
     for (var product in products) {
       for (var variant in product.variants) {
         if (variant.inventory > 0) {
-          total += variant.inventory;
+          total += 1;
         }
-      }
-    }
-    return total;
-  }
-
-  int get activeProdcucts {
-    int total = 0;
-    for (var product in products) {
-      if (product.activated) total++;
-    }
-    return total;
-  }
-
-  int get totalInventory {
-    int total = 0;
-    for (var product in products) {
-      for (var variant in product.variants) {
-        total += variant.inventory;
       }
     }
     return total;
@@ -58,10 +66,85 @@ class _AdminProductScreenState extends State<AdminProductScreen> {
 
   int get activeProducts => products.where((p) => p.activated).length;
 
-  @override
-  void dispose() {
-    _searchController.dispose();
-    super.dispose();
+  void _editProduct(Product product) {
+    setState(() {
+      _editingProduct = product;
+      _nameController.text = product.name;
+      _descriptionController.text = product.description;
+      _imageUrlController.text =
+          product.images.isNotEmpty ? product.images[0] : '';
+      _activated = product.activated;
+      _showEditForm = true;
+      _costPriceController.text = product.variants.first.costPrice.toString();
+      _priceController.text = product.variants.first.sellingPrice.toString();
+    });
+  }
+
+  void _deleteProduct(Product product) {
+    showDialog(
+      context: context,
+      builder:
+          (context) => AlertDialog(
+            title: const Text('Confirm Delete'),
+            content: Text('Are you sure you want to delete ${product.name}?'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Cancel'),
+              ),
+              TextButton(
+                onPressed: () {
+                  setState(() {
+                    products.remove(product);
+                  });
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('${product.name} deleted successfully'),
+                    ),
+                  );
+                },
+                child: const Text(
+                  'Delete',
+                  style: TextStyle(color: Colors.red),
+                ),
+              ),
+            ],
+          ),
+    );
+  }
+
+  void _submitEdit() {
+    if (_formKey.currentState!.validate() && _editingProduct != null) {
+      setState(() {
+        _editingProduct!.name = _nameController.text;
+        _editingProduct!.description = _descriptionController.text;
+        if (_imageUrlController.text.isNotEmpty) {
+          _editingProduct!.images = [_imageUrlController.text];
+        }
+        _editingProduct!.activated = _activated;
+
+        _showEditForm = false;
+        _editingProduct = null;
+        _nameController.clear();
+        _descriptionController.clear();
+        _imageUrlController.clear();
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Product updated successfully!')),
+      );
+    }
+  }
+
+  void _cancelEdit() {
+    setState(() {
+      _showEditForm = false;
+      _editingProduct = null;
+      _nameController.clear();
+      _descriptionController.clear();
+      _imageUrlController.clear();
+    });
   }
 
   @override
@@ -108,57 +191,45 @@ class _AdminProductScreenState extends State<AdminProductScreen> {
                     },
                   ),
                 ),
-                const SizedBox(width: 12),
-                ElevatedButton.icon(
-                  icon: const Icon(Icons.add),
-                  label: const Text('Add Product'),
-                  onPressed: () {
-                    // Add product functionality
-                  },
-                  style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(
-                      vertical: 14,
-                      horizontal: 16,
-                    ),
-                  ),
-                ),
               ],
             ),
           ),
+          if (_showEditForm) _buildEditForm(),
           Expanded(
             child: SingleChildScrollView(
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: Column(
                 children: [
-                  Row(
-                    children: [
-                      _buildStatCard(
-                        total: totalProducts,
-                        title: 'Total Products',
-                        value: totalProducts,
-                        icon: Icons.inventory,
-                        color: Colors.blueAccent,
-                      ),
-                      const SizedBox(width: 12),
-                      _buildStatCard(
-                        total: totalProducts,
-                        title: 'In Stock',
-                        value: inStockProducts,
-
-                        icon: Icons.check_circle,
-                        color: Colors.green,
-                      ),
-                      const SizedBox(width: 12),
-                      _buildStatCard(
-                        total: totalProducts,
-                        title: 'Active Products',
-                        value: activeProdcucts,
-                        icon: Icons.cancel,
-                        color: Colors.orange,
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 24),
+                  if (!_showEditForm) ...[
+                    Row(
+                      children: [
+                        _buildStatCard(
+                          total: totalProducts,
+                          title: 'Total Products',
+                          value: totalProducts,
+                          icon: Icons.inventory,
+                          color: Colors.blueAccent,
+                        ),
+                        const SizedBox(width: 12),
+                        _buildStatCard(
+                          total: totalProducts,
+                          title: 'In Stock',
+                          value: inStockProducts,
+                          icon: Icons.check_circle,
+                          color: Colors.green,
+                        ),
+                        const SizedBox(width: 12),
+                        _buildStatCard(
+                          total: totalProducts,
+                          title: 'Active Products',
+                          value: activeProducts,
+                          icon: Icons.cancel,
+                          color: Colors.orange,
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 24),
+                  ],
                   Card(
                     color: Colors.white,
                     elevation: 2,
@@ -246,6 +317,14 @@ class _AdminProductScreenState extends State<AdminProductScreen> {
                                           ),
                                         ),
                                       ),
+                                      DataColumn(
+                                        label: Text(
+                                          'ACTIONS',
+                                          style: TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                      ),
                                     ],
                                     rows:
                                         filteredProducts.map((product) {
@@ -270,7 +349,11 @@ class _AdminProductScreenState extends State<AdminProductScreen> {
                                                             4,
                                                           ),
                                                       child: Image.network(
-                                                        product.images[0],
+                                                        product
+                                                                .images
+                                                                .isNotEmpty
+                                                            ? product.images[0]
+                                                            : 'https://via.placeholder.com/40',
                                                         width: 40,
                                                         height: 40,
                                                         fit: BoxFit.cover,
@@ -414,6 +497,34 @@ class _AdminProductScreenState extends State<AdminProductScreen> {
                                                   activeColor: Colors.green,
                                                 ),
                                               ),
+                                              DataCell(
+                                                Row(
+                                                  children: [
+                                                    IconButton(
+                                                      icon: const Icon(
+                                                        Icons.edit,
+                                                        size: 20,
+                                                      ),
+                                                      onPressed:
+                                                          () => _editProduct(
+                                                            product,
+                                                          ),
+                                                      color: Colors.blue,
+                                                    ),
+                                                    IconButton(
+                                                      icon: const Icon(
+                                                        Icons.delete,
+                                                        size: 20,
+                                                      ),
+                                                      onPressed:
+                                                          () => _deleteProduct(
+                                                            product,
+                                                          ),
+                                                      color: Colors.red,
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
                                             ],
                                           );
                                         }).toList(),
@@ -435,6 +546,175 @@ class _AdminProductScreenState extends State<AdminProductScreen> {
     );
   }
 
+ Widget _buildEditForm() {
+  return Card(
+    margin: const EdgeInsets.all(16),
+    elevation: 3,
+    child :SingleChildScrollView(
+       child: Padding(
+      padding: const EdgeInsets.all(16.0),
+      child: Form(
+        key: _formKey,
+        child: SingleChildScrollView( // Nếu danh sách variant dài
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Edit Product',
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: _nameController,
+                decoration: const InputDecoration(
+                  labelText: 'Product Name',
+                  border: OutlineInputBorder(),
+                ),
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Please enter product name';
+                  }
+                  return null;
+                },
+              ),
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: _descriptionController,
+                decoration: const InputDecoration(
+                  labelText: 'Description',
+                  border: OutlineInputBorder(),
+                ),
+                maxLines: 3,
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Please enter description';
+                  }
+                  return null;
+                },
+              ),
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: _costPriceController,
+                decoration: const InputDecoration(
+                  labelText: 'Cost Price',
+                  border: OutlineInputBorder(),
+                ),
+                keyboardType: TextInputType.number,
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Please enter cost price';
+                  }
+                  return null;
+                },
+              ),
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: _priceController,
+                decoration: const InputDecoration(
+                  labelText: 'Selling Price',
+                  border: OutlineInputBorder(),
+                ),
+                keyboardType: TextInputType.number,
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Please enter selling price';
+                  }
+                  return null;
+                },
+              ),
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: _imageUrlController,
+                decoration: const InputDecoration(
+                  labelText: 'Image URL',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Switch(
+                    value: _activated,
+                    onChanged: (value) {
+                      setState(() {
+                        _activated = value;
+                      });
+                    },
+                  ),
+                  const Text('Active'),
+                ],
+              ),
+              const SizedBox(height: 16),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  TextButton(
+                    onPressed: _cancelEdit,
+                    child: const Text('Cancel'),
+                  ),
+                  const SizedBox(width: 16),
+                  ElevatedButton(
+                    onPressed: _submitEdit,
+                    child: const Text('Save Changes'),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 32),
+              const Text(
+                'Variants',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 8),
+              Column(
+                children: _variants.map((variant) {
+                  return Card(
+                    margin: const EdgeInsets.symmetric(vertical: 6),
+                    child: ListTile(
+                      title: Text(variant.name),
+                      subtitle: Text(
+                        "Giá: ${variant.currentPrice} | Kho: ${variant.inventory}",
+                      ),
+                      trailing: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          IconButton(
+                            icon: const Icon(Icons.edit, color: Colors.blue),
+                            onPressed: () {
+                             // _editVariant(variant); // xử lý chỉnh sửa
+                            },
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.delete, color: Colors.red),
+                            onPressed: () {
+                              //_deleteVariant(variant); // xử lý xóa
+                            },
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                }).toList(),
+              ),
+              const SizedBox(height: 12),
+              Center(
+                child: ElevatedButton.icon(
+                  onPressed: () {
+                    // TODO: Implement _addVariant functionality
+                  },
+                  icon: const Icon(Icons.add),
+                  label: const Text("Add Variant"),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    ),
+    )
+   
+  );
+}
+
   Widget _buildStatCard({
     required String title,
     required int value,
@@ -444,86 +724,89 @@ class _AdminProductScreenState extends State<AdminProductScreen> {
   }) {
     double percentage = total == 0 ? 0 : (value / total) * 100;
 
-   return Expanded(
-  child: Card(
-    elevation: 2,
-    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-    child: Padding(
-      padding: const EdgeInsets.all(16.0),
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          // Xác định kích thước màn hình để điều chỉnh font size
-          bool isSmallScreen = constraints.maxWidth < 300;
-          
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    return Expanded(
+      child: Card(
+        elevation: 2,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              bool isSmallScreen = constraints.maxWidth < 300;
+
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Flexible(
-                    child: Row(
-                      children: [
-                        Icon(icon, color: color, size: isSmallScreen ? 16 : 20),
-                        const SizedBox(width: 8),
-                        Flexible(
-                          child: Text(
-                            title, 
-                            style: TextStyle(
-                              fontSize: isSmallScreen ? 12 : 14,
-                              overflow: TextOverflow.ellipsis,
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Flexible(
+                        child: Row(
+                          children: [
+                            Icon(
+                              icon,
+                              color: color,
+                              size: isSmallScreen ? 16 : 20,
+                            ),
+                            const SizedBox(width: 8),
+                            Flexible(
+                              child: Text(
+                                title,
+                                style: TextStyle(
+                                  fontSize: isSmallScreen ? 12 : 14,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Text(
+                        value.toString(),
+                        style: TextStyle(
+                          fontSize: isSmallScreen ? 18 : 24,
+                          fontWeight: FontWeight.bold,
+                          color: color,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  SizedBox(
+                    height: isSmallScreen ? 50 : 60,
+                    child: PieChart(
+                      PieChartData(
+                        sections: [
+                          PieChartSectionData(
+                            value: percentage,
+                            color: color,
+                            title: '${percentage.toStringAsFixed(1)}%',
+                            radius: isSmallScreen ? 15 : 20,
+                            titleStyle: TextStyle(
+                              fontSize: isSmallScreen ? 10 : 12,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
                             ),
                           ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  Text(
-                    value.toString(),
-                    style: TextStyle(
-                      fontSize: isSmallScreen ? 18 : 24,
-                      fontWeight: FontWeight.bold,
-                      color: color,
+                          PieChartSectionData(
+                            value: 100 - percentage,
+                            color: color.withOpacity(0.1),
+                            radius: isSmallScreen ? 15 : 20,
+                            showTitle: false,
+                          ),
+                        ],
+                        sectionsSpace: 0,
+                        centerSpaceRadius: isSmallScreen ? 10 : 12,
+                        startDegreeOffset: -90,
+                      ),
                     ),
                   ),
                 ],
-              ),
-              const SizedBox(height: 16),
-              SizedBox(
-                height: isSmallScreen ? 50 : 60,
-                child: PieChart(
-                  PieChartData(
-                    sections: [
-                      PieChartSectionData(
-                        value: percentage,
-                        color: color,
-                        title: '${percentage.toStringAsFixed(1)}%',
-                        radius: isSmallScreen ? 15 : 20,
-                        titleStyle: TextStyle(
-                          fontSize: isSmallScreen ? 10 : 12,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                        ),
-                      ),
-                      PieChartSectionData(
-                        value: 100 - percentage,
-                        color: color.withOpacity(0.1),
-                        radius: isSmallScreen ? 15 : 20,
-                        showTitle: false,
-                      ),
-                    ],
-                    sectionsSpace: 0,
-                    centerSpaceRadius: isSmallScreen ? 10 : 12,
-                    startDegreeOffset: -90,
-                  ),
-                ),
-              ),
-            ],
-          );
-        },
+              );
+            },
+          ),
+        ),
       ),
-    ),
-  ),
-);
+    );
   }
 }

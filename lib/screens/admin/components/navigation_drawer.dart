@@ -64,7 +64,9 @@ class CustomDrawer extends StatelessWidget {
                       onTap: () => onItemSelected("Products"),
                       isSelected: selectedItem == "Products",
                     ),
-                    _buildSubNavItem("Add Product"),
+                    _buildSubNavItem("Add Product",
+                    onTap: () => onItemSelected("AddProduct"),
+                    ),
                   ],
                 ),
                 _buildExpandableNavItem(

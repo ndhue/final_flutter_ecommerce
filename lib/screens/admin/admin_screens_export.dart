@@ -5,3 +5,4 @@ export 'Home/home_screen.dart';
 export 'product/product_screen.dart';
 export 'customers/customers_screen.dart';
 export 'income/income_screen.dart';
+export 'product/product_add.dart';

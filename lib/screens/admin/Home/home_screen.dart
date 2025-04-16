@@ -4,6 +4,7 @@ import 'package:final_ecommerce/utils/format.dart';
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:final_ecommerce/data/orders_data.dart';
+import 'package:intl/intl.dart'; //format date
 
 class DashboardScreen extends StatelessWidget {
   const DashboardScreen({super.key});
@@ -38,21 +39,28 @@ class DashboardScreen extends StatelessWidget {
       'Completed': Colors.green,
       'Canceled': Colors.red,
     };
+    DateTime selectedDate = DateTime.now();
+    String selectedDay =
+        'Ngày: ${DateFormat('dd/MM/yyyy').format(DateTime.now())}';
+    String selectedMonth =
+        'Tháng: ${DateFormat('MM/yyyy').format(DateTime.now())}';
+    String selectedYear = 'Năm: ${DateFormat('yyyy').format(DateTime.now())}';
 
-    final pieSections = statusCounts.entries.map((entry) {
-      return PieChartSectionData(
-        value: entry.value.toDouble(),
-        title: '${entry.value}',
-        color: statusColor[entry.key]!,
-        radius: 30,
-        titleStyle: TextStyle(
-          fontSize: 14,
-          color: entry.key == 'Packaging' ? Colors.black : Colors.white,
-          fontWeight: FontWeight.bold,
-        ),
-        showTitle: true,
-      );
-    }).toList();
+    final pieSections =
+        statusCounts.entries.map((entry) {
+          return PieChartSectionData(
+            value: entry.value.toDouble(),
+            title: '${entry.value}',
+            color: statusColor[entry.key]!,
+            radius: 30,
+            titleStyle: TextStyle(
+              fontSize: 14,
+              color: entry.key == 'Packaging' ? Colors.black : Colors.white,
+              fontWeight: FontWeight.bold,
+            ),
+            showTitle: true,
+          );
+        }).toList();
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -61,6 +69,50 @@ class DashboardScreen extends StatelessWidget {
         backgroundColor: Colors.white,
         elevation: 0,
         foregroundColor: Colors.black,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.filter_list),
+            onPressed: () async {
+              final selected = await showMenu<String>(
+                context: context,
+                position: RelativeRect.fromLTRB(
+                  1000,
+                  80,
+                  10,
+                  0,
+                ), // Vị trí popup, bạn có thể tinh chỉnh
+                items: [
+                  const PopupMenuItem(
+                    value: 'ngay',
+                    child: Text('Sắp xếp theo Ngày'),
+                  ),
+                  const PopupMenuItem(
+                    value: 'thang',
+                    child: Text('Sắp xếp theo Tháng'),
+                  ),
+                  const PopupMenuItem(
+                    value: 'nam',
+                    child: Text('Sắp xếp theo Năm'),
+                  ),
+                ],
+              );
+
+              if (selected != null) {
+                switch (selected) {
+                  case 'ngay':
+                    //dort ngày
+                    break;
+                  case 'thang':
+                    //sort tháng
+                    break;
+                  case 'nam':
+                    // sort năm
+                    break;
+                }
+              }
+            },
+          ),
+        ],
       ),
       body: LayoutBuilder(
         builder: (context, constraints) {
@@ -69,12 +121,13 @@ class DashboardScreen extends StatelessWidget {
           Widget orderCards = Wrap(
             spacing: 12,
             runSpacing: 12,
-            children: orderData.entries.map((entry) {
-              return Container(
-                width: isWideScreen ? (constraints.maxWidth / 4 - 24) : 160,
-                child: _buildStatCard(entry.key, entry.value),
-              );
-            }).toList(),
+            children:
+                orderData.entries.map((entry) {
+                  return Container(
+                    width: isWideScreen ? (constraints.maxWidth / 4 - 24) : 160,
+                    child: _buildStatCard(entry.key, entry.value),
+                  );
+                }).toList(),
           );
 
           return Padding(
@@ -84,30 +137,31 @@ class DashboardScreen extends StatelessWidget {
                 orderCards,
                 const SizedBox(height: 24),
                 Expanded(
-                  child: isWideScreen
-                      ? Row(
-                          children: [
-                            Expanded(
-                              flex: 2,
-                              child: _buildPieChart(statusColor, pieSections),
-                            ),
-                            const SizedBox(width: 16),
-                            Expanded(
-                              flex:3 ,
-                              child: _buildTopSellingBarChart(),
-                            ),
-                          ],
-                        )
-                      : Column(
-                          children: [
-                            SizedBox(
-                              height: 300,
-                              child: _buildPieChart(statusColor, pieSections),
-                            ),
-                            const SizedBox(height: 16),
-                            Expanded(child: _buildTopSellingBarChart()),
-                          ],
-                        ),
+                  child:
+                      isWideScreen
+                          ? Row(
+                            children: [
+                              Expanded(
+                                flex: 2,
+                                child: _buildPieChart(statusColor, pieSections),
+                              ),
+                              const SizedBox(width: 16),
+                              Expanded(
+                                flex: 3,
+                                child: _buildTopSellingBarChart(),
+                              ),
+                            ],
+                          )
+                          : Column(
+                            children: [
+                              SizedBox(
+                                height: 300,
+                                child: _buildPieChart(statusColor, pieSections),
+                              ),
+                              const SizedBox(height: 16),
+                              Expanded(child: _buildTopSellingBarChart()),
+                            ],
+                          ),
                 ),
               ],
             ),
@@ -118,47 +172,39 @@ class DashboardScreen extends StatelessWidget {
   }
 
   Widget _buildStatCard(String title, num value) {
-  return Card(
-    elevation: 2,
-    shape: RoundedRectangleBorder(
-      borderRadius: BorderRadius.circular(12),
-    ),
-    child: Padding(
-      padding: const EdgeInsets.all(12),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            title,
-            style: const TextStyle(
-              fontSize: 12,
-              color: Colors.grey,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            (title == 'Revenue' || title == 'Profit')
-                ? FormatHelper.formatCurrency(value)
-                : value.toString(),
-            style: const TextStyle(
-              fontSize: 22,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-        ],
-      ),
-    ),
-  );
-}
-
-
-  Widget _buildPieChart(Map<String, Color> statusColor, List<PieChartSectionData> pieSections) {
     return Card(
       elevation: 2,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              title,
+              style: const TextStyle(fontSize: 12, color: Colors.grey),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              (title == 'Revenue' || title == 'Profit')
+                  ? FormatHelper.formatCurrency(value)
+                  : value.toString(),
+              style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+            ),
+          ],
+        ),
       ),
+    );
+  }
+
+  Widget _buildPieChart(
+    Map<String, Color> statusColor,
+    List<PieChartSectionData> pieSections,
+  ) {
+    return Card(
+      elevation: 2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -166,10 +212,7 @@ class DashboardScreen extends StatelessWidget {
           children: [
             const Text(
               'Orders Status',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 16),
             Expanded(
@@ -178,9 +221,10 @@ class DashboardScreen extends StatelessWidget {
                   final size = constraints.biggest.shortestSide;
                   return PieChart(
                     PieChartData(
-                      sections: pieSections.map((section) {
-                        return section.copyWith(radius: size * 0.15);
-                      }).toList(),
+                      sections:
+                          pieSections.map((section) {
+                            return section.copyWith(radius: size * 0.15);
+                          }).toList(),
                       centerSpaceRadius: size * 0.4,
                       sectionsSpace: 2,
                       startDegreeOffset: -90,
@@ -193,9 +237,10 @@ class DashboardScreen extends StatelessWidget {
             Wrap(
               spacing: 16,
               runSpacing: 8,
-              children: statusColor.entries.map((entry) {
-                return _buildLegendItem(entry.key, entry.value);
-              }).toList(),
+              children:
+                  statusColor.entries.map((entry) {
+                    return _buildLegendItem(entry.key, entry.value);
+                  }).toList(),
             ),
           ],
         ),
@@ -203,32 +248,41 @@ class DashboardScreen extends StatelessWidget {
     );
   }
 
-    Widget _buildTopSellingBarChart() {
-    final topProducts = List<Product>.from(products)
-      ..sort((a, b) => b.salesCount.compareTo(a.salesCount))
-      ..removeWhere((product) => product.salesCount == 0);
+  Widget _buildTopSellingBarChart() {
+    final topProducts =
+        List<Product>.from(products)
+          ..sort((a, b) => b.salesCount.compareTo(a.salesCount))
+          ..removeWhere((product) => product.salesCount == 0);
 
     final top5 = topProducts.take(5).toList();
-    final barGroups = top5.asMap().entries.map((entry) => BarChartGroupData(
-          x: entry.key,
-          barRods: [
-            BarChartRodData(
-              toY: entry.value.salesCount.toDouble(),
-              color: _getBarColor(entry.key),
-              borderRadius: BorderRadius.circular(4),
-              width: 22,
-            ),
-          ],
-          showingTooltipIndicators: [0],
-        )).toList();
+    final barGroups =
+        top5
+            .asMap()
+            .entries
+            .map(
+              (entry) => BarChartGroupData(
+                x: entry.key,
+                barRods: [
+                  BarChartRodData(
+                    toY: entry.value.salesCount.toDouble(),
+                    color: _getBarColor(entry.key),
+                    borderRadius: BorderRadius.circular(4),
+                    width: 22,
+                  ),
+                ],
+                showingTooltipIndicators: [0],
+              ),
+            )
+            .toList();
 
-    final maxSales = top5.fold(0, (max, product) => product.salesCount > max ? product.salesCount : max);
+    final maxSales = top5.fold(
+      0,
+      (max, product) => product.salesCount > max ? product.salesCount : max,
+    );
 
     return Card(
       elevation: 2,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -236,10 +290,7 @@ class DashboardScreen extends StatelessWidget {
           children: [
             const Text(
               'Top Selling Products',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 16),
             Expanded(
@@ -252,7 +303,6 @@ class DashboardScreen extends StatelessWidget {
                       //tooltipBgColor: Colors.blueGrey.withOpacity(0.9),
                       getTooltipItem: (group, groupIndex, rod, rodIndex) {
                         final product = top5[group.x.toInt()];
-                        
                       },
                     ),
                   ),
@@ -262,28 +312,37 @@ class DashboardScreen extends StatelessWidget {
                       sideTitles: SideTitles(
                         showTitles: true,
                         reservedSize: 40,
-                        getTitlesWidget: (value, meta) => Padding(
-                          padding: const EdgeInsets.only(right: 8),
-                          child: Text(
-                            value.toInt().toString(),
-                            style: const TextStyle(fontSize: 12, color: Colors.grey),
-                          ),
-                        ),
-                        interval: maxSales > 10 ? (maxSales / 5).ceilToDouble() : 1,
+                        getTitlesWidget:
+                            (value, meta) => Padding(
+                              padding: const EdgeInsets.only(right: 8),
+                              child: Text(
+                                value.toInt().toString(),
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.grey,
+                                ),
+                              ),
+                            ),
+                        interval:
+                            maxSales > 10 ? (maxSales / 5).ceilToDouble() : 1,
                       ),
                     ),
                     bottomTitles: AxisTitles(
                       sideTitles: SideTitles(
                         showTitles: true,
                         getTitlesWidget: (value, meta) {
-                          if (value.toInt() >= 0 && value.toInt() < top5.length) {
+                          if (value.toInt() >= 0 &&
+                              value.toInt() < top5.length) {
                             return Padding(
                               padding: const EdgeInsets.only(top: 8),
                               child: Text(
                                 top5[value.toInt()].name,
                                 maxLines: 2,
                                 textAlign: TextAlign.center,
-                                style: const TextStyle(fontSize: 10, color: Colors.grey),
+                                style: const TextStyle(
+                                  fontSize: 10,
+                                  color: Colors.grey,
+                                ),
                               ),
                             );
                           }
@@ -292,17 +351,22 @@ class DashboardScreen extends StatelessWidget {
                         reservedSize: 42,
                       ),
                     ),
-                    rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                    topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                    rightTitles: AxisTitles(
+                      sideTitles: SideTitles(showTitles: false),
+                    ),
+                    topTitles: AxisTitles(
+                      sideTitles: SideTitles(showTitles: false),
+                    ),
                   ),
                   borderData: FlBorderData(show: false),
                   gridData: FlGridData(
                     show: true,
                     drawVerticalLine: false,
-                    getDrawingHorizontalLine: (value) => FlLine(
-                      color: Colors.grey.withOpacity(0.1),
-                      strokeWidth: 1,
-                    ),
+                    getDrawingHorizontalLine:
+                        (value) => FlLine(
+                          color: Colors.grey.withOpacity(0.1),
+                          strokeWidth: 1,
+                        ),
                     checkToShowHorizontalLine: (value) => value % 5 == 0,
                   ),
                   barGroups: barGroups,
@@ -361,16 +425,10 @@ class DashboardScreen extends StatelessWidget {
         Container(
           width: 12,
           height: 12,
-          decoration: BoxDecoration(
-            color: color,
-            shape: BoxShape.circle,
-          ),
+          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
         ),
         const SizedBox(width: 6),
-        Text(
-          text,
-          style: const TextStyle(fontSize: 12),
-        ),
+        Text(text, style: const TextStyle(fontSize: 12)),
       ],
     );
   }
@@ -388,7 +446,7 @@ num getCompletedOrders(List<Map<String, dynamic>> orders) {
   num total = 0;
   for (var order in orders) {
     if (order['orderStatus'] == 'Completed') {
-      total += 1?? 0;
+      total += 1 ?? 0;
     }
   }
   return total;
@@ -434,7 +492,9 @@ double calculateMonthlyRevenue(List<Map<String, dynamic>> orders) {
       for (final detail in order['orderDetails']) {
         final finalPrice = detail['finalPrice'];
         final quantity = detail['quantity'];
-        revenue += (finalPrice is String ? double.parse(finalPrice) : finalPrice) * quantity;
+        revenue +=
+            (finalPrice is String ? double.parse(finalPrice) : finalPrice) *
+            quantity;
       }
     }
   }
@@ -452,14 +512,12 @@ double calculateProfit(List<Map<String, dynamic>> orders) {
       for (final detail in order['orderDetails']) {
         final finalPrice = detail['finalPrice'];
         final quantity = detail['quantity'];
-        revenue += (finalPrice is String ? double.parse(finalPrice) : finalPrice) * quantity;
+        revenue +=
+            (finalPrice is String ? double.parse(finalPrice) : finalPrice) *
+            quantity;
       }
     }
   }
 
   return revenue;
 }
-
-
-
-

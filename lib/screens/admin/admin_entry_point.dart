@@ -55,6 +55,8 @@ class _AdminEntryPointState extends State<AdminEntryPoint> {
         return AdminCouponScreen();
       case "Products":
         return AdminProductScreen();
+      case "AddProduct":
+        return AddProductPage();
       default:
         return Center(child: Text("Unknown Screen"));
     }

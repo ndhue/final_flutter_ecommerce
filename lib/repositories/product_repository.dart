@@ -106,6 +106,15 @@ class ProductRepository {
     return snapshot.docs.map((doc) => NewProduct.fromMap(doc)).toList();
   }
 
+  //Add new product
+  Future<void> addProduct(NewProduct product) async {
+    try {
+      await _products.doc(product.id).set(product.toMap());
+    } catch (e) {
+      debugPrint('Error adding product: $e');
+    }
+  }
+
   // Fetch Promotional Products (has discount)
   Future<List<NewProduct>> fetchPromotionalProducts({int limit = 10}) async {
     final snapshot =
