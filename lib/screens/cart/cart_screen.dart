@@ -118,49 +118,65 @@ class _CartScreenState extends State<CartScreen> {
       child: Row(
         children: [
           Checkbox(
-            value: isSelected,
+            value: cartProvider.isSelected(item.product.id),
             onChanged: (_) {
               cartProvider.toggleItemSelection(item.product.id);
             },
           ),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(8),
-            child: Image.network(
-              item.product.imageUrl,
-              width: 60,
-              height: 60,
-              fit: BoxFit.cover,
+          GestureDetector(
+            onTap: () {
+              Navigator.pushNamed(
+                context,
+                '/product-detail/${item.product.id}', // hoặc dùng route name nếu có
+              );
+            },
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: Image.network(
+                item.product.imageUrl,
+                width: 60,
+                height: 60,
+                fit: BoxFit.cover,
+              ),
             ),
           ),
           const SizedBox(width: 8),
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  item.product.name,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 14,
+            child: InkWell(
+              onTap: () {
+                Navigator.pushNamed(
+                  context,
+                  '/product-detail/${item.product.id}',
+                );
+              },
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    item.product.name,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                    ),
                   ),
-                ),
-                Text(
-                  'Variant: ${item.variant.colorName}',
-                  style: const TextStyle(fontSize: 12, color: darkTextColor),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  FormatHelper.formatCurrency(
-                    item.product.price * (1 - item.product.discount),
+                  Text(
+                    'Variant: ${item.variant.colorName}',
+                    style: const TextStyle(fontSize: 12, color: darkTextColor),
                   ),
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 14,
+                  const SizedBox(height: 4),
+                  Text(
+                    FormatHelper.formatCurrency(
+                      item.product.price * (1 - item.product.discount),
+                    ),
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
           Row(

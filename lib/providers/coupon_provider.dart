@@ -7,9 +7,12 @@ class CouponProvider with ChangeNotifier {
   final CouponRepository _couponRepository = CouponRepository();
   List<Coupon> _coupons = [];
   bool _isLoading = false;
+  Coupon? _appliedCoupon; //
 
   List<Coupon> get coupons => _coupons;
   bool get isLoading => _isLoading;
+
+  Coupon? get appliedCoupon => _appliedCoupon; //
 
   Future<void> loadCoupons() async {
     _isLoading = true;
@@ -44,4 +47,41 @@ class CouponProvider with ChangeNotifier {
   int getActiveCoupons() => _coupons.where((coupon) => !coupon.disable).length;
 
   int getDisabledCoupons() => _coupons.where((coupon) => coupon.disable).length;
+
+  double calculateDiscount(double totalAmount) {
+    if (_appliedCoupon == null) return 0.0;
+
+    if (_appliedCoupon!.type == CouponType.fixed) {
+      return totalAmount >= _appliedCoupon!.value
+          ? _appliedCoupon!.value
+          : totalAmount;
+    } else {
+      return totalAmount * _appliedCoupon!.value;
+    }
+  }
+
+  // ✅ Hàm apply coupon theo mã code
+  void applyCouponByCode(String code) {
+    final match = _coupons.firstWhere(
+      (c) =>
+          c.code.toLowerCase() == code.toLowerCase() &&
+          !c.disable &&
+          c.timesUsed < c.maxUses,
+      orElse: () => null as Coupon,
+    );
+
+    if (match != null) {
+      _appliedCoupon = match;
+      notifyListeners();
+    } else {
+      _appliedCoupon = null;
+      notifyListeners();
+      throw Exception("Coupon is invalid or expired.");
+    }
+  }
+
+  void clearAppliedCoupon() {
+    _appliedCoupon = null;
+    notifyListeners();
+  }
 }

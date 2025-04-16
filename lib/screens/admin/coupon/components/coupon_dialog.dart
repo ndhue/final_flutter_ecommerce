@@ -25,10 +25,15 @@ class _CouponDialogState extends State<CouponDialog> {
   TextEditingController maxUsesController = TextEditingController();
   TextEditingController valueController = TextEditingController();
   late bool disable;
+  CouponType _selectedType = CouponType.percent;
 
   @override
   void initState() {
     super.initState();
+    _selectedType =
+        widget.isEditing
+            ? widget.coupon?.type ?? CouponType.percent
+            : CouponType.percent;
     isEditing = widget.isEditing;
     coupon = widget.coupon;
 
@@ -45,8 +50,14 @@ class _CouponDialogState extends State<CouponDialog> {
     couponProvider.updateCoupon(widget.coupon!.id, {
       'code': codeController.text,
       'maxUses': int.tryParse(maxUsesController.text) ?? coupon?.maxUses,
-      'value': double.tryParse(valueController.text) ?? coupon?.value,
+      'value':
+          double.tryParse(
+            valueController.text.replaceAll(RegExp(r'[.,\\s₫]'), ''),
+          ) ??
+          coupon?.value,
+
       'disable': disable,
+      'type': _selectedType == CouponType.fixed ? 'fixed' : 'percent',
     });
   }
 
@@ -62,6 +73,7 @@ class _CouponDialogState extends State<CouponDialog> {
       createdAt: Timestamp.fromDate(DateTime.now()),
       timesUsed: 0,
       ordersApplied: [],
+      type: _selectedType,
     );
     couponProvider.addCoupon(newCoupon);
   }
@@ -146,7 +158,25 @@ class _CouponDialogState extends State<CouponDialog> {
                   return null;
                 },
               ),
-
+              DropdownButtonFormField<CouponType>(
+                value: _selectedType,
+                decoration: const InputDecoration(labelText: 'Type'),
+                items: const [
+                  DropdownMenuItem(
+                    value: CouponType.fixed,
+                    child: Text('Percentage (%)'),
+                  ),
+                  DropdownMenuItem(
+                    value: CouponType.percent,
+                    child: Text('Percentage (%)'),
+                  ),
+                ],
+                onChanged: (value) {
+                  setState(() {
+                    _selectedType = value!;
+                  });
+                },
+              ),
               SwitchListTile(
                 title: const Text('Disable'),
                 value: disable,

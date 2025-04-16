@@ -1,4 +1,5 @@
 import 'package:final_ecommerce/models/models_export.dart';
+import 'package:final_ecommerce/providers/coupon_provider.dart';
 import 'package:final_ecommerce/screens/cart/widgets/delivery_info.dart';
 import 'package:final_ecommerce/utils/constants.dart';
 import 'package:final_ecommerce/utils/format.dart';
@@ -15,19 +16,25 @@ class PaymentScreen extends StatefulWidget {
 }
 
 class _PaymentScreenState extends State<PaymentScreen> {
-  bool showAllItems = false;
-  int _selectedPayment = 1;
   TextEditingController _discountController = TextEditingController();
-  String _appliedDiscountCode = "";
-  final double _discountValue = 0.0;
   final double _shippingFee = 15000;
+  @override
+  void initState() {
+    super.initState();
+    Future.microtask(() {
+      Provider.of<CouponProvider>(context, listen: false).loadCoupons();
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     final cartProvider = Provider.of<CartProvider>(context);
+    final couponProvider = Provider.of<CouponProvider>(context);
+
     final selectedItems = cartProvider.cartItems.toList();
     final totalPrice = cartProvider.totalAmount;
-    final discount = totalPrice * _discountValue;
+    final discountValue = couponProvider.appliedCoupon?.value ?? 0.0;
+    final discount = totalPrice * discountValue;
     final finalTotalPrice = totalPrice - discount + _shippingFee;
 
     return Scaffold(
@@ -35,15 +42,59 @@ class _PaymentScreenState extends State<PaymentScreen> {
       body: Column(
         children: [
           buildDeliveryInfo(cartProvider, context),
+          _buildCouponInput(context),
           Expanded(child: _buildCartList(context, selectedItems)),
-          _buildOrderSummary(totalPrice, discount, finalTotalPrice),
+          _buildOrderSummary(
+            totalPrice,
+            discount,
+            finalTotalPrice,
+            couponProvider.appliedCoupon,
+          ),
         ],
       ),
       bottomNavigationBar: _buildPaymentButton(selectedItems, finalTotalPrice),
     );
   }
 
-  Widget _buildCartList(BuildContext context, List selectedItems) {
+  Widget _buildCouponInput(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.all(16),
+      child: Row(
+        children: [
+          Expanded(
+            child: TextField(
+              controller: _discountController,
+              decoration: const InputDecoration(
+                labelText: 'Enter coupon code',
+                border: OutlineInputBorder(),
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          ElevatedButton(
+            onPressed: () {
+              try {
+                Provider.of<CouponProvider>(
+                  context,
+                  listen: false,
+                ).applyCouponByCode(_discountController.text);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Coupon applied!')),
+                );
+              } catch (_) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Invalid or expired coupon')),
+                );
+              }
+            },
+            child: const Text('Apply'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCartList(BuildContext context, List<CartItem> selectedItems) {
     if (selectedItems.isEmpty) {
       return const Center(child: Text('Your cart is empty'));
     }
@@ -66,7 +117,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
         color: Colors.white,
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.withValues(alpha: 0.1),
+            color: Colors.grey.withOpacity(0.1),
             blurRadius: 5,
             spreadRadius: 2,
           ),
@@ -125,6 +176,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
     double totalPrice,
     double discount,
     double finalTotal,
+    Coupon? appliedCoupon,
   ) {
     return Container(
       padding: const EdgeInsets.all(16.0),
@@ -142,13 +194,14 @@ class _PaymentScreenState extends State<PaymentScreen> {
             ],
           ),
           const SizedBox(height: 8),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text('Discount'),
-              Text('-${FormatHelper.formatCurrency(discount)}'),
-            ],
-          ),
+          if (appliedCoupon != null)
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text('Coupon (${appliedCoupon.code})'),
+                Text('-${FormatHelper.formatCurrency(discount)}'),
+              ],
+            ),
           const SizedBox(height: 8),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -176,7 +229,10 @@ class _PaymentScreenState extends State<PaymentScreen> {
     );
   }
 
-  Widget _buildPaymentButton(List selectedItems, double finalTotalPrice) {
+  Widget _buildPaymentButton(
+    List<CartItem> selectedItems,
+    double finalTotalPrice,
+  ) {
     final hasSelectedItems = selectedItems.isNotEmpty;
     return Container(
       padding: const EdgeInsets.fromLTRB(16.0, 16.0, 16.0, 32.0),
@@ -189,6 +245,30 @@ class _PaymentScreenState extends State<PaymentScreen> {
             hasSelectedItems
                 ? () {
                   // Payment logic here
+                  final address =
+                      Provider.of<CartProvider>(
+                        context,
+                        listen: false,
+                      ).addressInfo;
+
+                  if (address == null ||
+                      address.receiverName.trim().isEmpty ||
+                      address.city.trim().isEmpty ||
+                      address.district.trim().isEmpty ||
+                      address.ward.trim().isEmpty ||
+                      address.detailedAddress.trim().isEmpty) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text(
+                          'Please fill in all delivery information',
+                        ),
+                      ),
+                    );
+                  } else {
+                    showSuccessDialog(context);
+
+                    // TODO: Gửi đơn hàng về server hoặc Firebase tại đây
+                  }
                 }
                 : null,
         style: ElevatedButton.styleFrom(
@@ -203,6 +283,61 @@ class _PaymentScreenState extends State<PaymentScreen> {
           style: const TextStyle(fontSize: 16),
         ),
       ),
+    );
+  }
+
+  void showSuccessDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder:
+          (_) => AlertDialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
+            contentPadding: const EdgeInsets.all(24),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.check_circle, color: Colors.green, size: 64),
+                const SizedBox(height: 16),
+                const Text(
+                  'Congrats! your payment is successfully',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                ),
+                const SizedBox(height: 8),
+                const Text(
+                  'Track your order or just chat directly to the seller. '
+                  'Download order summary in document below.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 13, color: Colors.grey),
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: const [
+                    Icon(Icons.insert_drive_file_outlined),
+                    SizedBox(width: 6),
+                    Text('order_invoice.pdf'),
+                    Spacer(),
+                    Icon(Icons.download_for_offline_outlined),
+                  ],
+                ),
+                const SizedBox(height: 24),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: () {
+                      Navigator.of(context).pop(); // đóng dialog
+                      Navigator.of(context).popUntil((route) => route.isFirst);
+                    },
+                    child: const Text('Continue'),
+                  ),
+                ),
+              ],
+            ),
+          ),
     );
   }
 }
