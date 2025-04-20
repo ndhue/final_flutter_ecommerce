@@ -28,8 +28,8 @@ Route<dynamic> generateRoute(RouteSettings settings) {
       page = const OrdersScreen();
       break;
     case orderDetailsScreenRoute:
-      if (settings.arguments is Order) {
-        final order = settings.arguments as Order;
+      if (settings.arguments is OrderModel) {
+        final order = settings.arguments as OrderModel;
         page = OrderDetailScreen(order: order);
       } else {
         page = const EntryPoint();

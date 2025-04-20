@@ -1,5 +1,4 @@
 import 'package:final_ecommerce/firebase_options.dart';
-import 'package:final_ecommerce/providers/order_provider.dart';
 import 'package:final_ecommerce/providers/providers_export.dart';
 import 'package:final_ecommerce/routes/route_constants.dart';
 import 'package:final_ecommerce/routes/router.dart' as router;

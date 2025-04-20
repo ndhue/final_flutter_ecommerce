@@ -39,6 +39,30 @@ class CouponProvider with ChangeNotifier {
     await loadCoupons();
   }
 
+  Future<void> updateCouponUsage(
+    String couponId,
+    String orderId, {
+    bool revert = false,
+  }) async {
+    try {
+      await _couponRepository.updateCouponUsage(
+        couponId,
+        orderId,
+        revert: revert,
+      );
+      // Update the local applied coupon if it matches
+      if (_appliedCoupon != null && _appliedCoupon!.id == couponId) {
+        _appliedCoupon = _appliedCoupon!.copyWith(
+          timesUsed: _appliedCoupon!.timesUsed + 1,
+          ordersApplied: [..._appliedCoupon!.ordersApplied, orderId],
+        );
+        notifyListeners();
+      }
+    } catch (e) {
+      debugPrint('Error updating coupon usage: $e');
+    }
+  }
+
   int getTotalCoupons() => _coupons.length;
 
   int getUsedCoupons() =>
@@ -60,7 +84,6 @@ class CouponProvider with ChangeNotifier {
     }
   }
 
-  // ✅ Hàm apply coupon theo mã code
   void applyCouponByCode(String code) {
     final match = _coupons.firstWhere(
       (c) =>

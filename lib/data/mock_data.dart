@@ -244,8 +244,8 @@ List<Category> specialCategories = [
   ),
 ];
 
-List<Order> mockOrders = [
-  Order(
+List<OrderModel> mockOrders = [
+  OrderModel(
     id: 'order_001',
     createdAt: DateTime.now().subtract(Duration(days: 2)),
     orderDetails: [

@@ -1,21 +1,98 @@
 import 'package:final_ecommerce/models/models_export.dart';
+import 'package:final_ecommerce/providers/providers_export.dart';
 import 'package:final_ecommerce/screens/orders/components/rate_order_widget.dart';
 import 'package:final_ecommerce/utils/constants.dart';
 import 'package:final_ecommerce/utils/format.dart';
 import 'package:final_ecommerce/utils/utils.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:fluttertoast/fluttertoast.dart';
 import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
 
 import 'components/track_order_widget.dart';
 
 class OrderDetailScreen extends StatelessWidget {
-  final Order order;
+  final OrderModel order;
 
   const OrderDetailScreen({super.key, required this.order});
 
   String formatDate(DateTime date) {
     return DateFormat("d'th' MMM yyyy").format(date);
+  }
+
+  Future<void> handleCancelOrder(BuildContext context) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder:
+          (context) => AlertDialog(
+            title: const Text('Cancel Order'),
+            content: const Text('Are you sure you want to cancel this order?'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(false),
+                child: const Text('No'),
+              ),
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(true),
+                child: const Text('Yes'),
+              ),
+            ],
+          ),
+    );
+
+    if (confirm == true) {
+      if (!context.mounted) return;
+      final userProvider = Provider.of<UserProvider>(context, listen: false);
+      final couponProvider = Provider.of<CouponProvider>(
+        context,
+        listen: false,
+      );
+      final orderProvider = Provider.of<OrderProvider>(context, listen: false);
+      final variantProvider = Provider.of<VariantProvider>(
+        context,
+        listen: false,
+      );
+
+      // Revert loyalty points if used
+      if (order.loyaltyPointsUsed > 0) {
+        await userProvider.updateLoyaltyPoints(
+          pointsChange: order.loyaltyPointsUsed,
+        );
+      }
+
+      // Revert coupon usage if applied
+      if (order.coupon != null) {
+        await couponProvider.updateCouponUsage(
+          order.coupon!.code,
+          order.id,
+          revert: true,
+        );
+      }
+
+      // Return inventory for product variants
+      for (final detail in order.orderDetails) {
+        await variantProvider.updateVariantInventory(
+          productId: detail.productId,
+          variantId: detail.variantId,
+          quantityChange: detail.quantity,
+        );
+      }
+
+      // Update order status to canceled
+      await orderProvider.updateOrderStatus(
+        order.id,
+        StatusHistory(status: 'Canceled', time: DateTime.now()),
+      );
+
+      Fluttertoast.showToast(
+        msg: 'Order canceled successfully',
+        toastLength: Toast.LENGTH_SHORT,
+        gravity: ToastGravity.BOTTOM,
+        backgroundColor: Colors.green,
+        textColor: Colors.white,
+      );
+    }
   }
 
   List<Widget> getActions(BuildContext context, String status) {
@@ -31,7 +108,11 @@ class OrderDetailScreen extends StatelessWidget {
     ];
 
     if (status == 'Pending') {
-      actions.addAll([buildAction(Icons.cancel, 'Cancel Order', () {})]);
+      actions.addAll([
+        buildAction(Icons.cancel, 'Cancel Order', () {
+          handleCancelOrder(context);
+        }),
+      ]);
     }
 
     return actions;
