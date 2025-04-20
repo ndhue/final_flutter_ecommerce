@@ -1,6 +1,7 @@
 import 'package:final_ecommerce/models/models_export.dart';
 import 'package:final_ecommerce/providers/providers_export.dart';
 import 'package:final_ecommerce/routes/route_constants.dart';
+import 'package:final_ecommerce/screens/screen_export.dart';
 import 'package:final_ecommerce/utils/constants.dart';
 import 'package:final_ecommerce/utils/format.dart';
 import 'package:final_ecommerce/widgets/widgets_export.dart';
@@ -98,7 +99,6 @@ class _CartScreenState extends State<CartScreen> {
 
   Widget _buildCartItem(BuildContext context, CartItem item) {
     final cartProvider = Provider.of<CartProvider>(context);
-    final isSelected = cartProvider.selectedItemIds.contains(item.product.id);
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -124,9 +124,12 @@ class _CartScreenState extends State<CartScreen> {
           ),
           GestureDetector(
             onTap: () {
-              Navigator.pushNamed(
+              Navigator.push(
                 context,
-                '/product-detail/${item.product.id}', // hoặc dùng route name nếu có
+                MaterialPageRoute(
+                  builder:
+                      (context) => ProductDetails(productId: item.product.id),
+                ),
               );
             },
             child: ClipRRect(
@@ -143,9 +146,12 @@ class _CartScreenState extends State<CartScreen> {
           Expanded(
             child: InkWell(
               onTap: () {
-                Navigator.pushNamed(
+                Navigator.push(
                   context,
-                  '/product-detail/${item.product.id}',
+                  MaterialPageRoute(
+                    builder:
+                        (context) => ProductDetails(productId: item.product.id),
+                  ),
                 );
               },
               child: Column(

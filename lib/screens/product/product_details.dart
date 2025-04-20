@@ -12,8 +12,9 @@ import 'package:provider/provider.dart';
 import 'components/product_review_section.dart';
 
 class ProductDetails extends StatefulWidget {
-  const ProductDetails({super.key, required this.product});
-  final NewProduct product;
+  const ProductDetails({super.key, this.product, this.productId});
+  final NewProduct? product;
+  final String? productId;
 
   @override
   State<ProductDetails> createState() => _ProductDetailsState();
@@ -22,35 +23,50 @@ class ProductDetails extends StatefulWidget {
 class _ProductDetailsState extends State<ProductDetails> {
   late VariantProvider _variantProvider;
   late ProductProvider _productProvider;
-  late NewProduct productSelected;
-  late NewVariant? variantSelected;
+  NewProduct? productSelected;
+  NewVariant? variantSelected;
   int _currentImageIndex = 0;
   Color? _selectedColor;
   double _rating = 0;
   int _totalReview = 0;
-  int _visibleReviews = 5;
   List<ProductReview> _reviews = [];
   bool _isLoadingReviews = true;
 
   @override
   void initState() {
     super.initState();
-    productSelected = widget.product;
-    _selectedColor = hexToColor(productSelected.availableColors[0]);
-    _rating = productSelected.rating;
-    _totalReview = productSelected.totalReviews;
-    variantSelected = null;
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
       _variantProvider = Provider.of<VariantProvider>(context, listen: false);
       _productProvider = Provider.of<ProductProvider>(context, listen: false);
-      _fetchVariantByColor(productSelected.availableColors[0]);
-      _fetchProductReviews();
+
+      if (widget.product != null) {
+        _initializeProduct(widget.product!);
+      } else if (widget.productId != null) {
+        await _fetchProductDetails(widget.productId!);
+      }
     });
+  }
+
+  Future<void> _fetchProductDetails(String productId) async {
+    final fetchedProduct = await _productProvider.fetchProductById(productId);
+    _initializeProduct(fetchedProduct);
+  }
+
+  void _initializeProduct(NewProduct product) {
+    setState(() {
+      productSelected = product;
+      _selectedColor = hexToColor(product.availableColors[0]);
+      _rating = product.rating;
+      _totalReview = product.totalReviews;
+      variantSelected = null;
+    });
+    _fetchVariantByColor(product.availableColors[0]);
+    _fetchProductReviews();
   }
 
   Future<void> _fetchVariantByColor(String colorCode) async {
     await _variantProvider.fetchVariantByColor(
-      productId: productSelected.id,
+      productId: productSelected!.id,
       colorCode: colorCode,
     );
     setState(() {
@@ -60,21 +76,21 @@ class _ProductDetailsState extends State<ProductDetails> {
 
   Future<void> _fetchProductReviews() async {
     final reviews = await _productProvider.fetchProductReviews(
-      productId: productSelected.id,
+      productId: productSelected!.id,
       isInitial: true,
     );
 
     // Reload the product details
-    await _productProvider.reloadProduct(productSelected.id);
+    await _productProvider.reloadProduct(productSelected!.id);
     final updatedProduct = _productProvider.products.firstWhere(
-      (product) => product.id == productSelected.id,
-      orElse: () => productSelected,
+      (product) => product.id == productSelected!.id,
+      orElse: () => productSelected!,
     );
 
     setState(() {
       productSelected = updatedProduct;
-      _rating = productSelected.rating;
-      _totalReview = productSelected.totalReviews;
+      _rating = productSelected!.rating;
+      _totalReview = productSelected!.totalReviews;
       _reviews = reviews;
       _isLoadingReviews = false;
     });
@@ -88,7 +104,7 @@ class _ProductDetailsState extends State<ProductDetails> {
   }
 
   void _nextImage() {
-    if (_currentImageIndex < productSelected.images.length - 1) {
+    if (_currentImageIndex < productSelected!.images.length - 1) {
       setState(() {
         _currentImageIndex++;
       });
@@ -103,21 +119,15 @@ class _ProductDetailsState extends State<ProductDetails> {
     }
   }
 
-  void _showMoreReviews() {
-    setState(() {
-      _visibleReviews += 5;
-    });
-  }
-
   void _addToCart(BuildContext context) {
     Provider.of<CartProvider>(context, listen: false).addToCart(
       CartItem(
         product: CartProduct(
-          id: productSelected.id,
-          name: productSelected.name,
-          imageUrl: productSelected.images[0],
-          price: productSelected.sellingPrice,
-          discount: productSelected.discount,
+          id: productSelected!.id,
+          name: productSelected!.name,
+          imageUrl: productSelected!.images[0],
+          price: productSelected!.sellingPrice,
+          discount: productSelected!.discount,
         ),
         variant: CartVariant(
           variantId: variantSelected!.variantId,
@@ -129,7 +139,7 @@ class _ProductDetailsState extends State<ProductDetails> {
     );
     Fluttertoast.showToast(
       msg:
-          '${productSelected.name} (${variantSelected!.colorName}) has been added to the cart',
+          '${productSelected!.name} (${variantSelected!.colorName}) has been added to the cart',
       toastLength: Toast.LENGTH_SHORT,
       gravity: ToastGravity.CENTER,
     );
@@ -137,15 +147,19 @@ class _ProductDetailsState extends State<ProductDetails> {
 
   @override
   Widget build(BuildContext context) {
+    if (productSelected == null) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+
     final colors =
-        productSelected.availableColors
+        productSelected!.availableColors
             .map((colorHex) => hexToColor(colorHex))
             .toSet();
 
-    final hasDiscount = productSelected.discount > 0;
-    final discountPercent = (productSelected.discount * 100).round();
+    final hasDiscount = productSelected!.discount > 0;
+    final discountPercent = (productSelected!.discount * 100).round();
     final discountPrice =
-        productSelected.sellingPrice * (100 - discountPercent) / 100;
+        productSelected!.sellingPrice * (100 - discountPercent) / 100;
 
     return Scaffold(
       appBar: AppBar(
@@ -170,7 +184,7 @@ class _ProductDetailsState extends State<ProductDetails> {
               children: [
                 Center(
                   child: Image.network(
-                    productSelected.images[_currentImageIndex],
+                    productSelected!.images[_currentImageIndex],
                     width:
                         MediaQuery.of(context).size.width > 600
                             ? 500
@@ -207,7 +221,7 @@ class _ProductDetailsState extends State<ProductDetails> {
                       color: Colors.white,
                     ),
                     onPressed:
-                        _currentImageIndex < productSelected.images.length - 1
+                        _currentImageIndex < productSelected!.images.length - 1
                             ? _nextImage
                             : null,
                   ),
@@ -218,7 +232,7 @@ class _ProductDetailsState extends State<ProductDetails> {
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: List.generate(
-                productSelected.images.length,
+                productSelected!.images.length,
                 (index) => Container(
                   margin: const EdgeInsets.symmetric(horizontal: 4),
                   width: 8,
@@ -239,7 +253,7 @@ class _ProductDetailsState extends State<ProductDetails> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    '${productSelected.name} ${variantSelected?.colorName}',
+                    '${productSelected!.name} ${variantSelected?.colorName}',
                     style: const TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
@@ -260,7 +274,7 @@ class _ProductDetailsState extends State<ProductDetails> {
                         const SizedBox(width: 8),
                         Text(
                           FormatHelper.formatCurrency(
-                            productSelected.sellingPrice,
+                            productSelected!.sellingPrice,
                           ),
                           style: const TextStyle(
                             fontSize: 12,
@@ -312,7 +326,7 @@ class _ProductDetailsState extends State<ProductDetails> {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    productSelected.description,
+                    productSelected!.description,
                     style: const TextStyle(fontSize: 14, color: Colors.grey),
                   ),
                   const SizedBox(height: 16),
@@ -357,7 +371,7 @@ class _ProductDetailsState extends State<ProductDetails> {
                   ),
                   const SizedBox(height: 8),
                   ProductReviewSection(
-                    productId: productSelected.id,
+                    productId: productSelected!.id,
                     reviews: _isLoadingReviews ? [] : _reviews,
                   ),
                 ],

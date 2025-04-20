@@ -33,4 +33,21 @@ class VariantProvider with ChangeNotifier {
     _selectedVariant = null;
     notifyListeners();
   }
+
+  Future<void> updateVariantInventory({
+    required String productId,
+    required String variantId,
+    required int quantityChange,
+  }) async {
+    try {
+      await _variantRepo.updateVariantInventory(
+        productId: productId,
+        variantId: variantId,
+        quantityChange: quantityChange,
+      );
+      notifyListeners();
+    } catch (e) {
+      debugPrint('Error updating variant inventory: $e');
+    }
+  }
 }

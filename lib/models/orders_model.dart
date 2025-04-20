@@ -1,4 +1,4 @@
-class Order {
+class OrderModel {
   final String id;
   final DateTime createdAt;
   final List<OrderDetail> orderDetails;
@@ -9,7 +9,7 @@ class Order {
   final OrderUserDetails user;
   final OrderCouponDetails? coupon;
 
-  Order({
+  OrderModel({
     required this.id,
     required this.createdAt,
     required this.orderDetails,
@@ -21,7 +21,7 @@ class Order {
     this.coupon,
   });
 
-  factory Order.fromJson(Map<String, dynamic> json) => Order(
+  factory OrderModel.fromJson(Map<String, dynamic> json) => OrderModel(
     id: json['id'],
     createdAt: DateTime.parse(json['createdAt']),
     orderDetails:

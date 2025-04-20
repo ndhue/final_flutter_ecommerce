@@ -53,4 +53,28 @@ class Coupon {
       'type': type == CouponType.fixed ? 'fixed' : 'percent', //
     };
   }
+
+  Coupon copyWith({
+    String? id,
+    String? code,
+    Timestamp? createdAt,
+    bool? disable,
+    int? maxUses,
+    int? timesUsed,
+    double? value,
+    CouponType? type,
+    List<String>? ordersApplied,
+  }) {
+    return Coupon(
+      id: id ?? this.id,
+      code: code ?? this.code,
+      createdAt: createdAt ?? this.createdAt,
+      disable: disable ?? this.disable,
+      maxUses: maxUses ?? this.maxUses,
+      timesUsed: timesUsed ?? this.timesUsed,
+      value: value ?? this.value,
+      type: type ?? this.type,
+      ordersApplied: ordersApplied ?? this.ordersApplied,
+    );
+  }
 }

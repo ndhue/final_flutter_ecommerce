@@ -28,7 +28,10 @@ class _LoginScreenState extends State<LoginScreen> {
     final email = _emailController.text.trim();
     final password = _passController.text.trim();
 
-    bool success = await authProvider.signIn(email, password);
+    bool success = await authProvider.signIn(
+      'user2@example.com',
+      'userpassword',
+    );
     if (!mounted) return; // Check again after async operation
     setState(() => _isLoading = false);
 

@@ -1,19 +1,44 @@
-import 'package:final_ecommerce/data/mock_data.dart';
 import 'package:final_ecommerce/models/models_export.dart';
+import 'package:final_ecommerce/providers/providers_export.dart';
 import 'package:final_ecommerce/routes/route_constants.dart';
 import 'package:final_ecommerce/utils/constants.dart';
 import 'package:final_ecommerce/utils/utils.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
-class OrdersScreen extends StatelessWidget {
+class OrdersScreen extends StatefulWidget {
   const OrdersScreen({super.key});
 
   @override
+  State<OrdersScreen> createState() => _OrdersScreenState();
+}
+
+class _OrdersScreenState extends State<OrdersScreen> {
+  @override
+  void initState() {
+    super.initState();
+    final orderProvider = context.read<OrderProvider>();
+    final userProvider = context.read<UserProvider>();
+
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (userProvider.user != null && !orderProvider.hasFetchedOrders) {
+        await orderProvider.fetchOrdersByUser(userProvider.user!.id);
+      }
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
-    bool hasOrder = true; // đổi false để test Empty UI
+    final orderProvider = context.watch<OrderProvider>();
+    final hasOrder = orderProvider.orders.isNotEmpty;
 
     return Scaffold(
-      body: hasOrder ? const OrderListView() : const EmptyOrderView(),
+      body:
+          orderProvider.isLoading
+              ? const Center(child: CircularProgressIndicator())
+              : hasOrder
+              ? OrderListView(orders: orderProvider.orders)
+              : const EmptyOrderView(),
     );
   }
 }
@@ -74,7 +99,9 @@ class EmptyOrderView extends StatelessWidget {
 }
 
 class OrderListView extends StatelessWidget {
-  const OrderListView({super.key});
+  final List<OrderModel> orders;
+
+  const OrderListView({super.key, required this.orders});
 
   @override
   Widget build(BuildContext context) {
@@ -107,7 +134,7 @@ class OrderListView extends StatelessWidget {
         const SizedBox(height: 16),
 
         // Order Received
-        ...mockOrders.map((order) {
+        ...orders.map((order) {
           return Padding(
             padding: const EdgeInsets.only(bottom: 16),
             child: _buildOrderItem(context, order),
@@ -117,7 +144,7 @@ class OrderListView extends StatelessWidget {
     );
   }
 
-  Widget _buildOrderItem(BuildContext context, Order order) {
+  Widget _buildOrderItem(BuildContext context, OrderModel order) {
     var latestStatus = order.statusHistory.first;
     Color statusColor = getStatusColor(latestStatus.status);
     String date = formatDate(latestStatus.time);

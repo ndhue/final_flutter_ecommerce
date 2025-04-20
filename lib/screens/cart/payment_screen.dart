@@ -1,12 +1,10 @@
 import 'package:final_ecommerce/models/models_export.dart';
-import 'package:final_ecommerce/providers/coupon_provider.dart';
+import 'package:final_ecommerce/providers/providers_export.dart';
 import 'package:final_ecommerce/screens/cart/components/delivery_info.dart';
 import 'package:final_ecommerce/utils/constants.dart';
 import 'package:final_ecommerce/utils/format.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-
-import '../../providers/cart_provider.dart';
 
 class PaymentScreen extends StatefulWidget {
   const PaymentScreen({super.key});
@@ -17,7 +15,10 @@ class PaymentScreen extends StatefulWidget {
 
 class _PaymentScreenState extends State<PaymentScreen> {
   final TextEditingController _discountController = TextEditingController();
+  final TextEditingController _loyaltyPointsController =
+      TextEditingController();
   final double _shippingFee = 15000;
+
   @override
   void initState() {
     super.initState();
@@ -30,12 +31,28 @@ class _PaymentScreenState extends State<PaymentScreen> {
   Widget build(BuildContext context) {
     final cartProvider = Provider.of<CartProvider>(context);
     final couponProvider = Provider.of<CouponProvider>(context);
+    final userProvider = Provider.of<UserProvider>(context);
 
     final selectedItems = cartProvider.cartItems.toList();
     final totalPrice = cartProvider.totalAmount;
-    final discountValue = couponProvider.appliedCoupon?.value ?? 0.0;
-    final discount = totalPrice * discountValue;
-    final finalTotalPrice = totalPrice - discount + _shippingFee;
+    final discount =
+        couponProvider.appliedCoupon != null
+            ? (couponProvider.appliedCoupon!.type == CouponType.percent
+                ? totalPrice * couponProvider.appliedCoupon!.value
+                : couponProvider.appliedCoupon!.value)
+            : 0.0;
+
+    final availableLoyaltyPoints = userProvider.user?.loyaltyPoints ?? 0;
+    final loyaltyPointsUsed = int.tryParse(_loyaltyPointsController.text) ?? 0;
+
+    final adjustedLoyaltyPointsUsed =
+        loyaltyPointsUsed > availableLoyaltyPoints
+            ? availableLoyaltyPoints
+            : loyaltyPointsUsed;
+
+    final loyaltyPointsDiscount = adjustedLoyaltyPointsUsed.toDouble();
+    final finalTotalPrice =
+        totalPrice - discount - loyaltyPointsDiscount + _shippingFee;
 
     return Scaffold(
       appBar: AppBar(title: const Text('Payment')),
@@ -47,12 +64,17 @@ class _PaymentScreenState extends State<PaymentScreen> {
           _buildOrderSummary(
             totalPrice,
             discount,
+            loyaltyPointsDiscount,
             finalTotalPrice,
             couponProvider.appliedCoupon,
           ),
         ],
       ),
-      bottomNavigationBar: _buildPaymentButton(selectedItems, finalTotalPrice),
+      bottomNavigationBar: _buildPaymentButton(
+        selectedItems,
+        finalTotalPrice,
+        adjustedLoyaltyPointsUsed,
+      ),
     );
   }
 
@@ -117,7 +139,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
         color: Colors.white,
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.withOpacity(0.1),
+            color: Colors.grey.withAlpha(25),
             blurRadius: 5,
             spreadRadius: 2,
           ),
@@ -175,9 +197,14 @@ class _PaymentScreenState extends State<PaymentScreen> {
   Widget _buildOrderSummary(
     double totalPrice,
     double discount,
+    double loyaltyPointsDiscount,
     double finalTotal,
     Coupon? appliedCoupon,
   ) {
+    final availableLoyaltyPoints =
+        Provider.of<UserProvider>(context).user?.loyaltyPoints ?? 0;
+    bool useLoyaltyPoints = loyaltyPointsDiscount > 0;
+
     return Container(
       padding: const EdgeInsets.all(16.0),
       decoration: const BoxDecoration(
@@ -205,6 +232,29 @@ class _PaymentScreenState extends State<PaymentScreen> {
           const SizedBox(height: 8),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
+
+            children: [
+              Text(
+                'Use ${FormatHelper.formatCurrency(availableLoyaltyPoints.toDouble())} loyalty points',
+              ),
+              const SizedBox(width: 8),
+              Switch(
+                value: useLoyaltyPoints,
+                onChanged: (value) {
+                  setState(() {
+                    useLoyaltyPoints = value;
+                    _loyaltyPointsController.text =
+                        useLoyaltyPoints
+                            ? availableLoyaltyPoints.toString()
+                            : '0';
+                  });
+                },
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               const Text('Shipping Fee'),
               Text('+${FormatHelper.formatCurrency(_shippingFee)}'),
@@ -229,9 +279,132 @@ class _PaymentScreenState extends State<PaymentScreen> {
     );
   }
 
+  Future<void> _handleProceedToPayment(
+    BuildContext context,
+    List<CartItem> selectedItems,
+    double finalTotalPrice,
+    int loyaltyPointsUsed,
+  ) async {
+    final cartProvider = Provider.of<CartProvider>(context, listen: false);
+    final couponProvider = Provider.of<CouponProvider>(context, listen: false);
+    final userProvider = Provider.of<UserProvider>(context, listen: false);
+    final orderProvider = Provider.of<OrderProvider>(context, listen: false);
+
+    final address = cartProvider.addressInfo;
+
+    if (address == null ||
+        address.receiverName.trim().isEmpty ||
+        address.city.trim().isEmpty ||
+        address.district.trim().isEmpty ||
+        address.ward.trim().isEmpty ||
+        address.detailedAddress.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please fill in all delivery information'),
+        ),
+      );
+      return;
+    }
+
+    // Show pending dialog
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const Center(child: CircularProgressIndicator()),
+    );
+
+    try {
+      // Prepare data before async operations
+      final loyaltyPointsEarned = (finalTotalPrice * 0.1).toInt();
+      final order = OrderModel(
+        id: DateTime.now().millisecondsSinceEpoch.toString(),
+        createdAt: DateTime.now(),
+        orderDetails:
+            selectedItems
+                .map(
+                  (item) => OrderDetail(
+                    productId: item.product.id,
+                    productName: item.product.name,
+                    imageUrl: item.product.imageUrl,
+                    variantId: item.variant.variantId,
+                    colorName: item.variant.colorName,
+                    quantity: item.quantity,
+                    price: item.product.price,
+                    discount: item.product.discount,
+                  ),
+                )
+                .toList(),
+        loyaltyPointsEarned: loyaltyPointsEarned,
+        loyaltyPointsUsed: loyaltyPointsUsed,
+        statusHistory: [StatusHistory(status: 'Pending', time: DateTime.now())],
+        total: finalTotalPrice,
+        user: OrderUserDetails(
+          userId: userProvider.user?.id ?? 'guest',
+          name: address.receiverName,
+          email: userProvider.user?.email ?? '',
+          shippingAddress:
+              '${address.detailedAddress}, ${address.ward}, ${address.district}, ${address.city}',
+        ),
+        coupon:
+            couponProvider.appliedCoupon != null
+                ? OrderCouponDetails(
+                  code: couponProvider.appliedCoupon!.code,
+                  value: couponProvider.appliedCoupon!.value,
+                )
+                : null,
+      );
+
+      // Perform async operations
+      await orderProvider.addOrder(order);
+
+      if (loyaltyPointsUsed > 0) {
+        await userProvider.updateLoyaltyPoints(
+          pointsChange: -loyaltyPointsUsed,
+          pointsUsed: loyaltyPointsUsed,
+        );
+      }
+      if (loyaltyPointsEarned > 0) {
+        await userProvider.updateLoyaltyPoints(
+          pointsChange: loyaltyPointsEarned,
+        );
+      }
+
+      await cartProvider.updateProductVariantInventory();
+      await cartProvider.removePurchasedItems(selectedItems);
+
+      if (couponProvider.appliedCoupon != null) {
+        await couponProvider.updateCouponUsage(
+          couponProvider.appliedCoupon!.id,
+          order.id,
+        );
+      }
+
+      // Close pending dialog
+      if (Navigator.canPop(context)) {
+        Navigator.of(context).pop();
+      }
+
+      // Show success dialog
+      showSuccessDialog(context);
+    } catch (e) {
+      // Close pending dialog
+      if (Navigator.canPop(context)) {
+        Navigator.of(context).pop();
+      }
+
+      // Show error message
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('An error occurred during payment. Please try again.'),
+        ),
+      );
+    }
+  }
+
   Widget _buildPaymentButton(
     List<CartItem> selectedItems,
     double finalTotalPrice,
+    int loyaltyPointsUsed,
   ) {
     final hasSelectedItems = selectedItems.isNotEmpty;
     return Container(
@@ -243,33 +416,12 @@ class _PaymentScreenState extends State<PaymentScreen> {
       child: ElevatedButton(
         onPressed:
             hasSelectedItems
-                ? () {
-                  // Payment logic here
-                  final address =
-                      Provider.of<CartProvider>(
-                        context,
-                        listen: false,
-                      ).addressInfo;
-
-                  if (address == null ||
-                      address.receiverName.trim().isEmpty ||
-                      address.city.trim().isEmpty ||
-                      address.district.trim().isEmpty ||
-                      address.ward.trim().isEmpty ||
-                      address.detailedAddress.trim().isEmpty) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text(
-                          'Please fill in all delivery information',
-                        ),
-                      ),
-                    );
-                  } else {
-                    showSuccessDialog(context);
-
-                    // TODO: Gửi đơn hàng về server hoặc Firebase tại đây
-                  }
-                }
+                ? () => _handleProceedToPayment(
+                  context,
+                  selectedItems,
+                  finalTotalPrice,
+                  loyaltyPointsUsed,
+                )
                 : null,
         style: ElevatedButton.styleFrom(
           backgroundColor:

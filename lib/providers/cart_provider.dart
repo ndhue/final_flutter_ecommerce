@@ -1,13 +1,13 @@
 import 'dart:convert';
 
 import 'package:final_ecommerce/models/models_export.dart';
+import 'package:final_ecommerce/repositories/variant_repository.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class CartProvider with ChangeNotifier {
   List<CartItem> _cartItems = [];
   Set<String> _selectedItemIds = {};
-  Set<String> _selectedItemKeys = {}; // productId_variantId
   String _userId = 'guest';
   AddressInfo? _addressInfo;
   final String _guestCartKey = 'cart_guest';
@@ -190,5 +190,35 @@ class CartProvider with ChangeNotifier {
       saveCart();
       notifyListeners();
     }
+  }
+
+  // Update inventory for product variants based on the cart
+  Future<void> updateProductVariantInventory() async {
+    final variantRepository = VariantRepository();
+
+    try {
+      for (final cartItem in _cartItems) {
+        await variantRepository.updateVariantInventory(
+          productId: cartItem.product.id,
+          variantId: cartItem.variant.variantId,
+          quantityChange: -cartItem.quantity,
+        );
+      }
+    } catch (e) {
+      debugPrint('Error updating product variant inventory: $e');
+    }
+  }
+
+  // Remove purchased items from the cart
+  Future<void> removePurchasedItems(List<CartItem> purchasedItems) async {
+    _cartItems.removeWhere(
+      (cartItem) => purchasedItems.any(
+        (purchasedItem) =>
+            purchasedItem.product.id == cartItem.product.id &&
+            purchasedItem.variant.variantId == cartItem.variant.variantId,
+      ),
+    );
+    await saveCart();
+    notifyListeners();
   }
 }

@@ -281,4 +281,13 @@ class ProductProvider with ChangeNotifier {
       debugPrint('Error reloading product: $e');
     }
   }
+
+  Future<NewProduct> fetchProductById(String productId) async {
+    try {
+      return await _repository.fetchProductById(productId);
+    } catch (e) {
+      debugPrint('Error fetching product by ID: $e');
+      rethrow;
+    }
+  }
 }

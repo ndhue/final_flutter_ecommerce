@@ -40,6 +40,37 @@ class CouponRepository {
     }
   }
 
+  Future<void> updateCouponUsage(
+    String couponCode,
+    String orderId, {
+    bool revert = false,
+  }) async {
+    final snapshot =
+        await FirebaseFirestore.instance
+            .collection('coupons')
+            .where('code', isEqualTo: couponCode)
+            .limit(1)
+            .get();
+
+    if (snapshot.docs.isNotEmpty) {
+      final couponDoc = snapshot.docs.first.reference;
+
+      if (revert) {
+        await couponDoc.update({
+          'ordersApplied': FieldValue.arrayRemove([orderId]),
+          'timesUsed': FieldValue.increment(-1),
+        });
+      } else {
+        await couponDoc.update({
+          'ordersApplied': FieldValue.arrayUnion([orderId]),
+          'timesUsed': FieldValue.increment(1),
+        });
+      }
+    } else {
+      throw Exception('Coupon with code $couponCode not found');
+    }
+  }
+
   Future<void> deleteCoupon(String id) async {
     try {
       await _couponCollection.doc(id).delete();

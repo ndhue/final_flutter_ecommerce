@@ -102,6 +102,41 @@ class UserProvider with ChangeNotifier {
     }
   }
 
+  // Update user's loyalty points and loyaltyPointsUsed in Firestore
+  Future<void> updateLoyaltyPoints({
+    int pointsChange = 0,
+    int pointsUsed = 0,
+  }) async {
+    if (_user == null) return;
+
+    try {
+      final newLoyaltyPoints =
+          (_user!.loyaltyPoints + pointsChange)
+              .clamp(0, double.infinity)
+              .toInt();
+      final newLoyaltyPointsUsed =
+          (_user!.loyaltyPointsUsed + pointsUsed)
+              .clamp(0, double.infinity)
+              .toInt();
+
+      await _firestore.collection('users').doc(_user!.id).update({
+        'loyaltyPoints': newLoyaltyPoints,
+        'loyaltyPointsUsed': newLoyaltyPointsUsed,
+      });
+
+      // Update the local user model
+      _user = _user!.copyWith(
+        loyaltyPoints: newLoyaltyPoints,
+        loyaltyPointsUsed: newLoyaltyPointsUsed,
+      );
+      notifyListeners();
+
+      debugPrint("Loyalty points updated successfully");
+    } catch (e) {
+      debugPrint("Failed to update loyalty points");
+    }
+  }
+
   // Load user data on app start
   Future<void> loadUserOnAppStart() async {
     User? firebaseUser = _auth.currentUser;
