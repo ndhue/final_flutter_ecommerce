@@ -1,10 +1,12 @@
 import 'dart:async';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:final_ecommerce/models/user_model.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 import '../repositories/auth_repository.dart';
+import 'order_provider.dart';
 
 class AuthProvider extends ChangeNotifier {
   final FirebaseAuth _auth = FirebaseAuth.instance;
@@ -42,46 +44,57 @@ class AuthProvider extends ChangeNotifier {
     String password,
     String fullName,
     String shippingAddress,
+    String ward,
+    String district,
+    String city,
   ) async {
     _isLoading = true;
     notifyListeners();
 
-    UserCredential? userCredential = await _authRepository.signUp(
-      email,
-      password,
-    );
+    UserCredential? userCredential;
+    try {
+      userCredential = await _authRepository.signUp(email, password);
 
-    if (userCredential != null) {
-      _user = userCredential.user;
-      _startTokenRefreshTimer();
-
-      final timestamp = FieldValue.serverTimestamp();
-
-      try {
-        await FirebaseFirestore.instance
-            .collection('users')
-            .doc(_user!.uid)
-            .set({
-              'uid': _user!.uid,
-              'email': email,
-              'fullName': fullName,
-              'shippingAddress': shippingAddress,
-              'createdAt': timestamp,
-            });
-
-        await _authRepository.saveUserData(userCredential);
-
-        _user = user;
+      if (userCredential != null) {
+        _user = userCredential.user;
         _startTokenRefreshTimer();
-      } catch (e) {
-        _isLoading = false;
-        notifyListeners();
-        return false;
-      }
 
-      _isLoading = false;
-      notifyListeners();
-      return true;
+        try {
+          UserModel newUser = UserModel(
+            id: _user!.uid,
+            email: email,
+            fullName: fullName,
+            shippingAddress: shippingAddress,
+            ward: ward,
+            district: district,
+            city: city,
+            createdAt: Timestamp.now(),
+          );
+
+          await FirebaseFirestore.instance
+              .collection('users')
+              .doc(_user!.uid)
+              .set(newUser.toMap());
+
+          await _authRepository.saveUserData(userCredential);
+
+          _isLoading = false;
+          notifyListeners();
+          return true;
+        } catch (firestoreError) {
+          _isLoading = false;
+          notifyListeners();
+          return true;
+        }
+      }
+    } catch (authError) {
+      if (_user != null) {
+        try {
+          await _user!.delete();
+        } catch (e) {
+          debugPrint("Error deleting partially created user: $e");
+        }
+      }
     }
 
     _isLoading = false;
@@ -161,6 +174,81 @@ class AuthProvider extends ChangeNotifier {
       return "Failed to change password. Please try again.";
     } catch (e) {
       return "An unexpected error occurred.";
+    }
+  }
+
+  // Create user account during checkout
+  Future<bool> createGuestAccount(
+    String email,
+    String password,
+    String fullName,
+    String shippingAddress,
+    String ward,
+    String district,
+    String city,
+  ) async {
+    _isLoading = true;
+    notifyListeners();
+
+    try {
+      final result = await signUp(
+        email,
+        password,
+        fullName,
+        shippingAddress,
+        ward,
+        district,
+        city,
+      );
+
+      debugPrint("Account creation result: $result");
+
+      if (result) {
+        // Associate orders if account was created successfully
+        try {
+          final orderProvider = OrderProvider();
+          if (_user != null) {
+            await orderProvider.associateGuestOrdersWithUser(email, _user!.uid);
+          }
+        } catch (e) {
+          debugPrint("Error associating guest orders: $e");
+        }
+      }
+
+      _isLoading = false;
+      notifyListeners();
+      return result;
+    } on FirebaseAuthException catch (e) {
+      debugPrint(
+        "Firebase Auth Exception during account creation: ${e.code} - ${e.message}",
+      );
+
+      _isLoading = false;
+      notifyListeners();
+
+      // Handle the case where the email already exists
+      if (e.code == 'email-already-in-use') {
+        return false;
+      }
+      return false;
+    } catch (e) {
+      debugPrint("Error during guest account creation: $e");
+      _isLoading = false;
+      notifyListeners();
+      return false;
+    }
+  }
+
+  // Check if sign-in attempt is successful - replaces isEmailRegistered
+  Future<bool> trySignInWithEmail(String email, String password) async {
+    try {
+      final credential = await _auth.signInWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
+      return credential.user != null;
+    } on FirebaseAuthException {
+      return false;
     }
   }
 }

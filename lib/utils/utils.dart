@@ -82,3 +82,16 @@ String formatDateTime(DateTime dateTime) {
   final DateFormat formatter = DateFormat('HH:mm dd/MM/yyyy');
   return formatter.format(dateTime);
 }
+
+// Format number with thousand separator
+String formatNumber(int number) {
+  return number.toString().replaceAllMapped(
+    RegExp(r'(\d)(?=(\d{3})+(?!\d))'),
+    (Match m) => '${m[1]}.',
+  );
+}
+
+// Convert from VND to loyalty points (10% conversion rate)
+int convertVndToPoints(int vndAmount) {
+  return (vndAmount / 10000).floor(); // 10,000 VND = 1 point
+}

@@ -1,9 +1,12 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:final_ecommerce/models/models_export.dart';
 import 'package:final_ecommerce/providers/providers_export.dart';
 import 'package:final_ecommerce/routes/route_constants.dart';
 import 'package:final_ecommerce/services/auth_service.dart';
 import 'package:final_ecommerce/utils/constants.dart';
 import 'package:final_ecommerce/utils/dialog.dart';
+import 'package:final_ecommerce/utils/format.dart';
+import 'package:final_ecommerce/utils/utils.dart';
 import 'package:final_ecommerce/widgets/address_picker_registration.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -49,7 +52,28 @@ class _ProfileScreenState extends State<ProfileScreen> {
           userProvider.isLoading
               ? const Center(child: CircularProgressIndicator())
               : user == null
-              ? Center(child: Text("User data not found. Please log in again."))
+              ? Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text("User data not found. Please log in again."),
+                    SizedBox(height: 20),
+                    ElevatedButton.icon(
+                      onPressed: () => handleLogout(context),
+                      icon: Icon(Icons.refresh),
+                      label: Text("Back to Login"),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: primaryColor,
+                        foregroundColor: Colors.white,
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 20,
+                          vertical: 12,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              )
               : ListView(
                 padding: EdgeInsets.all(20),
                 children: [
@@ -106,7 +130,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ),
                   ),
                   SizedBox(height: 20),
-
+                  _buildSectionTitle("Loyalty Points"),
+                  _buildLoyaltyPointItem(user.loyaltyPoints),
                   _buildSectionTitle("Personal Information"),
                   _buildMenuItemCustom(
                     Icons.local_shipping,
@@ -206,6 +231,107 @@ class _ProfileScreenState extends State<ProfileScreen> {
         trailing: Icon(Icons.arrow_forward_ios, size: 16, color: iconColor),
         onTap: onTap,
       ),
+    );
+  }
+
+  Widget _buildLoyaltyPointItem(int vndAmount) {
+    // Convert VND to points (10% conversion rate)
+    final points = convertVndToPoints(vndAmount); // 10,000 VND = 1 point
+
+    return Card(
+      color: Colors.amber[50],
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+      child: Column(
+        children: [
+          ListTile(
+            leading: Icon(Icons.stars, color: Colors.amber),
+            title: Text('Loyalty Points'),
+            trailing: Container(
+              padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                color: Colors.amber,
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Text(
+                '${convertNum(points)} points',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+            onTap: () {
+              // Show details about the loyalty program
+              showDialog(
+                context: context,
+                builder:
+                    (context) => _buildLoyaltyInfoDialog(vndAmount, points),
+              );
+            },
+          ),
+          Padding(
+            padding: const EdgeInsets.only(left: 16, right: 16, bottom: 12),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    'Value: ${vndAmount.toString().replaceAllMapped(RegExp(r'(\d)(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]}.')} VND',
+                    style: TextStyle(color: Colors.grey[700]),
+                  ),
+                ),
+                Text(
+                  'Earn 10% on purchases',
+                  style: TextStyle(color: Colors.grey[700], fontSize: 12),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLoyaltyInfoDialog(int vndAmount, int points) {
+    return AlertDialog(
+      title: Row(
+        children: [
+          Icon(Icons.stars, color: Colors.amber),
+          SizedBox(width: 10),
+          Text('Loyalty Program'),
+        ],
+      ),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('How it works:', style: TextStyle(fontWeight: FontWeight.bold)),
+          SizedBox(height: 8),
+          Text(
+            '• You earn 1 point for every 10,000 VND spent',
+            style: const TextStyle(),
+          ),
+          SizedBox(height: 4),
+          Text('• Example: 1,000,000 VND spent = 100 points'),
+          SizedBox(height: 4),
+          Text('• Points can be redeemed for discounts on future purchases'),
+          SizedBox(height: 16),
+          Text(
+            'Your current balance:',
+            style: TextStyle(fontWeight: FontWeight.bold),
+          ),
+          SizedBox(height: 8),
+          Text(
+            '${FormatHelper.formatCurrency(vndAmount)} spent = ${formatNumber(points)} points',
+            style: TextStyle(color: Colors.amber[800]),
+          ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: Text('Close'),
+        ),
+      ],
     );
   }
 

@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/user_model.dart';
 
@@ -130,10 +131,8 @@ class UserProvider with ChangeNotifier {
         loyaltyPointsUsed: newLoyaltyPointsUsed,
       );
       notifyListeners();
-
-      debugPrint("Loyalty points updated successfully");
     } catch (e) {
-      debugPrint("Failed to update loyalty points");
+      FlutterError("Failed to update loyalty points");
     }
   }
 
@@ -154,5 +153,63 @@ class UserProvider with ChangeNotifier {
   void clearUser() {
     _user = null;
     notifyListeners();
+  }
+
+  // Clear the user cache and reset the provider state
+  Future<void> clearUserCache() async {
+    _isLoading = true;
+    notifyListeners();
+
+    try {
+      // Clear shared preferences related to user data
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove('user_data');
+
+      // Reset the user data in memory
+      _user = null;
+
+      _isLoading = false;
+      notifyListeners();
+    } catch (e) {
+      _isLoading = false;
+      notifyListeners();
+      rethrow;
+    }
+  }
+
+  // Attempt to refresh user data from Firestore
+  Future<void> refreshUserData() async {
+    _isLoading = true;
+    notifyListeners();
+
+    try {
+      // Get the current Firebase user
+      User? currentUser = FirebaseAuth.instance.currentUser;
+
+      if (currentUser == null) {
+        _isLoading = false;
+        notifyListeners();
+        return;
+      }
+
+      final userDoc =
+          await _firestore.collection('users').doc(currentUser.uid).get();
+
+      if (userDoc.exists) {
+        _user = UserModel.fromMap(userDoc.data()!);
+
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('user_data', userDoc.data().toString());
+      } else {
+        _user = null;
+      }
+
+      _isLoading = false;
+      notifyListeners();
+    } catch (e) {
+      _isLoading = false;
+      notifyListeners();
+      rethrow;
+    }
   }
 }

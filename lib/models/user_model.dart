@@ -1,3 +1,5 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 class UserModel {
   final String id;
   final String fullName;
@@ -10,19 +12,21 @@ class UserModel {
   final String district;
   final String ward;
   final String shippingAddress;
+  final Timestamp? createdAt;
 
   UserModel({
     required this.id,
     required this.fullName,
     required this.email,
-    required this.role,
-    required this.activated,
-    required this.loyaltyPoints,
-    required this.loyaltyPointsUsed,
+    this.role = 'user',
+    this.activated = true,
+    this.loyaltyPoints = 0,
+    this.loyaltyPointsUsed = 0,
     required this.city,
     required this.district,
     required this.ward,
     required this.shippingAddress,
+    required this.createdAt,
   });
 
   String get fullShippingAddress {
@@ -43,6 +47,8 @@ class UserModel {
       district: data['district'] ?? '',
       ward: data['ward'] ?? '',
       shippingAddress: data['shippingAddress'] ?? '',
+      createdAt:
+          data['createdAt'] != null ? (data['createdAt'] as Timestamp) : null,
     );
   }
 
@@ -60,6 +66,7 @@ class UserModel {
       'district': district,
       'ward': ward,
       'shippingAddress': shippingAddress,
+      'createdAt': createdAt ?? FieldValue.serverTimestamp(),
     };
   }
 
@@ -88,6 +95,7 @@ class UserModel {
       district: district ?? this.district,
       ward: ward ?? this.ward,
       shippingAddress: shippingAddress ?? this.shippingAddress,
+      createdAt: createdAt ?? createdAt,
     );
   }
 }

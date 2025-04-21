@@ -1,9 +1,9 @@
 import 'package:final_ecommerce/data/mock_data.dart';
+import 'package:final_ecommerce/data/orders_data.dart';
 import 'package:final_ecommerce/models/models_export.dart';
 import 'package:final_ecommerce/utils/format.dart';
-import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
-import 'package:final_ecommerce/data/orders_data.dart';
+import 'package:flutter/material.dart';
 import 'package:intl/intl.dart'; //format date
 
 class DashboardScreen extends StatelessWidget {
@@ -65,10 +65,10 @@ class DashboardScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        title: const Text('Dashboard'),
         backgroundColor: Colors.white,
         elevation: 0,
         foregroundColor: Colors.black,
+        automaticallyImplyLeading: false,
         actions: [
           IconButton(
             icon: const Icon(Icons.filter_list),
@@ -123,7 +123,7 @@ class DashboardScreen extends StatelessWidget {
             runSpacing: 12,
             children:
                 orderData.entries.map((entry) {
-                  return Container(
+                  return SizedBox(
                     width: isWideScreen ? (constraints.maxWidth / 4 - 24) : 160,
                     child: _buildStatCard(entry.key, entry.value),
                   );

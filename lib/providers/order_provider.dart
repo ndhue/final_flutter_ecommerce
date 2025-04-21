@@ -52,4 +52,22 @@ class OrderProvider with ChangeNotifier {
     _orders.removeWhere((o) => o.id == orderId);
     notifyListeners();
   }
+
+  // Create an order for guest checkout
+  Future<void> createGuestOrder(
+    OrderModel order,
+    Map<String, dynamic> guestInfo,
+  ) async {
+    await _orderRepository.createGuestOrder(order, guestInfo);
+    _orders.add(order);
+    _hasFetchedOrders = false; // Reset to refetch orders
+    notifyListeners();
+  }
+
+  // Associate guest orders with user when they create an account or sign in
+  Future<void> associateGuestOrdersWithUser(String email, String userId) async {
+    await _orderRepository.associateGuestOrdersWithUser(email, userId);
+    _hasFetchedOrders = false; // Reset to force refetch
+    notifyListeners();
+  }
 }
