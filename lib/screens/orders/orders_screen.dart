@@ -2,6 +2,7 @@ import 'package:final_ecommerce/models/models_export.dart';
 import 'package:final_ecommerce/providers/providers_export.dart';
 import 'package:final_ecommerce/routes/route_constants.dart';
 import 'package:final_ecommerce/utils/constants.dart';
+import 'package:final_ecommerce/utils/order_actions.dart';
 import 'package:final_ecommerce/utils/utils.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -192,7 +193,6 @@ class OrderListView extends StatelessWidget {
                           ),
                         ],
                       ),
-
                       Padding(
                         padding: const EdgeInsets.only(left: 20),
                         child: Text(
@@ -257,19 +257,30 @@ class OrderListView extends StatelessWidget {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children:
-                    actions
-                        .map(
-                          (action) => Expanded(
-                            child: Padding(
-                              padding: const EdgeInsets.only(right: 8),
-                              child: OutlinedButton(
-                                onPressed: () {},
-                                child: Text(action),
-                              ),
-                            ),
+                    actions.map((action) {
+                      return Expanded(
+                        child: Padding(
+                          padding: const EdgeInsets.only(right: 8),
+                          child: OutlinedButton(
+                            onPressed: () {
+                              if (action == 'Cancel') {
+                                handleCancelOrder(context, order);
+                              } else if (action == 'Track') {
+                                showModalBottomSheet(
+                                  context: context,
+                                  builder: (context) {
+                                    return TrackOrderBottomSheet(
+                                      statusHistory: order.statusHistory,
+                                    );
+                                  },
+                                );
+                              }
+                            },
+                            child: Text(action),
                           ),
-                        )
-                        .toList(),
+                        ),
+                      );
+                    }).toList(),
               ),
           ],
         ),

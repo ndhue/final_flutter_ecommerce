@@ -71,6 +71,9 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
       password,
       fullName,
       shippingAddress,
+      selectedWard ?? '',
+      selectedDistrict ?? '',
+      selectedCity ?? '',
     );
     setState(() => _isLoading = false);
 

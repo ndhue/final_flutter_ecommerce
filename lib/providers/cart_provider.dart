@@ -11,6 +11,11 @@ class CartProvider with ChangeNotifier {
   String _userId = 'guest';
   AddressInfo? _addressInfo;
   final String _guestCartKey = 'cart_guest';
+  bool get isGuestUser => _userId == 'guest';
+
+  // Store guest address info separately
+  Map<String, dynamic>? _guestCheckoutInfo;
+  Map<String, dynamic>? get guestCheckoutInfo => _guestCheckoutInfo;
 
   CartProvider() {
     loadCart();
@@ -20,13 +25,11 @@ class CartProvider with ChangeNotifier {
   Set<String> get selectedItemIds => _selectedItemIds;
   AddressInfo? get addressInfo => _addressInfo;
 
-  // Cập nhật địa chỉ cho user/guest
   void updateAddress(AddressInfo info) {
     _addressInfo = info;
     notifyListeners();
   }
 
-  // Load địa chỉ từ thông tin user nếu đã đăng nhập
   void loadUserAddress(UserModel? user) {
     if (user != null) {
       _addressInfo = AddressInfo(
@@ -37,7 +40,6 @@ class CartProvider with ChangeNotifier {
         receiverName: user.fullName,
       );
     } else {
-      // Nếu là guest thì bỏ trống
       _addressInfo = null;
     }
     notifyListeners();
@@ -65,7 +67,6 @@ class CartProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  // Cập nhật userId, reload giỏ hàng tương ứng
   void setUser(String? userId) {
     if (_userId == 'guest' && userId != null) {
       _saveGuestCart();
@@ -80,6 +81,51 @@ class CartProvider with ChangeNotifier {
     }
   }
 
+  // Save guest checkout information
+  void saveGuestCheckoutInfo(Map<String, dynamic> info) {
+    _guestCheckoutInfo = info;
+    notifyListeners();
+  }
+
+  // Convert guest cart to user cart on login/registration
+  Future<void> convertGuestCartToUser(String userId) async {
+    if (_userId == 'guest') {
+      final prefs = await SharedPreferences.getInstance();
+      final guestCartJson = prefs.getString(_guestCartKey);
+
+      if (guestCartJson != null) {
+        // Save current guest cart to the user's cart key
+        await prefs.setString('cart_$userId', guestCartJson);
+
+        // Clear guest cart
+        await prefs.remove(_guestCartKey);
+      }
+
+      _userId = userId;
+      loadCart(); // Load the newly associated cart
+    }
+  }
+
+  // Prepare guest checkout with user information
+  Future<void> prepareGuestCheckout(Map<String, dynamic> userInfo) async {
+    _guestCheckoutInfo = userInfo;
+
+    if (userInfo.containsKey('address')) {
+      final addressData = userInfo['address'] as Map<String, dynamic>;
+      updateAddress(
+        AddressInfo(
+          city: addressData['city'] ?? '',
+          district: addressData['district'] ?? '',
+          ward: addressData['ward'] ?? '',
+          detailedAddress: addressData['detailedAddress'] ?? '',
+          receiverName: userInfo['fullName'] ?? '',
+        ),
+      );
+    }
+
+    notifyListeners();
+  }
+
   // Toggle chọn sản phẩm
   void toggleItemSelection(String productId) {
     if (_selectedItemIds.contains(productId)) {
@@ -90,7 +136,6 @@ class CartProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  // Chọn/bỏ chọn toàn bộ
   void toggleSelectAll(bool selectAll) {
     if (selectAll) {
       _selectedItemIds = _cartItems.map((item) => item.product.id).toSet();
@@ -106,7 +151,6 @@ class CartProvider with ChangeNotifier {
 
   bool isSelected(String productId) => _selectedItemIds.contains(productId);
 
-  // Thêm sản phẩm vào giỏ
   Future<void> addToCart(CartItem newItem) async {
     final index = _cartItems.indexWhere(
       (item) =>
@@ -117,21 +161,19 @@ class CartProvider with ChangeNotifier {
     if (index >= 0) {
       _cartItems[index].quantity += newItem.quantity;
     } else {
-      _cartItems.add(newItem);
+      _cartItems.insert(0, newItem);
     }
 
     await saveCart();
     notifyListeners();
   }
 
-  // Lưu giỏ hàng vào local
   Future<void> saveCart() async {
     final prefs = await SharedPreferences.getInstance();
     final cartJson = jsonEncode(_cartItems.map((e) => e.toMap()).toList());
     await prefs.setString('cart_$_userId', cartJson);
   }
 
-  // Load giỏ hàng từ local
   Future<void> loadCart() async {
     final prefs = await SharedPreferences.getInstance();
     final cartJson = prefs.getString('cart_$_userId');
@@ -146,7 +188,6 @@ class CartProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  // Xoá toàn bộ giỏ
   Future<void> clearCart() async {
     _cartItems.clear();
     final prefs = await SharedPreferences.getInstance();
@@ -154,7 +195,6 @@ class CartProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  // Bỏ chọn hết
   void clearSelection() {
     _cartItems.removeWhere(
       (item) => _selectedItemIds.contains(item.product.id),
@@ -164,13 +204,11 @@ class CartProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  // Xoá sản phẩm theo productId
   void removeItem(String productId) {
     _cartItems.removeWhere((item) => item.product.id == productId);
     notifyListeners();
   }
 
-  // Tính tổng số tiền của các sản phẩm đã chọn
   double get totalAmount {
     return _cartItems
         .where((item) => _selectedItemIds.contains(item.product.id))
@@ -182,7 +220,6 @@ class CartProvider with ChangeNotifier {
         );
   }
 
-  // Cập nhật số lượng sản phẩm
   void updateItemQuantity(String productId, int newQuantity) {
     final index = _cartItems.indexWhere((item) => item.product.id == productId);
     if (index != -1) {
@@ -192,7 +229,6 @@ class CartProvider with ChangeNotifier {
     }
   }
 
-  // Update inventory for product variants based on the cart
   Future<void> updateProductVariantInventory() async {
     final variantRepository = VariantRepository();
 
@@ -209,7 +245,6 @@ class CartProvider with ChangeNotifier {
     }
   }
 
-  // Remove purchased items from the cart
   Future<void> removePurchasedItems(List<CartItem> purchasedItems) async {
     _cartItems.removeWhere(
       (cartItem) => purchasedItems.any(

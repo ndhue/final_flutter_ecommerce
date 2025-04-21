@@ -1,8 +1,10 @@
 import 'package:final_ecommerce/models/models_export.dart';
 import 'package:final_ecommerce/providers/providers_export.dart';
+import 'package:final_ecommerce/screens/cart/components/auth_dialogs.dart';
 import 'package:final_ecommerce/screens/cart/components/delivery_info.dart';
 import 'package:final_ecommerce/utils/constants.dart';
 import 'package:final_ecommerce/utils/format.dart';
+import 'package:final_ecommerce/utils/utils.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -19,10 +21,14 @@ class _PaymentScreenState extends State<PaymentScreen> {
       TextEditingController();
   final double _shippingFee = 15000;
 
+  // Controllers for guest account creation
+  final TextEditingController _passwordController = TextEditingController();
+  bool _isCreatingAccount = false;
+
   @override
   void initState() {
     super.initState();
-    Future.microtask(() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
       Provider.of<CouponProvider>(context, listen: false).loadCoupons();
     });
   }
@@ -203,6 +209,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
   ) {
     final availableLoyaltyPoints =
         Provider.of<UserProvider>(context).user?.loyaltyPoints ?? 0;
+    final availablePoints = convertVndToPoints(availableLoyaltyPoints);
     bool useLoyaltyPoints = loyaltyPointsDiscount > 0;
 
     return Container(
@@ -232,11 +239,8 @@ class _PaymentScreenState extends State<PaymentScreen> {
           const SizedBox(height: 8),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
-
             children: [
-              Text(
-                'Use ${FormatHelper.formatCurrency(availableLoyaltyPoints.toDouble())} loyalty points',
-              ),
+              Text('Use ${formatNumber(availablePoints)} loyalty points'),
               const SizedBox(width: 8),
               Switch(
                 value: useLoyaltyPoints,
@@ -252,6 +256,19 @@ class _PaymentScreenState extends State<PaymentScreen> {
               ),
             ],
           ),
+          if (useLoyaltyPoints)
+            Padding(
+              padding: const EdgeInsets.only(top: 8.0),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text('Points discount'),
+                  Text(
+                    '-${FormatHelper.formatCurrency(loyaltyPointsDiscount)}',
+                  ),
+                ],
+              ),
+            ),
           const SizedBox(height: 8),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -285,13 +302,12 @@ class _PaymentScreenState extends State<PaymentScreen> {
     double finalTotalPrice,
     int loyaltyPointsUsed,
   ) async {
-    final cartProvider = Provider.of<CartProvider>(context, listen: false);
-    final couponProvider = Provider.of<CouponProvider>(context, listen: false);
-    final userProvider = Provider.of<UserProvider>(context, listen: false);
-    final orderProvider = Provider.of<OrderProvider>(context, listen: false);
-
+    final cartProvider = context.read<CartProvider>();
+    final couponProvider = context.read<CouponProvider>();
+    final userProvider = context.read<UserProvider>();
+    final orderProvider = context.read<OrderProvider>();
+    final authProvider = context.read<AuthProvider>();
     final address = cartProvider.addressInfo;
-
     if (address == null ||
         address.receiverName.trim().isEmpty ||
         address.city.trim().isEmpty ||
@@ -306,16 +322,114 @@ class _PaymentScreenState extends State<PaymentScreen> {
       return;
     }
 
-    // Show pending dialog
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (_) => const Center(child: CircularProgressIndicator()),
-    );
+    // Handle guest checkout - check if we have guest info
+    if (authProvider.user == null && cartProvider.isGuestUser) {
+      final guestInfo = cartProvider.guestCheckoutInfo;
+
+      if (guestInfo == null || !guestInfo.containsKey('email')) {
+        // If no guest info, prompt user to provide email
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Please provide delivery information first'),
+          ),
+        );
+        return;
+      }
+
+      // If we have guest info but no password, prompt for account creation
+      if (!guestInfo.containsKey('password') || guestInfo['password'].isEmpty) {
+        _showGuestAccountPrompt(context);
+        return;
+      }
+
+      // Try to create account for guest with provided info
+      final email = guestInfo['email'];
+      final password = guestInfo['password'];
+      final name = guestInfo['fullName'] ?? address.receiverName;
+      final shippingAddress =
+          '${address.detailedAddress}, ${address.ward}, ${address.district}, ${address.city}';
+
+      // Show pending dialog
+      setState(() => _isCreatingAccount = true);
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (_) => const Center(child: CircularProgressIndicator()),
+      );
+
+      try {
+        // Create account for guest
+        final success = await authProvider.createGuestAccount(
+          email,
+          password,
+          name,
+          shippingAddress,
+          address.ward,
+          address.district,
+          address.city,
+        );
+
+        if (!context.mounted) return;
+
+        if (!success) {
+          // Close dialog
+          Navigator.of(context).pop();
+
+          // Show login prompt if account already exists
+          _showLoginPrompt(context, email);
+          return;
+        }
+
+        // Convert guest cart to user cart
+        await cartProvider.convertGuestCartToUser(authProvider.user!.uid);
+      } catch (e) {
+        if (!context.mounted) return;
+
+        if (Navigator.canPop(context)) {
+          Navigator.of(context).pop();
+        }
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Failed to create account. Please try again.'),
+          ),
+        );
+        return;
+      } finally {
+        setState(() => _isCreatingAccount = false);
+      }
+    }
+
+    // Show pending dialog if not already showing
+    if (!_isCreatingAccount && context.mounted) {
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (_) => const Center(child: CircularProgressIndicator()),
+      );
+    }
 
     try {
-      // Prepare data before async operations
+      // Calculate loyalty points earned (10% of final total in VND)
       final loyaltyPointsEarned = (finalTotalPrice * 0.1).toInt();
+
+      // Determine user ID - either from logged in user or newly created account
+      String userId;
+      if (userProvider.user != null) {
+        userId = userProvider.user!.id;
+      } else if (authProvider.user != null) {
+        userId = authProvider.user!.uid;
+      } else {
+        userId = 'guest';
+      }
+
+      // Get user email
+      final email =
+          userProvider.user?.email ??
+          (cartProvider.guestCheckoutInfo?['email'] ??
+              authProvider.user?.email ??
+              '');
+
       final order = OrderModel(
         id: DateTime.now().millisecondsSinceEpoch.toString(),
         createdAt: DateTime.now(),
@@ -339,9 +453,9 @@ class _PaymentScreenState extends State<PaymentScreen> {
         statusHistory: [StatusHistory(status: 'Pending', time: DateTime.now())],
         total: finalTotalPrice,
         user: OrderUserDetails(
-          userId: userProvider.user?.id ?? 'guest',
+          userId: userId, // Now using the correctly determined userId
           name: address.receiverName,
-          email: userProvider.user?.email ?? '',
+          email: email,
           shippingAddress:
               '${address.detailedAddress}, ${address.ward}, ${address.district}, ${address.city}',
         ),
@@ -354,19 +468,34 @@ class _PaymentScreenState extends State<PaymentScreen> {
                 : null,
       );
 
-      // Perform async operations
-      await orderProvider.addOrder(order);
+      // Handle guest order with guest checkout info if needed
+      if (cartProvider.isGuestUser && cartProvider.guestCheckoutInfo != null) {
+        await orderProvider.createGuestOrder(
+          order,
+          cartProvider.guestCheckoutInfo!,
+        );
+      } else {
+        // Normal order flow
+        await orderProvider.addOrder(order);
+      }
 
       if (loyaltyPointsUsed > 0) {
-        await userProvider.updateLoyaltyPoints(
-          pointsChange: -loyaltyPointsUsed,
-          pointsUsed: loyaltyPointsUsed,
-        );
+        if (userProvider.user?.id != null && userProvider.user?.id != 'guest') {
+          await userProvider.updateLoyaltyPoints(
+            pointsChange: -loyaltyPointsUsed,
+            pointsUsed: loyaltyPointsUsed,
+          );
+        }
       }
+
+      // Add earned points (directly in VND value - consistent with profile screen)
       if (loyaltyPointsEarned > 0) {
-        await userProvider.updateLoyaltyPoints(
-          pointsChange: loyaltyPointsEarned,
-        );
+        // Only update loyalty points if this is not a guest (has a user ID)
+        if (userProvider.user?.id != null && userProvider.user?.id != 'guest') {
+          await userProvider.updateLoyaltyPoints(
+            pointsChange: loyaltyPointsEarned,
+          );
+        }
       }
 
       await cartProvider.updateProductVariantInventory();
@@ -398,6 +527,109 @@ class _PaymentScreenState extends State<PaymentScreen> {
           content: Text('An error occurred during payment. Please try again.'),
         ),
       );
+    }
+  }
+
+  // Show prompt for guest to create an account
+  void _showGuestAccountPrompt(BuildContext context) {
+    final cartProvider = Provider.of<CartProvider>(context, listen: false);
+    final guestInfo = cartProvider.guestCheckoutInfo;
+    final email = guestInfo?['email'] ?? '';
+
+    showDialog(
+      context: context,
+      builder:
+          (context) => AlertDialog(
+            title: const Text('Create an Account'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Continue as $email'),
+                const SizedBox(height: 16),
+                const Text(
+                  'Create a password to access your orders in the future.',
+                  style: TextStyle(fontSize: 14),
+                ),
+                const SizedBox(height: 8),
+                TextField(
+                  controller: _passwordController,
+                  decoration: const InputDecoration(
+                    labelText: 'Password',
+                    border: OutlineInputBorder(),
+                  ),
+                  obscureText: true,
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.of(context).pop();
+                },
+                child: const Text('Cancel'),
+              ),
+              ElevatedButton(
+                onPressed: () {
+                  if (_passwordController.text.length < 6) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Password must be at least 6 characters'),
+                      ),
+                    );
+                    return;
+                  }
+
+                  // Save password to guest info
+                  Map<String, dynamic> updatedInfo = Map.from(guestInfo!);
+                  updatedInfo['password'] = _passwordController.text;
+                  cartProvider.saveGuestCheckoutInfo(updatedInfo);
+
+                  Navigator.of(context).pop();
+
+                  // Re-trigger payment process
+                  _handleProceedToPayment(
+                    context,
+                    cartProvider.cartItems.toList(),
+                    cartProvider.totalAmount + _shippingFee,
+                    0, // No loyalty points for new accounts
+                  );
+                },
+                child: const Text('Create Account'),
+              ),
+            ],
+          ),
+    );
+  }
+
+  // Show login prompt for existing accounts
+  void _showLoginPrompt(BuildContext context, String email) async {
+    // Import the AuthDialogs utility
+    final cartProvider = Provider.of<CartProvider>(context, listen: false);
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final orderProvider = Provider.of<OrderProvider>(context, listen: false);
+
+    // Use the external dialog utility for login
+    bool success = await AuthDialogs.showLoginPrompt(context, email);
+
+    // If login was successful, handle cart conversion and order processing
+    if (success && context.mounted && authProvider.user != null) {
+      // Associate guest orders with the user and convert guest cart
+      await orderProvider.associateGuestOrdersWithUser(
+        email,
+        authProvider.user!.uid,
+      );
+      await cartProvider.convertGuestCartToUser(authProvider.user!.uid);
+
+      // Re-trigger payment process
+      if (context.mounted) {
+        _handleProceedToPayment(
+          context,
+          cartProvider.cartItems.toList(),
+          cartProvider.totalAmount + _shippingFee,
+          0,
+        );
+      }
     }
   }
 
@@ -454,34 +686,22 @@ class _PaymentScreenState extends State<PaymentScreen> {
                 const Icon(Icons.check_circle, color: Colors.green, size: 64),
                 const SizedBox(height: 16),
                 const Text(
-                  'Congrats! your payment is successfully',
+                  'Congrats! your payment is successful',
                   textAlign: TextAlign.center,
                   style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                 ),
                 const SizedBox(height: 8),
                 const Text(
-                  'Track your order or just chat directly to the seller. '
-                  'Download order summary in document below.',
+                  'Track your order or just chat directly to the seller.',
                   textAlign: TextAlign.center,
                   style: TextStyle(fontSize: 13, color: Colors.grey),
-                ),
-                const SizedBox(height: 16),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: const [
-                    Icon(Icons.insert_drive_file_outlined),
-                    SizedBox(width: 6),
-                    Text('order_invoice.pdf'),
-                    Spacer(),
-                    Icon(Icons.download_for_offline_outlined),
-                  ],
                 ),
                 const SizedBox(height: 24),
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
                     onPressed: () {
-                      Navigator.of(context).pop(); // đóng dialog
+                      Navigator.of(context).pop(); // close dialog
                       Navigator.of(context).popUntil((route) => route.isFirst);
                     },
                     child: const Text('Continue'),

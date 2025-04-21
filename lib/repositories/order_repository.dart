@@ -8,6 +8,39 @@ class OrderRepository {
     await _orders.doc(order.id).set(order.toJson());
   }
 
+  // Create an order specifically for guest checkout - more secure approach
+  Future<void> createGuestOrder(
+    OrderModel order,
+    Map<String, dynamic> guestInfo,
+  ) async {
+    // First create the order
+    final orderData = order.toJson();
+
+    // Ensure user ID is set correctly
+    if (orderData['user']['userId'] == 'guest' &&
+        guestInfo.containsKey('email')) {
+      // If there's no specific userId, generate one based on email
+      final guestUserId = generateGuestUserId(guestInfo['email']);
+      orderData['user']['userId'] = guestUserId;
+    }
+
+    await _orders.doc(order.id).set(orderData);
+
+    // Associate the order with email for later linking
+    if (guestInfo.containsKey('email')) {
+      await _orders.doc(order.id).update({
+        'guestEmail': guestInfo['email'],
+        'requiresAccountAssociation': true,
+      });
+    }
+  }
+
+  // Generate a consistent user ID for guests based on their email
+  String generateGuestUserId(String email) {
+    // Simple function to generate a predictable ID from email
+    return 'guest_${email.hashCode.abs()}';
+  }
+
   Future<OrderModel?> getOrderById(String orderId) async {
     final doc = await _orders.doc(orderId).get();
     if (doc.exists) {
@@ -29,15 +62,38 @@ class OrderRepository {
     final doc = await _orders.doc(orderId).get();
     if (doc.exists) {
       final data = doc.data()!;
-      final statusHistory = List<Map<String, dynamic>>.from(data['statusHistory'] ?? []);
+      final statusHistory = List<Map<String, dynamic>>.from(
+        data['statusHistory'] ?? [],
+      );
       statusHistory.insert(0, newStatus.toJson());
-      await _orders.doc(orderId).update({
-        'statusHistory': statusHistory,
-      });
+      await _orders.doc(orderId).update({'statusHistory': statusHistory});
     }
   }
 
   Future<void> deleteOrder(String orderId) async {
     await _orders.doc(orderId).delete();
+  }
+
+  // Associate guest orders with a user account - more secure approach
+  Future<void> associateGuestOrdersWithUser(String email, String userId) async {
+    // Find orders that need to be associated with this user
+    final guestOrders =
+        await _orders
+            .where('guestEmail', isEqualTo: email)
+            .where('requiresAccountAssociation', isEqualTo: true)
+            .get();
+
+    if (guestOrders.docs.isEmpty) return;
+
+    // Update all guest orders to be associated with this user
+    final batch = FirebaseFirestore.instance.batch();
+    for (final doc in guestOrders.docs) {
+      batch.update(doc.reference, {
+        'user.userId': userId,
+        'requiresAccountAssociation': false,
+      });
+    }
+
+    await batch.commit();
   }
 }
