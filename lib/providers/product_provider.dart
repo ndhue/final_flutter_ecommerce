@@ -19,6 +19,7 @@ class ProductProvider with ChangeNotifier {
 
   final Map<String, List<ProductReview>> _productReviewsCache = {};
   final Map<String, DocumentSnapshot?> _lastReviewDocuments = {};
+  final Map<String, int> _reviewCounts = {};
 
   List<NewProduct> get products => _products;
   bool get hasMore => _hasMore;
@@ -240,7 +241,7 @@ class ProductProvider with ChangeNotifier {
     required String productId,
     bool isInitial = false,
   }) async {
-    if (_isLoading) return [];
+    if (_isLoading && !isInitial) return _productReviewsCache[productId] ?? [];
 
     _isLoading = true;
     notifyListeners();
@@ -259,13 +260,38 @@ class ProductProvider with ChangeNotifier {
 
       if (result.isNotEmpty) {
         _lastReviewDocuments[productId] = result.last.docSnapshot;
-        _productReviewsCache[productId]?.addAll(result);
+
+        // Create a new list to avoid concurrent modification
+        List<ProductReview> updatedList = [];
+        if (!isInitial && _productReviewsCache.containsKey(productId)) {
+          updatedList = [..._productReviewsCache[productId]!];
+        }
+        updatedList.addAll(result);
+        _productReviewsCache[productId] = updatedList;
       }
+
+      _reviewCounts[productId] = _productReviewsCache[productId]?.length ?? 0;
 
       return _productReviewsCache[productId] ?? [];
     } finally {
       _isLoading = false;
       notifyListeners();
+    }
+  }
+
+  Future<bool> checkForNewReviews(String productId) async {
+    try {
+      if (!_reviewCounts.containsKey(productId)) {
+        return false;
+      }
+
+      final product = await _repository.fetchProductById(productId);
+      final currentReviewCount = _reviewCounts[productId] ?? 0;
+
+      return product.totalReviews > currentReviewCount;
+    } catch (e) {
+      debugPrint('Error checking for new reviews: $e');
+      return false;
     }
   }
 

@@ -2,9 +2,11 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/user_model.dart';
+import '../services/cloudinary_service.dart';
 
 class UserProvider with ChangeNotifier {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -12,9 +14,11 @@ class UserProvider with ChangeNotifier {
 
   UserModel? _user;
   bool _isLoading = false;
+  bool _isAvatarLoading = false;
 
   UserModel? get user => _user;
   bool get isLoading => _isLoading;
+  bool get isAvatarLoading => _isAvatarLoading;
 
   // Check if the user is logged in
   bool get isLoggedIn => _user != null;
@@ -133,6 +137,49 @@ class UserProvider with ChangeNotifier {
       notifyListeners();
     } catch (e) {
       FlutterError("Failed to update loyalty points");
+    }
+  }
+
+  Future<bool> updateAvatar(XFile imageFile) async {
+    if (_user == null) return false;
+
+    try {
+      _isAvatarLoading = true;
+      notifyListeners();
+
+      final imageUrl = await CloudinaryService.uploadImage(imageFile);
+
+      if (imageUrl == null) {
+        Fluttertoast.showToast(msg: "Failed to upload image");
+        _isAvatarLoading = false;
+        notifyListeners();
+        return false;
+      }
+
+      await _firestore.collection('users').doc(_user!.id).update({
+        'avatar': imageUrl,
+      });
+
+      _user = _user!.copyWith(avatar: imageUrl);
+
+      _isAvatarLoading = false;
+      notifyListeners();
+
+      // Show success toast
+      Fluttertoast.showToast(
+        msg: "Avatar updated successfully",
+        toastLength: Toast.LENGTH_SHORT,
+        gravity: ToastGravity.BOTTOM,
+        backgroundColor: Colors.green,
+        textColor: Colors.white,
+        fontSize: 16.0,
+      );
+      return true;
+    } catch (e) {
+      _isAvatarLoading = false;
+      notifyListeners();
+      Fluttertoast.showToast(msg: "Failed to update avatar");
+      return false;
     }
   }
 

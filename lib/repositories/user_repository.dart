@@ -48,4 +48,16 @@ class UserRepository {
     if (userData == null) return null;
     return UserModel.fromMap(jsonDecode(userData));
   }
+
+  // Update user avatar in Firestore
+  Future<bool> updateUserAvatar(String userId, String avatarUrl) async {
+    try {
+      await _firestore.collection('users').doc(userId).update({
+        'avatar': avatarUrl,
+      });
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
 }

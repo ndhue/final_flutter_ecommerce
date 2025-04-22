@@ -13,6 +13,7 @@ class UserModel {
   final String ward;
   final String shippingAddress;
   final Timestamp? createdAt;
+  final String? avatar;
 
   UserModel({
     required this.id,
@@ -27,6 +28,7 @@ class UserModel {
     required this.ward,
     required this.shippingAddress,
     required this.createdAt,
+    this.avatar,
   });
 
   String get fullShippingAddress {
@@ -49,6 +51,7 @@ class UserModel {
       shippingAddress: data['shippingAddress'] ?? '',
       createdAt:
           data['createdAt'] != null ? (data['createdAt'] as Timestamp) : null,
+      avatar: data['avatar'],
     );
   }
 
@@ -67,6 +70,7 @@ class UserModel {
       'ward': ward,
       'shippingAddress': shippingAddress,
       'createdAt': createdAt ?? FieldValue.serverTimestamp(),
+      'avatar': avatar,
     };
   }
 
@@ -82,6 +86,7 @@ class UserModel {
     String? district,
     String? ward,
     String? shippingAddress,
+    String? avatar, // Added to copyWith
   }) {
     return UserModel(
       id: id ?? this.id,
@@ -96,6 +101,7 @@ class UserModel {
       ward: ward ?? this.ward,
       shippingAddress: shippingAddress ?? this.shippingAddress,
       createdAt: createdAt ?? createdAt,
+      avatar: avatar ?? this.avatar,
     );
   }
 }

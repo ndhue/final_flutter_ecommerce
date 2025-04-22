@@ -42,7 +42,20 @@ class OrderProvider with ChangeNotifier {
     await _orderRepository.updateOrderStatus(orderId, newStatus);
     final index = _orders.indexWhere((o) => o.id == orderId);
     if (index != -1) {
-      _orders[index].statusHistory.add(newStatus);
+      _orders[index].statusHistory.insert(0, newStatus);
+      notifyListeners();
+    }
+  }
+
+  Future<void> updateOrderStatusLocally(
+    String orderId,
+    StatusHistory newStatus,
+  ) async {
+    await _orderRepository.updateOrderStatus(orderId, newStatus);
+
+    final index = _orders.indexWhere((o) => o.id == orderId);
+    if (index != -1) {
+      _orders[index].statusHistory.insert(0, newStatus);
       notifyListeners();
     }
   }

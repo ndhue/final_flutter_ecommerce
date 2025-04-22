@@ -8,7 +8,9 @@ import 'package:final_ecommerce/utils/dialog.dart';
 import 'package:final_ecommerce/utils/format.dart';
 import 'package:final_ecommerce/utils/utils.dart';
 import 'package:final_ecommerce/widgets/address_picker_registration.dart';
+import 'package:final_ecommerce/widgets/skeletons.dart';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 
 import 'components/change_password.dart';
@@ -23,6 +25,7 @@ class ProfileScreen extends StatefulWidget {
 class _ProfileScreenState extends State<ProfileScreen> {
   bool _isEditingName = false;
   late TextEditingController _nameController;
+  final ImagePicker _picker = ImagePicker();
 
   @override
   void initState() {
@@ -41,10 +44,98 @@ class _ProfileScreenState extends State<ProfileScreen> {
     super.dispose();
   }
 
+  Future<void> _pickAndUploadImage() async {
+    try {
+      final source = await showModalBottomSheet<ImageSource>(
+        context: context,
+        builder:
+            (context) => SafeArea(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  ListTile(
+                    leading: Icon(Icons.camera_alt),
+                    title: Text('Take a photo'),
+                    onTap: () => Navigator.of(context).pop(ImageSource.camera),
+                  ),
+                  ListTile(
+                    leading: Icon(Icons.photo_library),
+                    title: Text('Choose from gallery'),
+                    onTap: () => Navigator.of(context).pop(ImageSource.gallery),
+                  ),
+                ],
+              ),
+            ),
+      );
+
+      if (source == null) return;
+
+      final XFile? pickedFile = await _picker.pickImage(
+        source: source,
+        maxWidth: 800,
+        maxHeight: 800,
+        imageQuality: 85,
+      );
+      if (!mounted) return;
+      if (pickedFile != null) {
+        final userProvider = context.read<UserProvider>();
+        final success = await userProvider.updateAvatar(pickedFile);
+
+        if (!success && mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text("Failed to update avatar. Please try again."),
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("An error occurred. Please try again.")),
+        );
+      }
+    }
+  }
+
+  Widget _buildAvatarSection(UserModel user, bool isAvatarLoading) {
+    return GestureDetector(
+      onTap: isAvatarLoading ? null : _pickAndUploadImage,
+      child: Stack(
+        children: [
+          isAvatarLoading
+              ? AvatarSkeletonLoader(radius: 30)
+              : CircleAvatar(
+                backgroundImage:
+                    user.avatar != null
+                        ? NetworkImage(user.avatar!)
+                        : AssetImage('assets/images/avatar-1.jpg')
+                            as ImageProvider,
+                radius: 30,
+              ),
+          if (!isAvatarLoading) // Only show camera icon when not loading
+            Positioned(
+              right: 0,
+              bottom: 0,
+              child: Container(
+                padding: EdgeInsets.all(4),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(Icons.camera_alt, size: 14, color: primaryColor),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final userProvider = context.watch<UserProvider>();
     final user = userProvider.user;
+    final isAvatarLoading = userProvider.isAvatarLoading;
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -85,12 +176,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ),
                     ),
                     child: ListTile(
-                      leading: CircleAvatar(
-                        backgroundImage: AssetImage(
-                          'assets/images/avatar-1.jpg',
-                        ),
-                        radius: 30,
-                      ),
+                      leading: _buildAvatarSection(user, isAvatarLoading),
                       title:
                           _isEditingName
                               ? TextField(
@@ -166,7 +252,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     context,
                     faqsScreenRoute,
                   ),
-
                   SizedBox(height: 20),
                   _buildSectionTitle("Account Management"),
                   _buildMenuItemCustom(Icons.lock, "Change Password", () {
@@ -235,8 +320,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Widget _buildLoyaltyPointItem(int vndAmount) {
-    // Convert VND to points (10% conversion rate)
-    final points = convertVndToPoints(vndAmount); // 10,000 VND = 1 point
+    final points = convertVndToPoints(vndAmount);
 
     return Card(
       color: Colors.amber[50],
@@ -261,7 +345,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
             ),
             onTap: () {
-              // Show details about the loyalty program
               showDialog(
                 context: context,
                 builder:
@@ -275,7 +358,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               children: [
                 Expanded(
                   child: Text(
-                    'Value: ${vndAmount.toString().replaceAllMapped(RegExp(r'(\d)(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]}.')} VND',
+                    'Value: ${FormatHelper.formatCurrency(vndAmount)}',
                     style: TextStyle(color: Colors.grey[700]),
                   ),
                 ),
