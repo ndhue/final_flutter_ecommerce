@@ -49,11 +49,15 @@ class _LoginScreenState extends State<LoginScreen> {
 
       if (role == "admin") {
         if (mounted) {
-          Navigator.of(context).pushReplacementNamed(adminEntryPointRoute);
+          Navigator.of(
+            context,
+          ).pushNamedAndRemoveUntil(adminEntryPointRoute, (route) => false);
         }
       } else {
         if (mounted) {
-          Navigator.of(context).pushReplacementNamed(entryPointScreenRoute);
+          Navigator.of(
+            context,
+          ).pushNamedAndRemoveUntil(entryPointScreenRoute, (route) => false);
         }
       }
     } else {

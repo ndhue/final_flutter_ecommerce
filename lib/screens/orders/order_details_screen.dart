@@ -7,17 +7,12 @@ import 'package:final_ecommerce/utils/order_actions.dart';
 import 'package:final_ecommerce/utils/utils.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
 class OrderDetailScreen extends StatelessWidget {
   final OrderModel order;
 
   const OrderDetailScreen({super.key, required this.order});
-
-  String formatDate(DateTime date) {
-    return DateFormat("d'th' MMM yyyy").format(date);
-  }
 
   List<Widget> getActions(BuildContext context, String status) {
     final actions = <Widget>[
@@ -168,7 +163,7 @@ class OrderDetailScreen extends StatelessWidget {
                         style: const TextStyle(fontWeight: FontWeight.w600),
                       ),
                       Text(
-                        formatDate(updatedDate),
+                        formatDateTime(updatedDate),
                         style: const TextStyle(
                           fontSize: 12,
                           color: darkTextColor,

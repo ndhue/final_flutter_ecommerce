@@ -60,11 +60,8 @@ Future<void> handleCancelOrder(BuildContext context, OrderModel order) async {
       );
     }
 
-    // Update order status to canceled
-    await orderProvider.updateOrderStatus(
-      order.id,
-      StatusHistory(status: 'Canceled', time: DateTime.now()),
-    );
+    final newStatus = StatusHistory(status: 'Canceled', time: DateTime.now());
+    await orderProvider.updateOrderStatusLocally(order.id, newStatus);
 
     Fluttertoast.showToast(
       msg: 'Order canceled successfully',

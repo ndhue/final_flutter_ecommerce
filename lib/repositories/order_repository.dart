@@ -51,7 +51,10 @@ class OrderRepository {
 
   Future<List<OrderModel>> getOrdersByUserId(String userId) async {
     final snapshot =
-        await _orders.where('user.userId', isEqualTo: userId).get();
+        await _orders
+            .where('user.userId', isEqualTo: userId)
+            .orderBy('createdAt', descending: true)
+            .get();
     return snapshot.docs.map((doc) => OrderModel.fromJson(doc.data())).toList();
   }
 

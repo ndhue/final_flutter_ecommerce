@@ -1,9 +1,11 @@
+import 'dart:async';
+
 import 'package:final_ecommerce/models/models_export.dart';
 import 'package:final_ecommerce/providers/providers_export.dart';
 import 'package:final_ecommerce/utils/constants.dart';
 import 'package:final_ecommerce/utils/format.dart';
 import 'package:final_ecommerce/utils/utils.dart';
-import 'package:final_ecommerce/widgets/buttons/cart_button.dart';
+import 'package:final_ecommerce/widgets/widgets_export.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_rating_bar/flutter_rating_bar.dart';
 import 'package:fluttertoast/fluttertoast.dart';
@@ -31,6 +33,8 @@ class _ProductDetailsState extends State<ProductDetails> {
   int _totalReview = 0;
   List<ProductReview> _reviews = [];
   bool _isLoadingReviews = true;
+  Timer? _reviewCheckTimer;
+  bool _isCheckingForNewReviews = false;
 
   @override
   void initState() {
@@ -44,7 +48,94 @@ class _ProductDetailsState extends State<ProductDetails> {
       } else if (widget.productId != null) {
         await _fetchProductDetails(widget.productId!);
       }
+
+      _startReviewCheckTimer();
     });
+  }
+
+  @override
+  void dispose() {
+    _reviewCheckTimer?.cancel();
+    super.dispose();
+  }
+
+  void _handleReviewAdded() {
+    _refreshProductDetails();
+  }
+
+  Future<void> _refreshProductDetails() async {
+    if (productSelected == null) return;
+
+    try {
+      await _productProvider.reloadProduct(productSelected!.id);
+
+      final updatedProduct = await _productProvider.fetchProductById(
+        productSelected!.id,
+      );
+
+      if (mounted) {
+        setState(() {
+          productSelected = updatedProduct;
+          _rating = updatedProduct.rating;
+          _totalReview = updatedProduct.totalReviews;
+        });
+      }
+    } catch (e) {
+      debugPrint('Error refreshing product details: $e');
+    }
+  }
+
+  void _startReviewCheckTimer() {
+    _reviewCheckTimer = Timer.periodic(const Duration(seconds: 15), (
+      timer,
+    ) async {
+      // Prevent concurrent checks
+      if (_isCheckingForNewReviews || !mounted || productSelected == null) {
+        return;
+      }
+
+      _isCheckingForNewReviews = true;
+
+      try {
+        final hasNewReviews = await _productProvider.checkForNewReviews(
+          productSelected!.id,
+        );
+
+        if (hasNewReviews && mounted) {
+          await _refreshReviewsOnly();
+        }
+      } finally {
+        if (mounted) {
+          _isCheckingForNewReviews = false;
+        }
+      }
+    });
+  }
+
+  Future<void> _refreshReviewsOnly() async {
+    if (!mounted || productSelected == null) return;
+
+    try {
+      final reviews = await _productProvider.fetchProductReviews(
+        productId: productSelected!.id,
+        isInitial: true,
+      );
+
+      final updatedProduct = await _productProvider.fetchProductById(
+        productSelected!.id,
+      );
+
+      if (mounted) {
+        setState(() {
+          productSelected = updatedProduct;
+          _rating = updatedProduct.rating;
+          _totalReview = updatedProduct.totalReviews;
+          _reviews = List<ProductReview>.from(reviews);
+        });
+      }
+    } catch (e) {
+      debugPrint('Error refreshing reviews: $e');
+    }
   }
 
   Future<void> _fetchProductDetails(String productId) async {
@@ -74,26 +165,34 @@ class _ProductDetailsState extends State<ProductDetails> {
     });
   }
 
+  // Original method to fetch product reviews during initial load
   Future<void> _fetchProductReviews() async {
-    final reviews = await _productProvider.fetchProductReviews(
-      productId: productSelected!.id,
-      isInitial: true,
-    );
-
-    // Reload the product details
-    await _productProvider.reloadProduct(productSelected!.id);
-    final updatedProduct = _productProvider.products.firstWhere(
-      (product) => product.id == productSelected!.id,
-      orElse: () => productSelected!,
-    );
+    if (!mounted) return;
 
     setState(() {
-      productSelected = updatedProduct;
-      _rating = productSelected!.rating;
-      _totalReview = productSelected!.totalReviews;
-      _reviews = reviews;
-      _isLoadingReviews = false;
+      _isLoadingReviews = true;
     });
+
+    try {
+      final reviews = await _productProvider.fetchProductReviews(
+        productId: productSelected!.id,
+        isInitial: true,
+      );
+
+      if (mounted) {
+        setState(() {
+          _reviews = List<ProductReview>.from(reviews);
+          _isLoadingReviews = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoadingReviews = false;
+        });
+      }
+      debugPrint('Error fetching product reviews: $e');
+    }
   }
 
   void _selectColor(Color color) {
@@ -148,7 +247,7 @@ class _ProductDetailsState extends State<ProductDetails> {
   @override
   Widget build(BuildContext context) {
     if (productSelected == null) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+      return const Scaffold(body: ProductDetailsSkeleton());
     }
 
     final colors =
@@ -345,7 +444,6 @@ class _ProductDetailsState extends State<ProductDetails> {
                         itemCount: 5,
                         itemSize: 24,
                         ignoreGestures: true,
-
                         itemPadding: const EdgeInsets.symmetric(
                           horizontal: 2.0,
                         ),
@@ -370,10 +468,13 @@ class _ProductDetailsState extends State<ProductDetails> {
                     style: const TextStyle(fontSize: 12, color: Colors.grey),
                   ),
                   const SizedBox(height: 8),
-                  ProductReviewSection(
-                    productId: productSelected!.id,
-                    reviews: _isLoadingReviews ? [] : _reviews,
-                  ),
+                  _isLoadingReviews
+                      ? const Center(child: CircularProgressIndicator())
+                      : ProductReviewSection(
+                        productId: productSelected!.id,
+                        reviews: _reviews,
+                        onReviewAdded: _handleReviewAdded,
+                      ),
                 ],
               ),
             ),

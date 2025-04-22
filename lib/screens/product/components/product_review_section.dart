@@ -8,11 +8,13 @@ import 'package:provider/provider.dart';
 class ProductReviewSection extends StatefulWidget {
   final String productId;
   final List<ProductReview> reviews;
+  final Function() onReviewAdded;
 
   const ProductReviewSection({
     super.key,
     required this.productId,
     required this.reviews,
+    required this.onReviewAdded,
   });
 
   @override
@@ -48,24 +50,53 @@ class _ProductReviewSectionState extends State<ProductReviewSection> {
   }
 
   Future<void> _loadMoreReviews() async {
+    if (_isLoadingMore) return;
+
     setState(() {
       _isLoadingMore = true;
     });
 
-    final productProvider = context.read<ProductProvider>();
-    final newReviews = await productProvider.fetchProductReviews(
-      productId: widget.productId,
-      isInitial: false,
-    );
+    try {
+      final productProvider = context.read<ProductProvider>();
+      final newReviews = await productProvider.fetchProductReviews(
+        productId: widget.productId,
+        isInitial: false,
+      );
 
-    setState(() {
-      if (newReviews.isEmpty) {
-        _hasMoreReviews = false;
-      } else {
-        widget.reviews.addAll(newReviews);
+      if (mounted) {
+        setState(() {
+          if (newReviews.isEmpty || newReviews.length < 10) {
+            _hasMoreReviews = false;
+          }
+
+          if (newReviews.isNotEmpty) {
+            List<ProductReview> updatedReviews = List.from(widget.reviews);
+            for (var review in newReviews) {
+              if (!updatedReviews.any(
+                (r) =>
+                    r.username == review.username &&
+                    r.createdAt == review.createdAt &&
+                    r.comment == review.comment,
+              )) {
+                updatedReviews.add(review);
+              }
+            }
+
+            widget.reviews
+              ..clear()
+              ..addAll(updatedReviews);
+          }
+        });
       }
-      _isLoadingMore = false;
-    });
+    } catch (e) {
+      debugPrint('Error loading more reviews: $e');
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoadingMore = false;
+        });
+      }
+    }
   }
 
   void _handleSubmit() async {
@@ -74,27 +105,30 @@ class _ProductReviewSectionState extends State<ProductReviewSection> {
     if (_commentController.text.isEmpty || user == null) return;
 
     final productProvider = context.read<ProductProvider>();
+    final hasRating = _currentRating > 0;
 
     await productProvider.addReview(
       productId: widget.productId,
       username: user.fullName,
       comment: _commentController.text,
-      rating: _currentRating > 0 ? _currentRating : null,
+      rating: hasRating ? _currentRating : null,
     );
 
-    // Reload reviews after adding a new review
     final updatedReviews = await productProvider.fetchProductReviews(
       productId: widget.productId,
       isInitial: true,
     );
 
+    widget.onReviewAdded();
     _commentController.clear();
-    setState(() {
-      _currentRating = 0.0;
-      widget.reviews.clear();
-      widget.reviews.addAll(updatedReviews);
-      _hasMoreReviews = true;
-    });
+    if (mounted) {
+      setState(() {
+        _currentRating = 0.0;
+        widget.reviews.clear();
+        widget.reviews.addAll(updatedReviews);
+        _hasMoreReviews = true;
+      });
+    }
   }
 
   @override
@@ -169,7 +203,7 @@ class _ProductReviewSectionState extends State<ProductReviewSection> {
                   ),
                   color: Colors.white,
                   elevation: 6,
-                  shadowColor: Colors.black.withValues(alpha: 0.2),
+                  shadowColor: Colors.black.withAlpha(51),
                   margin: const EdgeInsets.symmetric(vertical: 6),
                   child: ListTile(
                     leading: CircleAvatar(

@@ -4,6 +4,7 @@ import 'package:final_ecommerce/routes/route_constants.dart';
 import 'package:final_ecommerce/utils/constants.dart';
 import 'package:final_ecommerce/utils/order_actions.dart';
 import 'package:final_ecommerce/utils/utils.dart';
+import 'package:final_ecommerce/widgets/skeletons.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -36,7 +37,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
     return Scaffold(
       body:
           orderProvider.isLoading
-              ? const Center(child: CircularProgressIndicator())
+              ? const OrderSkeletonLoader()
               : hasOrder
               ? OrderListView(orders: orderProvider.orders)
               : const EmptyOrderView(),
@@ -109,32 +110,6 @@ class OrderListView extends StatelessWidget {
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
-        // Search bar
-        InkWell(
-          onTap: () => {},
-          onLongPress: () => {},
-          child: Container(
-            height: 50,
-            padding: const EdgeInsets.symmetric(horizontal: 15),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: borderColor),
-            ),
-            child: Row(
-              children: [
-                Icon(Icons.search, color: iconColor),
-                const SizedBox(width: 10),
-                Text(
-                  "Search order",
-                  style: TextStyle(color: iconColor, fontSize: 16),
-                ),
-              ],
-            ),
-          ),
-        ),
-        const SizedBox(height: 16),
-
-        // Order Received
         ...orders.map((order) {
           return Padding(
             padding: const EdgeInsets.only(bottom: 16),
@@ -148,7 +123,7 @@ class OrderListView extends StatelessWidget {
   Widget _buildOrderItem(BuildContext context, OrderModel order) {
     var latestStatus = order.statusHistory.first;
     Color statusColor = getStatusColor(latestStatus.status);
-    String date = formatDate(latestStatus.time);
+    String date = formatDateTime(latestStatus.time);
     String imageUrl = order.orderDetails[0].imageUrl;
     String name = order.orderDetails[0].productName;
     String color = order.orderDetails[0].colorName;
