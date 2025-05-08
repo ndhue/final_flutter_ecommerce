@@ -35,16 +35,13 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-
             Text('Adress', style: TextStyle(fontWeight: FontWeight.bold)),
 
             Text(order.user.shippingAddress),
             SizedBox(height: 20),
 
             Text(
-
               '🧾 Ordered Products',
-
 
               style: TextStyle(fontWeight: FontWeight.bold),
             ),
@@ -55,11 +52,9 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                   subtitle: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-
                       Text('Amount: ${item.quantity}'),
                       Text('Colour: ${item.colorName}'),
                       Text('Price: ${_formatCurrency(item.price)}'),
-
                     ],
                   ),
                 ),
@@ -68,7 +63,6 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
 
             SizedBox(height: 20),
             Text(
-
               '🛠 Order Status',
 
               style: TextStyle(fontWeight: FontWeight.bold),
@@ -78,7 +72,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
               value: selectedStatus,
               decoration: InputDecoration(border: OutlineInputBorder()),
               items:
-                  ['Pending', 'Shipped', 'Delivered', 'Canceled'].map((status) {
+                  ['Pending', 'Completed', 'Canceled'].map((status) {
                     return DropdownMenuItem(value: status, child: Text(status));
                   }).toList(),
               onChanged: (value) {
@@ -95,7 +89,6 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                 onPressed: _saveStatus,
 
                 child: Text('Status Updates'),
-
               ),
             ),
           ],
@@ -121,7 +114,6 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
             ]),
           });
 
-
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text('✅ Status Update Successful')));
@@ -130,9 +122,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
     } catch (e) {
       ScaffoldMessenger.of(
         context,
-
       ).showSnackBar(SnackBar(content: Text('❌Update failure: $e')));
-
     }
   }
 
