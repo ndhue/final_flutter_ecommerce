@@ -20,10 +20,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
   @override
   void initState() {
     super.initState();
-
     _initializeDates(); // Initialize dates in a separate method
     _fetchOrders();
-
+  }
 
   void _initializeDates() {
     // Initialize fromDate to 30 days ago (start of day)
@@ -55,12 +54,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
     } catch (e) {
       setState(() {
         isLoading = false;
-        errorMessage = 'Failed to load data: ${e.toString()}';
+        errorMessage = 'Lỗi khi tải dữ liệu: ${e.toString()}';
       });
-      _showErrorSnackbar(errorMessage);
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(errorMessage)));
     }
   }
-
 
   String _getLastestStatus(Map<String, dynamic> order) {
     final history = order['statusHistory'];
@@ -150,11 +150,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
       .length;
 
   double calculateRevenue() {
-
     return filteredOrders
         .where((order) => _getLastestStatus(order) == 'completed')
         .fold(0.0, (sum, order) {
-
       final total = order['total'];
       if (total is String) {
         return sum + (double.tryParse(total) ?? 0.0);
@@ -163,7 +161,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
       }
       return sum;
     });
-
   }
 
   Future<double> calculateCostPrice() async {
@@ -171,31 +168,25 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final productCostCache = <String, double>{};
 
     for (final order in filteredOrders) {
-
       if (_getLastestStatus(order) != 'completed') continue;
-
 
       final details = order['orderDetails'] as List<dynamic>? ?? [];
       for (final item in details) {
         final productId = item['productId']?.toString();
         if (productId == null) continue;
 
-
         final quantityRaw = item['quantity'];
         final quantity =
             (quantityRaw is int) ? quantityRaw : int.tryParse(quantityRaw.toString()) ?? 1;
-
 
         double costPrice = productCostCache[productId] ?? 0.0;
 
         if (!productCostCache.containsKey(productId)) {
           try {
-
             final productDoc = await FirebaseFirestore.instance
                 .collection('products')
                 .doc(productId)
                 .get();
-
 
             if (productDoc.exists) {
               final data = productDoc.data()!;
@@ -216,18 +207,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Future<double> calculateProfit() async {
-
     final revenue = calculateRevenue();
     final costPrice = await calculateCostPrice();
     return revenue - costPrice;
-
   }
 
   @override
   Widget build(BuildContext context) {
     if (isLoading) return const Center(child: CircularProgressIndicator());
     if (errorMessage.isNotEmpty) return Center(child: Text(errorMessage));
-
 
     //final total = getTotalOrders();
     final completed = getCompletedOrders();
@@ -270,7 +258,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
         )
         .toList();
 
-
     return Scaffold(
       appBar: AppBar(
         title: const Text('Dashboard'),
@@ -301,10 +288,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 spacing: 12,
                 runSpacing: 12,
                 children: [
-
                   _buildStatCard('Total Orders', getTotalOrders()),
                   _buildStatCard('Completed', getCompletedOrders()),
-
                   _buildStatCard('Revenue', revenue),
                   FutureBuilder<double>(
                     future: calculateProfit(),
@@ -312,9 +297,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       return _buildStatCard(
                         'Profit',
                         snapshot.data ?? 0,
-
                         isLoading: snapshot.connectionState == ConnectionState.waiting,
-
                       );
                     },
                   ),
@@ -340,7 +323,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Widget _buildDateFilterControls() {
-
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       child: Row(
@@ -379,44 +361,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Widget _buildStatCard(String title, num value, {bool isLoading = false}) {
-
     return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      child: Row(
-        children: [
-          const Spacer(), // Đẩy tất cả sang phải
-          _buildDatePicker('From:', fromDate!, (picked) {
-            setState(() {
-              fromDate = picked;
-              if (toDate != null && picked.isAfter(toDate!)) {
-                toDate = picked.add(const Duration(days: 1));
-              }
-            });
-          }),
-          const SizedBox(width: 16),
-          _buildDatePicker('To:', toDate!, (picked) {
-            setState(() {
-              toDate = picked;
-              if (fromDate != null && picked.isBefore(fromDate!)) {
-                fromDate = picked.subtract(const Duration(days: 1));
-              }
-            });
-          }),
-          const SizedBox(width: 16),
-          ElevatedButton(
-            onPressed: _fetchOrders,
-            style: ElevatedButton.styleFrom(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-            ),
-            child: const Text("Filter"),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildStatCard(String title, num value, {bool isLoading = false}) {
-    return SizedBox(
       width: 160,
       child: Card(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -432,7 +377,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
               ),
               const SizedBox(height: 4),
               isLoading
-
                   ? const Center(child: CircularProgressIndicator())
                   : Text(
                       (title == 'Revenue' || title == 'Profit')
@@ -486,7 +430,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
     Map<String, int> statusCounts,
     Map<String, Color> statusColor,
   ) {
-
     return Card(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       elevation: 2,
@@ -517,7 +460,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final productSales = <String, int>{};
 
     for (final order in filteredOrders) {
-
       if (_getLastestStatus(order) != 'completed') continue;
 
       final details = order['orderDetails'] as List<dynamic>?;
@@ -546,7 +488,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
     final maxSales = topProducts.first.value.toDouble();
 
-
     return Card(
       elevation: 2,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -556,9 +497,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text(
-
               'Top 5 Best Selling Products',
-
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 16),
@@ -567,7 +506,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
               child: BarChart(
                 BarChartData(
                   alignment: BarChartAlignment.spaceAround,
-
                   barGroups: topProducts.asMap().entries.map((entry) {
                     final index = entry.key;
                     final product = entry.value;
@@ -632,7 +570,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       color: Colors.grey.withOpacity(0.1),
                       strokeWidth: 1,
                     ),
-
                   ),
                   borderData: FlBorderData(show: false),
                   maxY: maxSales * 1.2,
@@ -644,8 +581,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
       ),
     );
   }
-
-
 
   Color _getBarColor(int index) {
     const colors = [
@@ -673,7 +608,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         Text(label, style: const TextStyle(fontSize: 12)),
         ElevatedButton(
           onPressed: () async {
-            final picked = await showDatePicker(
+            final DateTime? picked = await showDatePicker(
               context: context,
               initialDate: initial,
               firstDate: DateTime(2020),
