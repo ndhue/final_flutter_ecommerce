@@ -66,7 +66,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
         return data;
       }).toList();
     } catch (e) {
+
       throw Exception('Firestore fetch error: $e');
+
     }
   }
 
@@ -108,11 +110,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final productCostCache = <String, double>{};
 
     for (final order in filteredOrders) {
+
       if (order['orderStatus']?.toString().toLowerCase() != 'completed') continue;
+
 
       final details = order['orderDetails'] as List<dynamic>? ?? [];
       for (final item in details) {
         final productId = item['productId']?.toString();
+
         if (productId == null) continue;
 
         final quantity = item['quantity'] is int 
@@ -143,12 +148,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
       }
     }
 
+
     return totalCost;
   }
 
   Future<double> calculateProfit() async {
+
     final cost = await calculateCostPrice();
     return revenue - cost;
+
   }
 
   @override
@@ -335,12 +343,14 @@ Widget _buildDateFilterControls() {
   }
 
   Widget _buildTopSellingBarChart() {
+
     final productSales = <String, int>{};
 
     for (final order in filteredOrders) {
       if (order['orderStatus']?.toString().toLowerCase() != 'completed') continue;
 
       final details = order['orderDetails'] as List<dynamic>? ?? [];
+
       for (final item in details) {
         final productName = item['name']?.toString() ?? 'Unknown';
         final quantity = item['quantity'] is int ? item['quantity'] as int : 0;
@@ -352,6 +362,7 @@ Widget _buildDateFilterControls() {
       }
     }
 
+
     final topProducts = productSales.entries.toList()
       ..sort((a, b) => b.value.compareTo(a.value))
       ..take(5);
@@ -362,6 +373,7 @@ Widget _buildDateFilterControls() {
 
     final maxSales = topProducts.first.value.toDouble();
 
+
     return Card(
       elevation: 2,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -371,7 +383,9 @@ Widget _buildDateFilterControls() {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text(
+
               'Top Selling Products',
+
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 16),
@@ -380,6 +394,7 @@ Widget _buildDateFilterControls() {
               child: BarChart(
                 BarChartData(
                   alignment: BarChartAlignment.spaceAround,
+
                   barGroups: topProducts.asMap().entries.map((entry) {
                     return BarChartGroupData(
                       x: entry.key,
@@ -400,8 +415,27 @@ Widget _buildDateFilterControls() {
                     getDrawingHorizontalLine: (value) => FlLine(
                       color: Colors.grey.withOpacity(0.1),
                       strokeWidth: 1,
+
                     ),
+                    leftTitles: AxisTitles(
+                      sideTitles: SideTitles(
+                        showTitles: true,
+                        interval:
+                            maxSales > 10 ? (maxSales / 5).ceilToDouble() : 1,
+                        reservedSize: 40,
+                        getTitlesWidget: (value, meta) {
+                          return Text(
+                            value.toInt().toString(),
+                            style: const TextStyle(fontSize: 10),
+                          );
+                        },
+                      ),
+                    ),
+                    rightTitles: const AxisTitles(),
+                    topTitles: const AxisTitles(),
                   ),
+
+
                   borderData: FlBorderData(show: false),
                   maxY: maxSales * 1.2,
                 ),
@@ -409,6 +443,7 @@ Widget _buildDateFilterControls() {
             ),
           ],
         ),
+
       ),
     );
   }
@@ -455,6 +490,7 @@ Widget _buildDateFilterControls() {
       'Canceled': Colors.red,
     }[status] ?? Colors.grey;
   }
+
 
   Color _getBarColor(int index) {
     const colors = [Colors.blue, Colors.green, Colors.orange, Colors.red, Colors.purple];

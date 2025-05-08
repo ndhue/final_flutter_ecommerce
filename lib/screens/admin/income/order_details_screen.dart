@@ -35,15 +35,17 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              '📍 Địa chỉ giao hàng',
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
+
+            Text('Adress', style: TextStyle(fontWeight: FontWeight.bold)),
+
             Text(order.user.shippingAddress),
             SizedBox(height: 20),
 
             Text(
-              '🧾 Sản phẩm đã đặt',
+
+              '🧾 Ordered Products',
+
+
               style: TextStyle(fontWeight: FontWeight.bold),
             ),
             ...order.orderDetails.map(
@@ -53,9 +55,11 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                   subtitle: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('Số lượng: ${item.quantity}'),
-                      Text('Màu sắc: ${item.colorName}'),
-                      Text('Giá: ${_formatCurrency(item.price)}'),
+
+                      Text('Amount: ${item.quantity}'),
+                      Text('Colour: ${item.colorName}'),
+                      Text('Price: ${_formatCurrency(item.price)}'),
+
                     ],
                   ),
                 ),
@@ -64,7 +68,9 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
 
             SizedBox(height: 20),
             Text(
-              '🛠 Trạng thái đơn hàng',
+
+              '🛠 Order Status',
+
               style: TextStyle(fontWeight: FontWeight.bold),
             ),
             SizedBox(height: 8),
@@ -87,7 +93,9 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
             Center(
               child: ElevatedButton(
                 onPressed: _saveStatus,
-                child: Text('Cập nhật trạng thái'),
+
+                child: Text('Status Updates'),
+
               ),
             ),
           ],
@@ -113,15 +121,18 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
             ]),
           });
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('✅ Cập nhật trạng thái thành công')),
-      );
+
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('✅ Status Update Successful')));
 
       Navigator.pop(context, true); // 👈 báo về màn hình trước là đã cập nhật
     } catch (e) {
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text('❌ Cập nhật thất bại: $e')));
+
+      ).showSnackBar(SnackBar(content: Text('❌Update failure: $e')));
+
     }
   }
 

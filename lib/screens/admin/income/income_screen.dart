@@ -31,16 +31,20 @@ class _OrderManagerScreenState extends State<OrderManagerScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('Đơn hàng')),
+
+      appBar: AppBar(title: Text('Order')),
+
       body: FutureBuilder<List<OrderModel>>(
         future: _ordersFuture,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return Center(child: CircularProgressIndicator());
           } else if (snapshot.hasError) {
-            return Center(child: Text('Lỗi: ${snapshot.error}'));
+
+            return Center(child: Text('Error: ${snapshot.error}'));
           } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-            return Center(child: Text('Không có đơn hàng nào.'));
+            return Center(child: Text('Do not have order yet'));
+
           }
 
           final orders = snapshot.data!;
@@ -52,7 +56,9 @@ class _OrderManagerScreenState extends State<OrderManagerScreen> {
               final latestStatus =
                   order.statusHistory.isNotEmpty
                       ? order.statusHistory.last.status
-                      : 'Không rõ';
+
+                      : 'do not have status yet';
+
 
               return ListTile(
                 leading: Icon(Icons.person),
@@ -60,8 +66,10 @@ class _OrderManagerScreenState extends State<OrderManagerScreen> {
                 subtitle: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Tổng: ${_formatCurrency(order.total)}'),
-                    Text('Trạng thái: $latestStatus'),
+
+                    Text('Total: ${_formatCurrency(order.total)}'),
+                    Text('Status: $latestStatus'),
+
                   ],
                 ),
                 trailing: Icon(Icons.arrow_forward_ios, size: 16),

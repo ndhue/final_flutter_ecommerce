@@ -25,7 +25,9 @@ class OrderModel {
 
   factory OrderModel.fromJson(Map<String, dynamic> json) {
     if (json['createdAt'] == null) {
-      print('⚠️ Đơn hàng bị thiếu createdAt, sẽ dùng DateTime.now()');
+
+      print('⚠️Missing orders');
+
     }
 
     return OrderModel(
@@ -116,9 +118,9 @@ class StatusHistory {
 
   factory StatusHistory.fromJson(Map<String, dynamic> json) {
     if (json['time'] == null) {
-      print(
-        '⚠️ Trạng thái "${json['status']}" bị thiếu time, dùng DateTime.now()',
-      );
+
+      print('⚠️ ');
+
     }
 
     return StatusHistory(
