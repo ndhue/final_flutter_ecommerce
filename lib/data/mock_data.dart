@@ -287,7 +287,7 @@ List<OrderModel> mockOrders = [
         price: 3999000,
         discount: 0.2,
       ),
-           OrderDetail(
+      OrderDetail(
         productId: 'dell_xps13plus_1tb_32gb',
         productName: 'Dell XPS 13 Plus',
         imageUrl: 'https://picsum.photos/300/200?random=111',

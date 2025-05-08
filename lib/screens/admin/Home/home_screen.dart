@@ -1,6 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 class DashboardScreen extends StatefulWidget {
@@ -30,9 +30,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
     fromDate = DateTime(fromDate!.year, fromDate!.month, fromDate!.day);
 
     // Initialize toDate to today (end of day)
-    toDate = DateTime(DateTime.now().year, DateTime.now().month, DateTime.now().day, 23, 59, 59);
+    toDate = DateTime(
+      DateTime.now().year,
+      DateTime.now().month,
+      DateTime.now().day,
+      23,
+      59,
+      59,
+    );
   }
-
 
   Future<void> _fetchOrders() async {
     setState(() {
@@ -75,92 +81,104 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Future<List<Map<String, dynamic>>> _fetchOrdersFromFirestore(
-  DateTime from,
-  DateTime to,
-) async {
-  try {
-    final snapshot = await FirebaseFirestore.instance
-        .collection('orders')
-        // .where('createdAt', isGreaterThanOrEqualTo: from) // Remove this line
-        // .where('createdAt', isLessThanOrEqualTo: to)    // Remove this line
-        .get();
+    DateTime from,
+    DateTime to,
+  ) async {
+    try {
+      final snapshot =
+          await FirebaseFirestore.instance
+              .collection('orders')
+              // .where('createdAt', isGreaterThanOrEqualTo: from) // Remove this line
+              // .where('createdAt', isLessThanOrEqualTo: to)    // Remove this line
+              .get();
 
-    return snapshot.docs.map((doc) {
-      final data = doc.data() as Map<String, dynamic>;
-      data['id'] = doc.id;
+      return snapshot.docs
+          .map((doc) {
+            final data = doc.data() as Map<String, dynamic>;
+            data['id'] = doc.id;
 
-      // Extract the time from the first element of statusHistory
-      List<dynamic>? statusHistory = data['statusHistory'] as List<dynamic>?;
-      DateTime? orderTime;
+            // Extract the time from the first element of statusHistory
+            List<dynamic>? statusHistory =
+                data['statusHistory'] as List<dynamic>?;
+            DateTime? orderTime;
 
-      if (statusHistory != null && statusHistory.isNotEmpty) {
-        if (statusHistory[0] is Map) {
-          // Handle the case where statusHistory[0] is a Map
-          dynamic timeValue = (statusHistory[0] as Map)['time'];
+            if (statusHistory != null && statusHistory.isNotEmpty) {
+              if (statusHistory[0] is Map) {
+                // Handle the case where statusHistory[0] is a Map
+                dynamic timeValue = (statusHistory[0] as Map)['time'];
 
-          if (timeValue is String) {
-            // If time is a String, parse it
-            orderTime = DateTime.tryParse(timeValue);
-          } else if (timeValue is Timestamp) {
-            // If time is already a Timestamp, convert it to DateTime
-            orderTime = timeValue.toDate();
-          }
-        }
-      }
+                if (timeValue is String) {
+                  // If time is a String, parse it
+                  orderTime = DateTime.tryParse(timeValue);
+                } else if (timeValue is Timestamp) {
+                  // If time is already a Timestamp, convert it to DateTime
+                  orderTime = timeValue.toDate();
+                }
+              }
+            }
 
-      // Add orderTime to the data map
-      data['orderTime'] = orderTime;
+            // Add orderTime to the data map
+            data['orderTime'] = orderTime;
 
-      return data;
-    }).where((order) {
-      // Now filter based on the extracted orderTime
-      final orderTime = order['orderTime'] as DateTime?;
-      if (orderTime == null) {
-        return false; // Skip orders with no valid orderTime
-      }
-      return orderTime.isAfter(from.subtract(const Duration(microseconds: 1))) &&
-          orderTime.isBefore(to.add(const Duration(microseconds: 1)));
-    }).toList();
-  } catch (e) {
-    throw Exception('Can not get data from Firestore: $e');
+            return data;
+          })
+          .where((order) {
+            // Now filter based on the extracted orderTime
+            final orderTime = order['orderTime'] as DateTime?;
+            if (orderTime == null) {
+              return false; // Skip orders with no valid orderTime
+            }
+            return orderTime.isAfter(
+                  from.subtract(const Duration(microseconds: 1)),
+                ) &&
+                orderTime.isBefore(to.add(const Duration(microseconds: 1)));
+          })
+          .toList();
+    } catch (e) {
+      throw Exception('Can not get data from Firestore: $e');
+    }
   }
-}
 
   int getTotalOrders() => filteredOrders.length;
 
-  int getCompletedOrders() => filteredOrders
-      .where((order) => _getLastestStatus(order) == 'completed')
-      .length;
+  int getCompletedOrders() =>
+      filteredOrders
+          .where((order) => _getLastestStatus(order) == 'completed')
+          .length;
 
-  int getPendingOrders() => filteredOrders
-      .where((order) => _getLastestStatus(order) == 'pending')
-      .length;
+  int getPendingOrders() =>
+      filteredOrders
+          .where((order) => _getLastestStatus(order) == 'pending')
+          .length;
 
-  int getCanceledOrders() => filteredOrders.where((order) {
+  int getCanceledOrders() =>
+      filteredOrders.where((order) {
         final status = _getLastestStatus(order);
         return status == 'canceled' || status == 'cancelled';
       }).length;
 
-  int getDeliveredOrders() => filteredOrders
-      .where((order) => _getLastestStatus(order) == 'delivered')
-      .length;
+  int getDeliveredOrders() =>
+      filteredOrders
+          .where((order) => _getLastestStatus(order) == 'delivered')
+          .length;
 
-  int getShippedOrders() => filteredOrders
-      .where((order) => _getLastestStatus(order) == 'shipped')
-      .length;
+  int getShippedOrders() =>
+      filteredOrders
+          .where((order) => _getLastestStatus(order) == 'shipped')
+          .length;
 
   double calculateRevenue() {
     return filteredOrders
         .where((order) => _getLastestStatus(order) == 'completed')
         .fold(0.0, (sum, order) {
-      final total = order['total'];
-      if (total is String) {
-        return sum + (double.tryParse(total) ?? 0.0);
-      } else if (total is num) {
-        return sum + total.toDouble();
-      }
-      return sum;
-    });
+          final total = order['total'];
+          if (total is String) {
+            return sum + (double.tryParse(total) ?? 0.0);
+          } else if (total is num) {
+            return sum + total.toDouble();
+          }
+          return sum;
+        });
   }
 
   Future<double> calculateCostPrice() async {
@@ -177,16 +195,19 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
         final quantityRaw = item['quantity'];
         final quantity =
-            (quantityRaw is int) ? quantityRaw : int.tryParse(quantityRaw.toString()) ?? 1;
+            (quantityRaw is int)
+                ? quantityRaw
+                : int.tryParse(quantityRaw.toString()) ?? 1;
 
         double costPrice = productCostCache[productId] ?? 0.0;
 
         if (!productCostCache.containsKey(productId)) {
           try {
-            final productDoc = await FirebaseFirestore.instance
-                .collection('products')
-                .doc(productId)
-                .get();
+            final productDoc =
+                await FirebaseFirestore.instance
+                    .collection('products')
+                    .doc(productId)
+                    .get();
 
             if (productDoc.exists) {
               final data = productDoc.data()!;
@@ -241,22 +262,23 @@ class _DashboardScreenState extends State<DashboardScreen> {
       'Delivered': Colors.blue,
     };
 
-    final pieSections = statusCounts.entries
-        .where((e) => e.value > 0)
-        .map(
-          (entry) => PieChartSectionData(
-            value: entry.value.toDouble(),
-            title: '${entry.value}',
-            color: statusColor[entry.key],
-            radius: 30,
-            titleStyle: TextStyle(
-              fontSize: 14,
-              color: entry.key == 'Pending' ? Colors.black : Colors.white,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-        )
-        .toList();
+    final pieSections =
+        statusCounts.entries
+            .where((e) => e.value > 0)
+            .map(
+              (entry) => PieChartSectionData(
+                value: entry.value.toDouble(),
+                title: '${entry.value}',
+                color: statusColor[entry.key],
+                radius: 30,
+                titleStyle: TextStyle(
+                  fontSize: 14,
+                  color: entry.key == 'Pending' ? Colors.black : Colors.white,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            )
+            .toList();
 
     return Scaffold(
       appBar: AppBar(
@@ -297,7 +319,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       return _buildStatCard(
                         'Profit',
                         snapshot.data ?? 0,
-                        isLoading: snapshot.connectionState == ConnectionState.waiting,
+                        isLoading:
+                            snapshot.connectionState == ConnectionState.waiting,
                       );
                     },
                   ),
@@ -310,8 +333,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 const Center(child: Text('No orders found'))
               else ...[
                 SizedBox(
-                    height: 300,
-                    child: _buildPieChart(pieSections, statusCounts, statusColor)),
+                  height: 300,
+                  child: _buildPieChart(pieSections, statusCounts, statusColor),
+                ),
                 const SizedBox(height: 24),
                 SizedBox(height: 300, child: _buildTopSellingBarChart()),
               ],
@@ -333,7 +357,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
               fromDate = picked;
               // Ensure fromDate is not after toDate
               if (toDate != null && fromDate!.isAfter(toDate!)) {
-                toDate = DateTime(picked.year, picked.month, picked.day, 23, 59, 59);
+                toDate = DateTime(
+                  picked.year,
+                  picked.month,
+                  picked.day,
+                  23,
+                  59,
+                  59,
+                );
               }
             });
           }),
@@ -379,14 +410,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
               isLoading
                   ? const Center(child: CircularProgressIndicator())
                   : Text(
-                      (title == 'Revenue' || title == 'Profit')
-                          ? _formatCurrency(value)
-                          : value.toString(),
-                      style: const TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                      ),
+                    (title == 'Revenue' || title == 'Profit')
+                        ? _formatCurrency(value)
+                        : value.toString(),
+                    style: const TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
                     ),
+                  ),
             ],
           ),
         ),
@@ -402,26 +433,27 @@ class _DashboardScreenState extends State<DashboardScreen> {
       spacing: 8,
       runSpacing: 8,
       alignment: WrapAlignment.center,
-      children: statusCounts.entries
-          .where((e) => e.value > 0)
-          .map(
-            (entry) => Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  width: 12,
-                  height: 12,
-                  color: statusColor[entry.key],
+      children:
+          statusCounts.entries
+              .where((e) => e.value > 0)
+              .map(
+                (entry) => Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: 12,
+                      height: 12,
+                      color: statusColor[entry.key],
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      '${entry.key} (${entry.value})',
+                      style: const TextStyle(fontSize: 12),
+                    ),
+                  ],
                 ),
-                const SizedBox(width: 4),
-                Text(
-                  '${entry.key} (${entry.value})',
-                  style: const TextStyle(fontSize: 12),
-                ),
-              ],
-            ),
-          )
-          .toList(),
+              )
+              .toList(),
     );
   }
 
@@ -476,9 +508,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
       }
     }
 
-    final topProducts = productSales.entries.toList()
-      ..sort((a, b) => b.value.compareTo(a.value))
-      ..take(5);
+    final topProducts =
+        productSales.entries.toList()
+          ..sort((a, b) => b.value.compareTo(a.value))
+          ..take(5);
 
     if (topProducts.isEmpty) {
       return const Center(
@@ -506,21 +539,22 @@ class _DashboardScreenState extends State<DashboardScreen> {
               child: BarChart(
                 BarChartData(
                   alignment: BarChartAlignment.spaceAround,
-                  barGroups: topProducts.asMap().entries.map((entry) {
-                    final index = entry.key;
-                    final product = entry.value;
-                    return BarChartGroupData(
-                      x: index,
-                      barRods: [
-                        BarChartRodData(
-                          toY: product.value.toDouble(),
-                          color: _getBarColor(index),
-                          width: 20,
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                      ],
-                    );
-                  }).toList(),
+                  barGroups:
+                      topProducts.asMap().entries.map((entry) {
+                        final index = entry.key;
+                        final product = entry.value;
+                        return BarChartGroupData(
+                          x: index,
+                          barRods: [
+                            BarChartRodData(
+                              toY: product.value.toDouble(),
+                              color: _getBarColor(index),
+                              width: 20,
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                          ],
+                        );
+                      }).toList(),
                   titlesData: FlTitlesData(
                     bottomTitles: AxisTitles(
                       sideTitles: SideTitles(
@@ -529,7 +563,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           if (value.toInt() < topProducts.length) {
                             String productName = topProducts[value.toInt()].key;
                             if (productName.length > 10) {
-                              productName = productName.substring(0, 10) + '...';
+                              productName =
+                                  productName.substring(0, 10) + '...';
                             }
                             return Padding(
                               padding: const EdgeInsets.only(top: 8),
@@ -566,10 +601,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   gridData: FlGridData(
                     show: true,
                     drawVerticalLine: false,
-                    getDrawingHorizontalLine: (value) => FlLine(
-                      color: Colors.grey.withOpacity(0.1),
-                      strokeWidth: 1,
-                    ),
+                    getDrawingHorizontalLine:
+                        (value) => FlLine(
+                          color: Colors.grey.withOpacity(0.1),
+                          strokeWidth: 1,
+                        ),
                   ),
                   borderData: FlBorderData(show: false),
                   maxY: maxSales * 1.2,
@@ -598,10 +634,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Widget _buildDatePicker(
-      String label,
-      DateTime initial,
-      Function(DateTime) onPicked,
-      ) {
+    String label,
+    DateTime initial,
+    Function(DateTime) onPicked,
+  ) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -618,7 +654,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
               DateTime adjustedDate;
               if (label == 'To:') {
                 // Set to 23:59:59 for "To" date
-                adjustedDate = DateTime(picked.year, picked.month, picked.day, 23, 59, 59);
+                adjustedDate = DateTime(
+                  picked.year,
+                  picked.month,
+                  picked.day,
+                  23,
+                  59,
+                  59,
+                );
               } else {
                 // Set to 00:00:00 for "From" date
                 adjustedDate = DateTime(picked.year, picked.month, picked.day);
@@ -631,10 +674,4 @@ class _DashboardScreenState extends State<DashboardScreen> {
       ],
     );
   }
-
-  
-
-  
-
-  
 }

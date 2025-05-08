@@ -242,7 +242,7 @@ class _ChatScreenState extends State<ChatScreen> {
                                       final bool isCurrentUser =
                                           message.senderId ==
                                           (isAdmin(user)
-                                              ? "admin"
+                                              ? user.id
                                               : widget.userId);
                                       final bool showTime =
                                           _shouldShowTimeSeparator(

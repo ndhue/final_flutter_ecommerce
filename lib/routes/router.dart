@@ -71,7 +71,7 @@ Route<dynamic> generateRoute(RouteSettings settings) {
         final product = settings.arguments as NewProduct;
         page = ProductDetails(product: product);
       } else {
-        page = const EntryPoint(); // Nếu không có sản phẩm, quay về trang chính
+        page = const EntryPoint();
       }
       break;
 

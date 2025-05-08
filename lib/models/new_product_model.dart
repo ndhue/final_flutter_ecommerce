@@ -18,7 +18,7 @@ class NewProduct {
   final List<String> availableColors;
   final DocumentSnapshot? docSnapshot;
   // New specs field
-  final Map<String, dynamic> specs;
+  final Map<String, dynamic>? specs;
 
   NewProduct({
     required this.id,
@@ -35,7 +35,7 @@ class NewProduct {
     required this.costPrice,
     required this.sellingPrice,
     this.discount = 0.0,
-    required this.specs,
+    this.specs,
     this.availableColors = const [],
     this.docSnapshot,
   });
