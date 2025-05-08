@@ -217,7 +217,6 @@ class ProductRepository {
           'rating': roundedNewRating,
         });
       } else {
-        // Nếu không có rating thì chỉ tăng số review
         await _products.doc(productId).update({
           'totalReviews': FieldValue.increment(1),
         });

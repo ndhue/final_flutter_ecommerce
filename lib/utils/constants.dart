@@ -17,3 +17,21 @@ const Color bubbleChat = Color.fromARGB(255, 144, 241, 210);
 const double defaultPadding = 16.0;
 const double defaultBorderRadius = 12.0;
 const Duration defaultDuration = Duration(milliseconds: 300);
+
+const List<String> categoryList = [
+  'Desktops',
+  'Laptops',
+  'Monitors',
+  'Speakers',
+  'Keyboards',
+  'Headphones',
+];
+
+const List<String> brandList = [
+  'Apple',
+  'Samsung',
+  'Dell',
+  'HP',
+  'Lenovo',
+  'Asus',
+];

@@ -79,6 +79,7 @@ class ProductProvider with ChangeNotifier {
 
   //Add new product
   Future<void> addProduct(NewProduct product) async {
+    debugPrint('Adding product: ${product.name}');
     await _repository.addProduct(product);
     notifyListeners();
   }
@@ -313,6 +314,104 @@ class ProductProvider with ChangeNotifier {
       return await _repository.fetchProductById(productId);
     } catch (e) {
       debugPrint('Error fetching product by ID: $e');
+      rethrow;
+    }
+  }
+
+  Future<void> updateProduct(NewProduct product) async {
+    try {
+      await FirebaseFirestore.instance
+          .collection('products')
+          .doc(product.id)
+          .update({
+            'name': product.name,
+            'brand': product.brand,
+            'category': product.category,
+            'description': product.description,
+            'costPrice': product.costPrice,
+            'sellingPrice': product.sellingPrice,
+            'discount': product.discount,
+            'activated': product.activated,
+          });
+
+      // Update the product in the local list
+      final index = _products.indexWhere((p) => p.id == product.id);
+      if (index != -1) {
+        _products[index] = product;
+        notifyListeners();
+      }
+    } catch (e) {
+      debugPrint('Error updating product: $e');
+      rethrow;
+    }
+  }
+
+  Future<void> updateProductStatus(String productId, bool status) async {
+    try {
+      await FirebaseFirestore.instance
+          .collection('products')
+          .doc(productId)
+          .update({'activated': status});
+
+      // Update the product in the local list
+      final index = _products.indexWhere((p) => p.id == productId);
+      if (index != -1) {
+        final updatedProduct = NewProduct(
+          id: _products[index].id,
+          name: _products[index].name,
+          brand: _products[index].brand,
+          category: _products[index].category,
+          description: _products[index].description,
+          createdAt: _products[index].createdAt,
+          images: _products[index].images,
+          costPrice: _products[index].costPrice,
+          sellingPrice: _products[index].sellingPrice,
+          discount: _products[index].discount,
+          specs: _products[index].specs,
+          activated: status,
+          availableColors: _products[index].availableColors,
+          rating: _products[index].rating,
+          salesCount: _products[index].salesCount,
+          totalReviews: _products[index].totalReviews,
+          docSnapshot: _products[index].docSnapshot,
+        );
+        _products[index] = updatedProduct;
+        notifyListeners();
+      }
+    } catch (e) {
+      debugPrint('Error updating product status: $e');
+      rethrow;
+    }
+  }
+
+  Future<void> deleteProduct(String productId) async {
+    try {
+      // First, delete all variants in the variantInventory subcollection
+      final variantSnapshot =
+          await FirebaseFirestore.instance
+              .collection('products')
+              .doc(productId)
+              .collection('variantInventory')
+              .get();
+
+      final batch = FirebaseFirestore.instance.batch();
+
+      for (var doc in variantSnapshot.docs) {
+        batch.delete(doc.reference);
+      }
+
+      // Then delete the product document itself
+      batch.delete(
+        FirebaseFirestore.instance.collection('products').doc(productId),
+      );
+
+      await batch.commit();
+
+      // Update local list
+      _products.removeWhere((product) => product.id == productId);
+      notifyListeners();
+    } catch (e) {
+      debugPrint('Error deleting product: $e');
       rethrow;
     }
   }
