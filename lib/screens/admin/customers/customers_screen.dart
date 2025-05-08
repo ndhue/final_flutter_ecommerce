@@ -87,7 +87,11 @@ class _AdminCustomersScreenState extends State<AdminCustomersScreen> {
                 DataColumn(label: Text('ID', style: TextStyle(fontWeight: FontWeight.bold))),
                 DataColumn(label: Text('Name', style: TextStyle(fontWeight: FontWeight.bold))),
                 DataColumn(label: Text('Email', style: TextStyle(fontWeight: FontWeight.bold))),
-                DataColumn(label: Text('Address', style: TextStyle(fontWeight: FontWeight.bold))),
+                DataColumn(label: Text('City', style: TextStyle(fontWeight: FontWeight.bold))),
+                DataColumn(label: Text('District', style: TextStyle(fontWeight: FontWeight.bold))),
+                DataColumn(label: Text('Ward', style: TextStyle(fontWeight: FontWeight.bold))),
+                //DataColumn(label: Text('Address', style: TextStyle(fontWeight: FontWeight.bold))),
+                DataColumn(label: Text('Shipping Address', style: TextStyle(fontWeight: FontWeight.bold))),
                 DataColumn(label: Text('Actions', style: TextStyle(fontWeight: FontWeight.bold))),
               ],
               rows: displayedUsers.map((user) {
@@ -111,15 +115,31 @@ class _AdminCustomersScreenState extends State<AdminCustomersScreen> {
                         child: Text(user.email, overflow: TextOverflow.ellipsis),
                       ),
                     ),
-                    DataCell(
+                     DataCell(
                       SizedBox(
-                        width: 220,
-                        child: Tooltip(
-                          message: user.fullShippingAddress,
-                          child: Text(user.fullShippingAddress, overflow: TextOverflow.ellipsis),
-                        ),
+                        width: 180,
+                        child: Text(user.city, overflow: TextOverflow.ellipsis),
                       ),
                     ),
+                     DataCell(
+                      SizedBox(
+                        width: 180,
+                        child: Text(user.district, overflow: TextOverflow.ellipsis),
+                      ),
+                    ),
+                     DataCell(
+                      SizedBox(
+                        width: 180,
+                        child: Text(user.ward, overflow: TextOverflow.ellipsis),
+                      ),
+                    ),
+                     DataCell(
+                      SizedBox(
+                        width: 180,
+                        child: Text(user.shippingAddress, overflow: TextOverflow.ellipsis),
+                      ),
+                    ),
+                    
                     DataCell(
                       Wrap(
                         spacing: 8,
@@ -151,61 +171,13 @@ class _AdminCustomersScreenState extends State<AdminCustomersScreen> {
     );
   }
 
-  // void _showCustomerDetails(UserModel user) {
-  //   showDialog(
-  //     context: context,
-  //     builder: (context) {
-  //       return Dialog(
-  //         insetPadding: const EdgeInsets.all(20),
-  //         child: SizedBox(
-  //           width: 500,
-  //           child: Column(
-  //             children: [
-  //               Container(
-  //                 padding: const EdgeInsets.all(16),
-  //                 color: Colors.blueGrey[50],
-  //                 width: double.infinity,
-  //                 child: const Text('Customer Details', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
-  //               ),
-  //               const Divider(height: 1),
-  //               Expanded(
-  //                 child: SingleChildScrollView(
-  //                   padding: const EdgeInsets.all(16),
-  //                   child: Column(
-  //                     crossAxisAlignment: CrossAxisAlignment.start,
-  //                     children: [
-  //                       _buildInfoRow('Customer ID:', user.id),
-  //                       _buildInfoRow('Full name:', user.fullName),
-  //                       _buildInfoRow('Email:', user.email),
-  //                       _buildInfoRow('Address:', user.fullShippingAddress),
-  //                       _buildInfoRow('Loyalty Points:', '${user.loyaltyPoints}'),
-  //                       _buildInfoRow('Points Used:', '${user.loyaltyPointsUsed}'),
-  //                       _buildInfoRow('Activated:', user.activated ? 'Yes' : 'No'),
-  //                     ],
-  //                   ),
-  //                 ),
-  //               ),
-  //               Align(
-  //                 alignment: Alignment.centerRight,
-  //                 child: Padding(
-  //                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-  //                   child: TextButton(
-  //                     onPressed: () => Navigator.of(context).pop(),
-  //                     child: const Text('Close'),
-  //                   ),
-  //                 ),
-  //               ),
-  //             ],
-  //           ),
-  //         ),
-  //       );
-  //     },
-  //   );
-  // }
 
   void _showEditCustomerDialog(UserModel user) {
     final fullNameController = TextEditingController(text: user.fullName);
     final emailController = TextEditingController(text: user.email);
+    final cityController = TextEditingController(text: user.city);
+    final districtController = TextEditingController(text: user.district);
+    final wardController = TextEditingController(text: user.ward);
     final addressController = TextEditingController(text: user.shippingAddress);
 
     bool isActivated = user.activated;
@@ -239,7 +211,10 @@ class _AdminCustomersScreenState extends State<AdminCustomersScreen> {
                           children: [
                             _buildEditableField('Full name', fullNameController),
                             _buildEditableField('Email', emailController),
-                            _buildEditableField('Address', addressController),
+                            _buildEditableField('City', cityController),
+                            _buildEditableField('District', districtController),
+                            _buildEditableField('Ward', wardController),
+                            _buildEditableField('Shipping Address', addressController),
                             Row(
                               children: [
                                 const Text('Activated:', style: TextStyle(fontWeight: FontWeight.bold)),
@@ -269,6 +244,9 @@ class _AdminCustomersScreenState extends State<AdminCustomersScreen> {
                                 fullName: fullNameController.text,
                                 email: emailController.text,
                                 shippingAddress: addressController.text,
+                                city: cityController.text,
+                                district: districtController.text,
+                                ward: wardController.text,
                                 activated: isActivated,
                               );
 

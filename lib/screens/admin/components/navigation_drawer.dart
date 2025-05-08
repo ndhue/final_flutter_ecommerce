@@ -64,8 +64,9 @@ class CustomDrawer extends StatelessWidget {
                       onTap: () => onItemSelected("Products"),
                       isSelected: selectedItem == "Products",
                     ),
-                    _buildSubNavItem("Add Product",
-                    onTap: () => onItemSelected("AddProduct"),
+                    _buildSubNavItem(
+                      "Add Product",
+                      onTap: () => onItemSelected("AddProduct"),
                     ),
                   ],
                 ),
@@ -74,8 +75,9 @@ class CustomDrawer extends StatelessWidget {
                   icon: Icons.people_outline,
                   title: "Customers",
                   children: [
-                    _buildSubNavItem("Dashboard",
-                    onTap: () => onItemSelected("Customers"),
+                    _buildSubNavItem(
+                      "Dashboard",
+                      onTap: () => onItemSelected("Customers"),
                     ),
                     _buildSubNavItem(
                       "Chats",
@@ -85,7 +87,7 @@ class CustomDrawer extends StatelessWidget {
                 ),
                 _buildNavItem(
                   Icons.pie_chart_outline,
-                  "Income",
+                  "Orders",
                   onTap: () => onItemSelected("Income"),
                 ),
                 _buildNavItem(

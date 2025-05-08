@@ -1,3 +1,5 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 class OrderModel {
   final String id;
   final DateTime createdAt;
@@ -21,34 +23,45 @@ class OrderModel {
     this.coupon,
   });
 
-  factory OrderModel.fromJson(Map<String, dynamic> json) => OrderModel(
-    id: json['id'],
-    createdAt: DateTime.parse(json['createdAt']),
-    orderDetails:
-        (json['orderDetails'] as List)
-            .map((e) => OrderDetail.fromJson(e))
-            .toList(),
-    loyaltyPointsEarned: json['loyaltyPointsEarned'],
-    loyaltyPointsUsed: json['loyaltyPointsUsed'],
-    statusHistory:
-        (json['statusHistory'] as List)
-            .map((e) => StatusHistory.fromJson(e))
-            .toList(),
-    total: json['total'],
-    user: OrderUserDetails.fromMap(json['user']),
-    coupon: json['coupon'],
-  );
+  factory OrderModel.fromJson(Map<String, dynamic> json) {
+    if (json['createdAt'] == null) {
+
+      print('⚠️Missing orders');
+
+    }
+
+    return OrderModel(
+      id: json['id'] ?? '',
+      createdAt: _safeParseDate(json['createdAt']),
+      orderDetails:
+          (json['orderDetails'] as List? ?? [])
+              .map((e) => OrderDetail.fromJson(e))
+              .toList(),
+      loyaltyPointsEarned: json['loyaltyPointsEarned'] ?? 0,
+      loyaltyPointsUsed: json['loyaltyPointsUsed'] ?? 0,
+      statusHistory:
+          (json['statusHistory'] as List? ?? [])
+              .map((e) => StatusHistory.fromJson(e))
+              .toList(),
+      total: (json['total'] ?? 0).toDouble(),
+      user: OrderUserDetails.fromMap(json['user'] ?? {}),
+      coupon:
+          json['coupon'] != null
+              ? OrderCouponDetails.fromMap(json['coupon'])
+              : null,
+    );
+  }
 
   Map<String, dynamic> toJson() => {
     'id': id,
-    'createdAt': createdAt.toIso8601String(),
+    'createdAt': Timestamp.fromDate(createdAt),
     'orderDetails': orderDetails.map((e) => e.toJson()).toList(),
     'loyaltyPointsEarned': loyaltyPointsEarned,
     'loyaltyPointsUsed': loyaltyPointsUsed,
     'statusHistory': statusHistory.map((e) => e.toJson()).toList(),
     'total': total,
     'user': user.toMap(),
-    'coupon': coupon,
+    'coupon': coupon?.toMap(),
   };
 }
 
@@ -60,7 +73,7 @@ class OrderDetail {
   final String colorName;
   final int quantity;
   final double price;
-  final double? discount;
+  final double discount;
 
   OrderDetail({
     required this.productId,
@@ -74,14 +87,15 @@ class OrderDetail {
   });
 
   factory OrderDetail.fromJson(Map<String, dynamic> json) => OrderDetail(
-    productId: json['productId'],
-    productName: json['productName'],
-    imageUrl: json['imageUrl'],
-    variantId: json['variantId'],
-    quantity: json['quantity'],
-    price: json['price'],
-    colorName: '${json['colorName']}',
-    discount: json['discount'] != null ? json['discount'].toDouble() : 0.0,
+    productId: json['productId'] ?? '',
+    productName: json['productName'] ?? '',
+    imageUrl: json['imageUrl'] ?? '',
+    variantId: json['variantId'] ?? '',
+    colorName: json['colorName'] ?? '',
+    quantity: json['quantity'] ?? 0,
+    price: (json['price'] ?? 0).toDouble(),
+    discount:
+        json['discount'] != null ? (json['discount'] as num).toDouble() : 0.0,
   );
 
   Map<String, dynamic> toJson() => {
@@ -102,12 +116,22 @@ class StatusHistory {
 
   StatusHistory({required this.status, required this.time});
 
-  factory StatusHistory.fromJson(Map<String, dynamic> json) =>
-      StatusHistory(status: json['status'], time: DateTime.parse(json['time']));
+  factory StatusHistory.fromJson(Map<String, dynamic> json) {
+    if (json['time'] == null) {
+
+      print('⚠️ ');
+
+    }
+
+    return StatusHistory(
+      status: json['status'] ?? 'Unknown',
+      time: _safeParseDate(json['time']),
+    );
+  }
 
   Map<String, dynamic> toJson() => {
     'status': status,
-    'time': time.toIso8601String(),
+    'time': Timestamp.fromDate(time),
   };
 }
 
@@ -126,10 +150,10 @@ class OrderUserDetails {
 
   factory OrderUserDetails.fromMap(Map<String, dynamic> json) =>
       OrderUserDetails(
-        userId: json['userId'],
-        name: json['name'],
-        email: json['email'],
-        shippingAddress: json['shippingAddress'],
+        userId: json['userId'] ?? '',
+        name: json['name'] ?? '',
+        email: json['email'] ?? '',
+        shippingAddress: json['shippingAddress'] ?? '',
       );
 
   Map<String, dynamic> toMap() => {
@@ -147,7 +171,19 @@ class OrderCouponDetails {
   OrderCouponDetails({required this.code, required this.value});
 
   factory OrderCouponDetails.fromMap(Map<String, dynamic> json) =>
-      OrderCouponDetails(code: json['code'], value: json['value']);
+      OrderCouponDetails(
+        code: json['code'] ?? '',
+        value: (json['value'] ?? 0).toDouble(),
+      );
 
   Map<String, dynamic> toMap() => {'code': code, 'value': value};
+}
+
+/// Utility: parse Timestamp / String / DateTime / null an toàn
+DateTime _safeParseDate(dynamic value) {
+  if (value == null) return DateTime.now();
+  if (value is Timestamp) return value.toDate();
+  if (value is String) return DateTime.tryParse(value) ?? DateTime.now();
+  if (value is DateTime) return value;
+  return DateTime.now();
 }
