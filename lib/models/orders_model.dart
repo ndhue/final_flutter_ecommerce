@@ -25,7 +25,9 @@ class OrderModel {
 
   factory OrderModel.fromJson(Map<String, dynamic> json) {
     if (json['createdAt'] == null) {
+
       print('⚠️Missing orders');
+
     }
 
     return OrderModel(
@@ -116,7 +118,9 @@ class StatusHistory {
 
   factory StatusHistory.fromJson(Map<String, dynamic> json) {
     if (json['time'] == null) {
+
       print('⚠️ ');
+
     }
 
     return StatusHistory(
