@@ -50,7 +50,7 @@ class _AdminEntryPointState extends State<AdminEntryPoint> {
       case "Shop":
         return Center(child: Text("Shop Screen"));
       case "Income":
-        return AdminIcomeScreen();
+        return OrderManagerScreen();
       case "Coupons":
         return AdminCouponScreen();
       case "Products":

@@ -66,7 +66,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         return data;
       }).toList();
     } catch (e) {
-      throw Exception('Không thể lấy dữ liệu từ Firestore: $e');
+      throw Exception('Unable to retrieve data from Firestore: $e');
     }
   }
 
@@ -111,75 +111,80 @@ class _DashboardScreenState extends State<DashboardScreen> {
         });
   }
 
- Future<double> calculateCostPrice() async {
-  double totalCost = 0.0;
-  final productCostCache = <String, double>{};
+  Future<double> calculateCostPrice() async {
+    double totalCost = 0.0;
+    final productCostCache = <String, double>{};
 
-  for (final order in filteredOrders) {
-    debugPrint('Processing order ${order['id']} - Status: ${order['orderStatus']}');
-    if (order['orderStatus']?.toString().toLowerCase() != 'completed') {
-      debugPrint('Skipped order ${order['id']} - Status: ${order['orderStatus']}');
-      continue;
-    }
-
-    final details = order['orderDetails'] as List<dynamic>? ?? [];
-    for (final item in details) {
-      final productId = item['productId']?.toString();
-      debugPrint('Product ID: $productId');
-      if (productId == null) continue;
-
-      // ✅ Đảm bảo quantity là int
-      final quantityRaw = item['quantity'];
-      final quantity = (quantityRaw is int)
-          ? quantityRaw
-          : int.tryParse(quantityRaw.toString()) ?? 1;
-
-      debugPrint('Product: $productId, Quantity: $quantity');
-
-      double costPrice = 0.0;
-
-      if (productCostCache.containsKey(productId)) {
-        costPrice = productCostCache[productId]!;
-      } else {
-        try {
-          final productDoc = await FirebaseFirestore.instance
-              .collection('products')
-              .doc(productId)
-              .get();
-
-          if (!productDoc.exists) {
-            debugPrint('Product $productId does not exist!');
-            continue;
-          }
-
-          final data = productDoc.data()!;
-          final rawCost = data['costPrice'] ?? 0.0;
-          costPrice = rawCost is num ? rawCost.toDouble() : 0.0;
-          productCostCache[productId] = costPrice;
-        } catch (e) {
-          debugPrint('Error fetching product $productId: $e');
-          continue;
-        }
+    for (final order in filteredOrders) {
+      debugPrint(
+        'Processing order ${order['id']} - Status: ${order['orderStatus']}',
+      );
+      if (order['orderStatus']?.toString().toLowerCase() != 'completed') {
+        debugPrint(
+          'Skipped order ${order['id']} - Status: ${order['orderStatus']}',
+        );
+        continue;
       }
 
-      final addedCost = costPrice * quantity;
-      totalCost += addedCost;
-      debugPrint('Cost for $productId: $costPrice');
-      debugPrint('Added cost: $addedCost for $productId');
+      final details = order['orderDetails'] as List<dynamic>? ?? [];
+      for (final item in details) {
+        final productId = item['productId']?.toString();
+        debugPrint('Product ID: $productId');
+        if (productId == null) continue;
+
+        // ✅ Đảm bảo quantity là int
+        final quantityRaw = item['quantity'];
+        final quantity =
+            (quantityRaw is int)
+                ? quantityRaw
+                : int.tryParse(quantityRaw.toString()) ?? 1;
+
+        debugPrint('Product: $productId, Quantity: $quantity');
+
+        double costPrice = 0.0;
+
+        if (productCostCache.containsKey(productId)) {
+          costPrice = productCostCache[productId]!;
+        } else {
+          try {
+            final productDoc =
+                await FirebaseFirestore.instance
+                    .collection('products')
+                    .doc(productId)
+                    .get();
+
+            if (!productDoc.exists) {
+              debugPrint('Product $productId does not exist!');
+              continue;
+            }
+
+            final data = productDoc.data()!;
+            final rawCost = data['costPrice'] ?? 0.0;
+            costPrice = rawCost is num ? rawCost.toDouble() : 0.0;
+            productCostCache[productId] = costPrice;
+          } catch (e) {
+            debugPrint('Error fetching product $productId: $e');
+            continue;
+          }
+        }
+
+        final addedCost = costPrice * quantity;
+        totalCost += addedCost;
+        debugPrint('Cost for $productId: $costPrice');
+        debugPrint('Added cost: $addedCost for $productId');
+      }
     }
+
+    debugPrint('Total cost calculated: $totalCost');
+    return totalCost;
   }
 
-  debugPrint('Total cost calculated: $totalCost');
-  return totalCost;
-}
-
-Future<double> calculateProfit() async {
-  final revenue = calculateRevenue();
-  final costPrice = await calculateCostPrice();
-  print('Revenue: $revenue, Cost: $costPrice');
-  return revenue - costPrice;
-}
-
+  Future<double> calculateProfit() async {
+    final revenue = calculateRevenue();
+    final costPrice = await calculateCostPrice();
+    print('Revenue: $revenue, Cost: $costPrice');
+    return revenue - costPrice;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -365,138 +370,141 @@ Future<double> calculateProfit() async {
     );
   }
 
- Widget _buildTopSellingBarChart() {
-  // Tính toán sản phẩm bán chạy từ filteredOrders
-  final productSales = <String, int>{};
+  Widget _buildTopSellingBarChart() {
+    // Tính toán sản phẩm bán chạy từ filteredOrders
+    final productSales = <String, int>{};
 
-  for (final order in filteredOrders) {
-    if (order['orderStatus']?.toString().toLowerCase() != 'completed') continue;
+    for (final order in filteredOrders) {
+      if (order['orderStatus']?.toString().toLowerCase() != 'completed')
+        continue;
 
-    final details = order['orderDetails'] as List<dynamic>?;
-    if (details == null) continue;
+      final details = order['orderDetails'] as List<dynamic>?;
+      if (details == null) continue;
 
-    for (final item in details) {
-      final productName = item['name']?.toString() ?? 'Unknown';
-      final quantity = item['quantity'] is int ? item['quantity'] as int : 0;
-      productSales.update(
-        productName,
-        (value) => value + quantity,
-        ifAbsent: () => quantity,
+      for (final item in details) {
+        final productName = item['name']?.toString() ?? 'Unknown';
+        final quantity = item['quantity'] is int ? item['quantity'] as int : 0;
+        productSales.update(
+          productName,
+          (value) => value + quantity,
+          ifAbsent: () => quantity,
+        );
+      }
+    }
+
+    final topProducts =
+        productSales.entries.toList()
+          ..sort((a, b) => b.value.compareTo(a.value))
+          ..take(5);
+
+    if (topProducts.isEmpty) {
+      return const Center(
+        child: Text('No best selling product data available'),
       );
     }
-  }
 
-  final topProducts =
-      productSales.entries.toList()
-        ..sort((a, b) => b.value.compareTo(a.value))
-        ..take(5);
+    final maxSales = topProducts.first.value.toDouble();
 
-  if (topProducts.isEmpty) {
-    return const Center(child: Text('No best selling product data available'));
-  }
-
-  final maxSales = topProducts.first.value.toDouble();
-
-  return Card(
-    elevation: 2,
-    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-    child: Padding(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'Sản phẩm bán chạy',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 16),
-          SizedBox(
-            height: 200,
-            child: BarChart(
-              BarChartData(
-                alignment: BarChartAlignment.spaceAround,
-                barGroups: topProducts.asMap().entries.map((entry) {
-                  final index = entry.key;
-                  final product = entry.value;
-                  return BarChartGroupData(
-                    x: index,
-                    barRods: [
-                      BarChartRodData(
-                        toY: product.value.toDouble(),
-                        color: _getBarColor(
-                          index,
-                        ), // Ensure _getBarColor is defined
-                        width: 20,
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                    ],
-                  );
-                }).toList(),
-                titlesData: FlTitlesData(
-                  bottomTitles: AxisTitles(
-                    sideTitles: SideTitles(
-                      showTitles: true,
-                      getTitlesWidget: (value, meta) {
-                        if (value.toInt() < topProducts.length) {
-                          // Giới hạn tên sản phẩm dài
-                          String productName =
-                              topProducts[value.toInt()].key;
-                          // Giới hạn độ dài tên sản phẩm
-                          if (productName.length > 10) {
-                            productName = productName.substring(0, 10) + '...';
-                          }
-                          return Padding(
-                            padding: const EdgeInsets.only(top: 8),
-                            child: Text(
-                              productName,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(fontSize: 10),
+    return Card(
+      elevation: 2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Sản phẩm bán chạy',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 16),
+            SizedBox(
+              height: 200,
+              child: BarChart(
+                BarChartData(
+                  alignment: BarChartAlignment.spaceAround,
+                  barGroups:
+                      topProducts.asMap().entries.map((entry) {
+                        final index = entry.key;
+                        final product = entry.value;
+                        return BarChartGroupData(
+                          x: index,
+                          barRods: [
+                            BarChartRodData(
+                              toY: product.value.toDouble(),
+                              color: _getBarColor(
+                                index,
+                              ), // Ensure _getBarColor is defined
+                              width: 20,
+                              borderRadius: BorderRadius.circular(4),
                             ),
-                          );
-                        }
-                        return const SizedBox.shrink();
-                      },
-                      reservedSize: 40,
-                    ),
-                  ),
-                  leftTitles: AxisTitles(
-                    sideTitles: SideTitles(
-                      showTitles: true,
-                      interval: maxSales > 10
-                          ? (maxSales / 5).ceilToDouble()
-                          : 1,
-                      reservedSize: 40,
-                      getTitlesWidget: (value, meta) {
-                        return Text(
-                          value.toInt().toString(),
-                          style: const TextStyle(fontSize: 10),
+                          ],
                         );
-                      },
+                      }).toList(),
+                  titlesData: FlTitlesData(
+                    bottomTitles: AxisTitles(
+                      sideTitles: SideTitles(
+                        showTitles: true,
+                        getTitlesWidget: (value, meta) {
+                          if (value.toInt() < topProducts.length) {
+                            // Giới hạn tên sản phẩm dài
+                            String productName = topProducts[value.toInt()].key;
+                            // Giới hạn độ dài tên sản phẩm
+                            if (productName.length > 10) {
+                              productName =
+                                  productName.substring(0, 10) + '...';
+                            }
+                            return Padding(
+                              padding: const EdgeInsets.only(top: 8),
+                              child: Text(
+                                productName,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(fontSize: 10),
+                              ),
+                            );
+                          }
+                          return const SizedBox.shrink();
+                        },
+                        reservedSize: 40,
+                      ),
                     ),
+                    leftTitles: AxisTitles(
+                      sideTitles: SideTitles(
+                        showTitles: true,
+                        interval:
+                            maxSales > 10 ? (maxSales / 5).ceilToDouble() : 1,
+                        reservedSize: 40,
+                        getTitlesWidget: (value, meta) {
+                          return Text(
+                            value.toInt().toString(),
+                            style: const TextStyle(fontSize: 10),
+                          );
+                        },
+                      ),
+                    ),
+                    rightTitles: const AxisTitles(),
+                    topTitles: const AxisTitles(),
                   ),
-                  rightTitles: const AxisTitles(),
-                  topTitles: const AxisTitles(),
-                ),
-                gridData: FlGridData(
-                  show: true,
-                  drawVerticalLine: false,
-                  getDrawingHorizontalLine: (value) => FlLine(
-                    color: Colors.grey.withOpacity(0.1),
-                    strokeWidth: 1,
+                  gridData: FlGridData(
+                    show: true,
+                    drawVerticalLine: false,
+                    getDrawingHorizontalLine:
+                        (value) => FlLine(
+                          color: Colors.grey.withOpacity(0.1),
+                          strokeWidth: 1,
+                        ),
                   ),
+                  borderData: FlBorderData(show: false),
+                  maxY: maxSales * 1.2,
                 ),
-                borderData: FlBorderData(show: false),
-                maxY: maxSales * 1.2,
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
-    ),
-  );
-}
-
+    );
+  }
 
   Color _getBarColor(int index) {
     // Define colors for the bars based on the index
