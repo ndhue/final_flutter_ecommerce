@@ -24,6 +24,7 @@ class _AdminProductDetailScreenState extends State<AdminProductDetailScreen> {
   bool isAddingVariant = false;
   bool _isLoading = false;
   List<dynamic> _variants = [];
+  int _currentImageIndex = 0;
 
   // Text controllers for editing
   final _nameController = TextEditingController();
@@ -434,6 +435,130 @@ class _AdminProductDetailScreenState extends State<AdminProductDetailScreen> {
     );
   }
 
+  void _previousImage() {
+    if (_currentImageIndex > 0) {
+      setState(() {
+        _currentImageIndex--;
+      });
+    }
+  }
+
+  void _nextImage() {
+    if (_currentImageIndex < product.images.length - 1) {
+      setState(() {
+        _currentImageIndex++;
+      });
+    }
+  }
+
+  Widget _buildProductDetails() {
+    return Card(
+      elevation: 2,
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Product Information',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            const Divider(),
+            const SizedBox(height: 16),
+
+            // Image Preview
+            if (product.images.isNotEmpty)
+              Column(
+                children: [
+                  Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      Center(
+                        child: Image.network(
+                          product.images[_currentImageIndex],
+                          height: 250,
+                          width:
+                              MediaQuery.of(context).size.width > 600
+                                  ? 500
+                                  : MediaQuery.of(context).size.width - 64,
+                          fit: BoxFit.contain,
+                          loadingBuilder: (context, child, loadingProgress) {
+                            if (loadingProgress == null) return child;
+                            return const SizedBox(
+                              height: 250,
+                              child: Center(child: CircularProgressIndicator()),
+                            );
+                          },
+                          errorBuilder:
+                              (context, error, stackTrace) => Container(
+                                width: 250,
+                                height: 250,
+                                color: Colors.grey.shade200,
+                                child: const Icon(Icons.broken_image, size: 50),
+                              ),
+                        ),
+                      ),
+                      if (product.images.length > 1) ...[
+                        Positioned(
+                          left: 10,
+                          child: IconButton(
+                            icon: const Icon(
+                              Icons.arrow_back_ios,
+                              color: Colors.black54,
+                            ),
+                            onPressed:
+                                _currentImageIndex > 0 ? _previousImage : null,
+                          ),
+                        ),
+                        Positioned(
+                          right: 10,
+                          child: IconButton(
+                            icon: const Icon(
+                              Icons.arrow_forward_ios,
+                              color: Colors.black54,
+                            ),
+                            onPressed:
+                                _currentImageIndex < product.images.length - 1
+                                    ? _nextImage
+                                    : null,
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                  if (product.images.length > 1) ...[
+                    const SizedBox(height: 10),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: List.generate(
+                        product.images.length,
+                        (index) => Container(
+                          margin: const EdgeInsets.symmetric(horizontal: 4),
+                          width: 8,
+                          height: 8,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color:
+                                _currentImageIndex == index
+                                    ? Colors.black
+                                    : Colors.grey,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            const SizedBox(height: 16),
+
+            // Product fields
+            isEditing ? _buildEditForm() : _buildProductInfo(),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -470,50 +595,6 @@ class _AdminProductDetailScreenState extends State<AdminProductDetailScreen> {
                   ),
                 ),
               ),
-    );
-  }
-
-  Widget _buildProductDetails() {
-    return Card(
-      elevation: 2,
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Product Information',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            const Divider(),
-            const SizedBox(height: 16),
-
-            // Image Preview
-            if (product.images.isNotEmpty)
-              Center(
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(8),
-                  child: Image.network(
-                    product.images[0],
-                    height: 200,
-                    fit: BoxFit.contain,
-                    errorBuilder:
-                        (context, error, stackTrace) => Container(
-                          width: 200,
-                          height: 200,
-                          color: Colors.grey.shade200,
-                          child: const Icon(Icons.image, size: 40),
-                        ),
-                  ),
-                ),
-              ),
-            const SizedBox(height: 16),
-
-            // Product fields
-            isEditing ? _buildEditForm() : _buildProductInfo(),
-          ],
-        ),
-      ),
     );
   }
 
@@ -598,7 +679,10 @@ class _AdminProductDetailScreenState extends State<AdminProductDetailScreen> {
       children: [
         TextFormField(
           controller: _nameController,
-          decoration: const InputDecoration(labelText: 'Name'),
+          decoration: const InputDecoration(
+            labelText: 'Name',
+            border: OutlineInputBorder(),
+          ),
           validator: (value) {
             if (value == null || value.isEmpty) {
               return 'Please enter a name';
@@ -609,7 +693,10 @@ class _AdminProductDetailScreenState extends State<AdminProductDetailScreen> {
         const SizedBox(height: 16),
         TextFormField(
           controller: _brandController,
-          decoration: const InputDecoration(labelText: 'Brand'),
+          decoration: const InputDecoration(
+            labelText: 'Brand',
+            border: OutlineInputBorder(),
+          ),
           validator: (value) {
             if (value == null || value.isEmpty) {
               return 'Please enter a brand';
@@ -620,7 +707,10 @@ class _AdminProductDetailScreenState extends State<AdminProductDetailScreen> {
         const SizedBox(height: 16),
         TextFormField(
           controller: _categoryController,
-          decoration: const InputDecoration(labelText: 'Category'),
+          decoration: const InputDecoration(
+            labelText: 'Category',
+            border: OutlineInputBorder(),
+          ),
           validator: (value) {
             if (value == null || value.isEmpty) {
               return 'Please enter a category';
@@ -631,7 +721,10 @@ class _AdminProductDetailScreenState extends State<AdminProductDetailScreen> {
         const SizedBox(height: 16),
         TextFormField(
           controller: _costPriceController,
-          decoration: const InputDecoration(labelText: 'Cost Price'),
+          decoration: const InputDecoration(
+            labelText: 'Cost Price',
+            border: OutlineInputBorder(),
+          ),
           keyboardType: TextInputType.number,
           validator: (value) {
             if (value == null || value.isEmpty) {
@@ -646,7 +739,10 @@ class _AdminProductDetailScreenState extends State<AdminProductDetailScreen> {
         const SizedBox(height: 16),
         TextFormField(
           controller: _sellingPriceController,
-          decoration: const InputDecoration(labelText: 'Selling Price'),
+          decoration: const InputDecoration(
+            labelText: 'Selling Price',
+            border: OutlineInputBorder(),
+          ),
           keyboardType: TextInputType.number,
           validator: (value) {
             if (value == null || value.isEmpty) {
@@ -662,6 +758,7 @@ class _AdminProductDetailScreenState extends State<AdminProductDetailScreen> {
         TextFormField(
           controller: _discountController,
           decoration: const InputDecoration(
+            border: OutlineInputBorder(),
             labelText: 'Discount (0.0 - 1.0)',
             hintText: '0.1 = 10% discount',
           ),
@@ -683,7 +780,10 @@ class _AdminProductDetailScreenState extends State<AdminProductDetailScreen> {
         const SizedBox(height: 16),
         TextFormField(
           controller: _descriptionController,
-          decoration: const InputDecoration(labelText: 'Description'),
+          decoration: const InputDecoration(
+            labelText: 'Description',
+            border: OutlineInputBorder(),
+          ),
           maxLines: 3,
           validator: (value) {
             if (value == null || value.isEmpty) {

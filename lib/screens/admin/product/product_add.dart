@@ -91,7 +91,6 @@ class _AddProductPageState extends State<AddProductPage> {
 
   Future<List<String>> _uploadImagesToCloudinary() async {
     List<String> urls = [];
-    debugPrint("Uploading ${selectedImages.length} images to Cloudinary...");
     for (var image in selectedImages) {
       final url = await CloudinaryService.uploadImage(image);
       if (url != null) {
@@ -99,7 +98,6 @@ class _AddProductPageState extends State<AddProductPage> {
       }
     }
 
-    debugPrint("Uploaded ${urls.length} images to Cloudinary");
     return urls;
   }
 
@@ -139,8 +137,6 @@ class _AddProductPageState extends State<AddProductPage> {
           activated: isActivated,
           availableColors: [],
         );
-
-        debugPrint("Adding product");
 
         await productProvider.addProduct(newProduct);
 

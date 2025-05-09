@@ -117,12 +117,6 @@ class StatusHistory {
   StatusHistory({required this.status, required this.time});
 
   factory StatusHistory.fromJson(Map<String, dynamic> json) {
-    if (json['time'] == null) {
-
-      print('⚠️ ');
-
-    }
-
     return StatusHistory(
       status: json['status'] ?? 'Unknown',
       time: _safeParseDate(json['time']),
