@@ -141,14 +141,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   int getTotalOrders() => filteredOrders.length;
 
-  int getCompletedOrders() =>
-      filteredOrders
-          .where((order) => _getLastestStatus(order) == 'completed')
-          .length;
-
   int getPendingOrders() =>
       filteredOrders
           .where((order) => _getLastestStatus(order) == 'pending')
+          .length;
+  int getConfirmedOrders() =>
+      filteredOrders
+          .where((order) => _getLastestStatus(order) == 'confirmed')
           .length;
 
   int getCanceledOrders() =>
@@ -169,7 +168,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   double calculateRevenue() {
     return filteredOrders
-        .where((order) => _getLastestStatus(order) == 'completed')
+        .where((order) => _getLastestStatus(order) == 'delivered')
         .fold(0.0, (sum, order) {
           final total = order['total'];
           if (total is String) {
@@ -186,7 +185,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final productCostCache = <String, double>{};
 
     for (final order in filteredOrders) {
-      if (_getLastestStatus(order) != 'completed') continue;
+      if (_getLastestStatus(order) != 'delivered') continue;
 
       final details = order['orderDetails'] as List<dynamic>? ?? [];
       for (final item in details) {
@@ -239,8 +238,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
     if (errorMessage.isNotEmpty) return Center(child: Text(errorMessage));
 
     //final total = getTotalOrders();
-    final completed = getCompletedOrders();
     final pending = getPendingOrders();
+    final confirmed = getConfirmedOrders();
     final revenue = calculateRevenue();
     final canceled = getCanceledOrders();
     final delivered = getDeliveredOrders();
@@ -248,7 +247,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
     final statusCounts = {
       'Pending': pending,
-      'Completed': completed,
+      'Confirmed': confirmed,
       'Delivered': delivered,
       'Canceled': canceled,
       'Shipped': shipped,
@@ -256,8 +255,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
     final statusColor = {
       'Pending': Colors.orange,
+      'Confirmed': Colors.green,
       'Shipped': Colors.purple,
-      'Completed': Colors.green,
       'Canceled': Colors.red,
       'Delivered': Colors.blue,
     };
@@ -311,7 +310,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 runSpacing: 12,
                 children: [
                   _buildStatCard('Total Orders', getTotalOrders()),
-                  _buildStatCard('Completed', getCompletedOrders()),
+                  _buildStatCard('Delivered', getDeliveredOrders()),
                   _buildStatCard('Revenue', revenue),
                   FutureBuilder<double>(
                     future: calculateProfit(),

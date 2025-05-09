@@ -248,7 +248,10 @@ class _AdminProductScreenState extends State<AdminProductScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Product Management'),
+        title: const Text(
+          'Product Management',
+          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w500),
+        ),
         backgroundColor: Colors.white,
         foregroundColor: Colors.black,
         elevation: 1,
@@ -529,22 +532,10 @@ class _AdminProductScreenState extends State<AdminProductScreen> {
                       Text(product.category, overflow: TextOverflow.ellipsis),
                     ),
                     DataCell(
-                      Text(
-                        FormatHelper.formatCurrency(product.costPrice),
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 14,
-                        ),
-                      ),
+                      Text(FormatHelper.formatCurrency(product.costPrice)),
                     ),
                     DataCell(
-                      Text(
-                        FormatHelper.formatCurrency(product.sellingPrice),
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 14,
-                        ),
-                      ),
+                      Text(FormatHelper.formatCurrency(product.sellingPrice)),
                     ),
                     DataCell(
                       variantCount == -1
@@ -558,7 +549,6 @@ class _AdminProductScreenState extends State<AdminProductScreen> {
                             style: TextStyle(
                               color:
                                   variantCount == 0 ? Colors.red : Colors.black,
-                              fontWeight: FontWeight.bold,
                             ),
                           ),
                     ),
