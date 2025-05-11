@@ -45,7 +45,7 @@ class _CouponDialogState extends State<CouponDialog> {
         widget.isEditing
             ? (widget.coupon?.type == CouponType.fixed
                 ? FormatHelper.formatCurrency(widget.coupon!.value.toInt())
-                : widget.coupon!.value.toStringAsFixed(0))
+                : (widget.coupon!.value * 100).toStringAsFixed(1))
             : '';
     disable = widget.isEditing ? widget.coupon?.disable ?? false : false;
   }
@@ -57,7 +57,7 @@ class _CouponDialogState extends State<CouponDialog> {
     double finalValue = double.tryParse(rawValue) ?? 0.0;
 
     if (_selectedType == CouponType.percent) {
-      finalValue = finalValue; // Để giá trị phần trăm theo thập phân
+      finalValue = finalValue / 100; // Để giá trị phần trăm theo thập phân
     }
 
     couponProvider.updateCoupon(widget.coupon!.id, {
