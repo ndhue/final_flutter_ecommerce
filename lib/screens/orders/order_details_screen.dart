@@ -32,6 +32,12 @@ class OrderDetailScreen extends StatelessWidget {
           handleCancelOrder(context, order);
         }),
       ]);
+    } else if (status == 'Delivered') {
+      actions.addAll([
+        buildAction(Icons.check_circle, 'Mark as Completed', () {
+          handleCompleteOrder(context, order);
+        }),
+      ]);
     }
 
     return actions;
@@ -65,6 +71,9 @@ class OrderDetailScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isLargeScreen = screenWidth > 900;
+
     return Consumer<OrderProvider>(
       builder: (context, orderProvider, child) {
         final updatedOrder = orderProvider.orders.firstWhere(
@@ -78,6 +87,7 @@ class OrderDetailScreen extends StatelessWidget {
         return Scaffold(
           appBar: AppBar(
             title: const Text('Order Details'),
+            centerTitle: isLargeScreen,
             actions: [
               TextButton.icon(
                 onPressed: () {},
@@ -86,161 +96,423 @@ class OrderDetailScreen extends StatelessWidget {
               ),
             ],
           ),
-          body: ListView(
-            padding: const EdgeInsets.only(
-              left: 16,
-              right: 16,
-              top: 16,
-              bottom: 46,
-            ),
-            children: [
-              // Order ID + Copy
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(8),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withAlpha(25),
-                      blurRadius: 6,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      'ORDER ID: ${updatedOrder.id}',
-                      style: const TextStyle(
-                        fontWeight: FontWeight.w500,
-                        color: darkTextColor,
-                      ),
-                    ),
-                    TextButton.icon(
-                      style: TextButton.styleFrom(padding: EdgeInsets.zero),
-                      onPressed: () {
-                        Clipboard.setData(ClipboardData(text: updatedOrder.id));
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Order ID copied to clipboard'),
-                          ),
-                        );
-                      },
-                      icon: const Icon(Icons.copy, size: 16),
-                      label: const Text('Copy'),
-                    ),
-                  ],
-                ),
+          body: Center(
+            child: ConstrainedBox(
+              constraints: BoxConstraints(
+                maxWidth: isLargeScreen ? 1000 : double.infinity,
               ),
-              const SizedBox(height: 12),
+              child:
+                  isLargeScreen
+                      ? _buildLargeScreenLayout(
+                        context,
+                        updatedOrder,
+                        status,
+                        updatedDate,
+                      )
+                      : _buildMobileLayout(
+                        context,
+                        updatedOrder,
+                        status,
+                        updatedDate,
+                      ),
+            ),
+          ),
+        );
+      },
+    );
+  }
 
-              // Order Status box wrapped in a shadowed container
-              Container(
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(8),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withAlpha(25),
-                      blurRadius: 6,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
-                ),
-                child: Container(
-                  padding: const EdgeInsets.all(12),
+  Widget _buildLargeScreenLayout(
+    BuildContext context,
+    OrderModel updatedOrder,
+    String status,
+    DateTime updatedDate,
+  ) {
+    return Padding(
+      padding: const EdgeInsets.all(24.0),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Left column - Order details
+          Expanded(
+            flex: 3,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Order ID + Copy
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
+                  ),
                   decoration: BoxDecoration(
-                    color: getStatusColor(status).withAlpha(51),
+                    color: Colors.white,
                     borderRadius: BorderRadius.circular(8),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withAlpha(25),
+                        blurRadius: 6,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
                   ),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        status,
-                        style: const TextStyle(fontWeight: FontWeight.w600),
+                        'ORDER ID: ${updatedOrder.id}',
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w500,
+                          fontSize: 16,
+                          color: darkTextColor,
+                        ),
+                      ),
+                      TextButton.icon(
+                        style: TextButton.styleFrom(padding: EdgeInsets.zero),
+                        onPressed: () {
+                          Clipboard.setData(
+                            ClipboardData(text: updatedOrder.id),
+                          );
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Order ID copied to clipboard'),
+                            ),
+                          );
+                        },
+                        icon: const Icon(Icons.copy, size: 16),
+                        label: const Text('Copy'),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16),
+
+                // Order Status box wrapped in a shadowed container
+                Container(
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(8),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withAlpha(25),
+                        blurRadius: 6,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: getStatusColor(status).withAlpha(51),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          status,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w600,
+                            fontSize: 16,
+                          ),
+                        ),
+                        Text(
+                          formatDateTime(updatedDate),
+                          style: const TextStyle(
+                            fontSize: 14,
+                            color: darkTextColor,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 16),
+
+                // Total Price box wrapped in a shadowed container
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(8),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withAlpha(25),
+                        blurRadius: 6,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        'Total:',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 16,
+                        ),
                       ),
                       Text(
-                        formatDateTime(updatedDate),
+                        FormatHelper.formatCurrency(updatedOrder.total),
                         style: const TextStyle(
-                          fontSize: 12,
-                          color: darkTextColor,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 20,
                         ),
                       ),
                     ],
                   ),
                 ),
-              ),
 
-              const SizedBox(height: 16),
-
-              // Total Price box wrapped in a shadowed container
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(8),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withAlpha(25),
-                      blurRadius: 6,
-                      offset: const Offset(0, 2),
+                const SizedBox(height: 16),
+                Expanded(
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(8),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withAlpha(25),
+                          blurRadius: 6,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
                     ),
-                  ],
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    const Text(
-                      'Total:',
-                      style: TextStyle(fontWeight: FontWeight.w600),
-                    ),
-                    Text(
-                      FormatHelper.formatCurrency(updatedOrder.total),
-                      style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
+                    child: Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: OrderDetailsList(
+                        orderDetails: updatedOrder.orderDetails,
                       ),
                     ),
-                  ],
-                ),
-              ),
-
-              const SizedBox(height: 16),
-
-              // Product details wrapped in a shadowed container
-              Container(
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(8),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withAlpha(25),
-                      blurRadius: 6,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.all(8.0),
-                  child: OrderDetailsList(
-                    orderDetails: updatedOrder.orderDetails,
                   ),
                 ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 24),
+          // Right column - Actions and rating
+          Expanded(
+            flex: 2,
+            child: Column(
+              children: [
+                Container(
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(8),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withAlpha(25),
+                        blurRadius: 6,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Actions',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        ...getActions(context, status),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Container(
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(8),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withAlpha(25),
+                        blurRadius: 6,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: const [
+                        Text(
+                          'Rate Your Order',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        SizedBox(height: 16),
+                        RateOrderWidget(),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMobileLayout(
+    BuildContext context,
+    OrderModel updatedOrder,
+    String status,
+    DateTime updatedDate,
+  ) {
+    return ListView(
+      padding: const EdgeInsets.only(left: 16, right: 16, top: 16, bottom: 46),
+      children: [
+        // Order ID + Copy
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(8),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withAlpha(25),
+                blurRadius: 6,
+                offset: const Offset(0, 2),
               ),
-
-              const SizedBox(height: 16),
-              RateOrderWidget(),
-              const SizedBox(height: 16),
-
-              // Action buttons
-              ...getActions(context, status),
             ],
           ),
-        );
-      },
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'ORDER ID: ${updatedOrder.id}',
+                style: const TextStyle(
+                  fontWeight: FontWeight.w500,
+                  color: darkTextColor,
+                ),
+              ),
+              TextButton.icon(
+                style: TextButton.styleFrom(padding: EdgeInsets.zero),
+                onPressed: () {
+                  Clipboard.setData(ClipboardData(text: updatedOrder.id));
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Order ID copied to clipboard'),
+                    ),
+                  );
+                },
+                icon: const Icon(Icons.copy, size: 16),
+                label: const Text('Copy'),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 12),
+
+        // Order Status box
+        Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(8),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withAlpha(25),
+                blurRadius: 6,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: getStatusColor(status).withAlpha(51),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  status,
+                  style: const TextStyle(fontWeight: FontWeight.w600),
+                ),
+                Text(
+                  formatDateTime(updatedDate),
+                  style: const TextStyle(fontSize: 12, color: darkTextColor),
+                ),
+              ],
+            ),
+          ),
+        ),
+
+        const SizedBox(height: 16),
+
+        // Total Price box
+        Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(8),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withAlpha(25),
+                blurRadius: 6,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                'Total:',
+                style: TextStyle(fontWeight: FontWeight.w600),
+              ),
+              Text(
+                FormatHelper.formatCurrency(updatedOrder.total),
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                ),
+              ),
+            ],
+          ),
+        ),
+
+        const SizedBox(height: 16),
+
+        // Product details
+        Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(8),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withAlpha(25),
+                blurRadius: 6,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: OrderDetailsList(orderDetails: updatedOrder.orderDetails),
+          ),
+        ),
+
+        const SizedBox(height: 16),
+        RateOrderWidget(),
+        const SizedBox(height: 16),
+
+        // Action buttons
+        ...getActions(context, status),
+      ],
     );
   }
 }
@@ -290,18 +562,18 @@ class OrderDetailsList extends StatelessWidget {
                         Row(
                           children: [
                             Text(
-                              FormatHelper.formatCurrency(product.price),
+                              FormatHelper.formatCurrency(
+                                product.price * (1 - product.discount),
+                              ),
                               style: const TextStyle(
                                 fontWeight: FontWeight.bold,
                                 fontSize: 16,
                               ),
                             ),
                             const SizedBox(width: 6),
-                            if (product.discount! > 0)
+                            if (product.discount > 0)
                               Text(
-                                FormatHelper.formatCurrency(
-                                  product.price * (1 - product.discount!),
-                                ),
+                                FormatHelper.formatCurrency(product.price),
                                 style: const TextStyle(
                                   color: Colors.grey,
                                   decoration: TextDecoration.lineThrough,
