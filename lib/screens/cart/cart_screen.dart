@@ -244,10 +244,28 @@ class _CartScreenState extends State<CartScreen> {
 
   Widget _buildBottomBar(BuildContext context, double totalPrice) {
     final cartProvider = Provider.of<CartProvider>(context);
-
+    final couponProvider = Provider.of<CouponProvider>(context);
     final hasSelectedItems =
         cartProvider.selectedItemIds.isNotEmpty &&
         cartProvider.cartItems.isNotEmpty;
+
+    // Kiểm tra nếu có mã giảm giá đã áp dụng
+    double discount = 0.0;
+    if (couponProvider.appliedCoupon != null) {
+      final appliedCoupon = couponProvider.appliedCoupon!;
+      if (appliedCoupon.type == CouponType.percent) {
+        // Nếu là mã giảm giá theo phần trăm
+        discount =
+            totalPrice *
+            (appliedCoupon.value / 100); // Tính giảm giá theo phần trăm
+      } else {
+        // Nếu là mã giảm giá theo giá trị cố định
+        discount = appliedCoupon.value;
+      }
+    }
+
+    // Tính tổng giá trị sau giảm giá
+    double totalWithDiscount = totalPrice - discount;
 
     return Container(
       padding: const EdgeInsets.fromLTRB(16.0, 16.0, 16.0, 32.0),
@@ -265,7 +283,9 @@ class _CartScreenState extends State<CartScreen> {
               ),
               const Spacer(),
               Text(
-                FormatHelper.formatCurrency(totalPrice),
+                FormatHelper.formatCurrency(
+                  totalWithDiscount,
+                ), // Hiển thị tổng sau khi giảm giá
                 style: const TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w500,
@@ -273,6 +293,26 @@ class _CartScreenState extends State<CartScreen> {
               ),
             ],
           ),
+          const SizedBox(height: 12),
+          // Nếu có mã giảm giá, hiển thị thông tin giảm giá
+          if (discount > 0)
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  'Discount',
+                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+                ),
+                Text(
+                  '-${FormatHelper.formatCurrency(discount)}', // Hiển thị giá trị giảm giá
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                    color: Colors.red, // Màu đỏ cho giá trị giảm giá
+                  ),
+                ),
+              ],
+            ),
           const SizedBox(height: 12),
           SizedBox(
             width: double.infinity,

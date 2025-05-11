@@ -24,38 +24,46 @@ class _CouponDialogState extends State<CouponDialog> {
   TextEditingController codeController = TextEditingController();
   TextEditingController maxUsesController = TextEditingController();
   TextEditingController valueController = TextEditingController();
+  FocusNode valueFocusNode = FocusNode();
   late bool disable;
   CouponType _selectedType = CouponType.percent;
 
   @override
   void initState() {
     super.initState();
+    isEditing = widget.isEditing;
+    coupon = widget.coupon;
     _selectedType =
         widget.isEditing
             ? widget.coupon?.type ?? CouponType.percent
             : CouponType.percent;
-    isEditing = widget.isEditing;
-    coupon = widget.coupon;
 
     codeController.text = widget.isEditing ? widget.coupon?.code ?? '' : '';
     maxUsesController.text =
         widget.isEditing ? widget.coupon?.maxUses.toString() ?? '' : '';
     valueController.text =
-        widget.isEditing ? widget.coupon?.value.toString() ?? '' : '';
+        widget.isEditing
+            ? (widget.coupon?.type == CouponType.fixed
+                ? FormatHelper.formatCurrency(widget.coupon!.value.toInt())
+                : widget.coupon!.value.toStringAsFixed(0))
+            : '';
     disable = widget.isEditing ? widget.coupon?.disable ?? false : false;
   }
 
   void updateCoupon() {
     final couponProvider = context.read<CouponProvider>();
+    final rawValue = valueController.text.replaceAll(RegExp(r'[^\d.]'), '');
+
+    double finalValue = double.tryParse(rawValue) ?? 0.0;
+
+    if (_selectedType == CouponType.percent) {
+      finalValue = finalValue; // Để giá trị phần trăm theo thập phân
+    }
+
     couponProvider.updateCoupon(widget.coupon!.id, {
       'code': codeController.text,
       'maxUses': int.tryParse(maxUsesController.text) ?? coupon?.maxUses,
-      'value':
-          double.tryParse(
-            valueController.text.replaceAll(RegExp(r'[.,\\s₫]'), ''),
-          ) ??
-          coupon?.value,
-
+      'value': finalValue, // Lưu giá trị phần trăm đã nhập
       'disable': disable,
       'type': _selectedType == CouponType.fixed ? 'fixed' : 'percent',
     });
@@ -63,12 +71,19 @@ class _CouponDialogState extends State<CouponDialog> {
 
   void createCoupon() {
     final couponProvider = context.read<CouponProvider>();
+    final rawValue = valueController.text.replaceAll(RegExp(r'[^\d.]'), '');
+
+    double finalValue = double.tryParse(rawValue) ?? 0.0;
+
+    if (_selectedType == CouponType.percent) {
+      finalValue = finalValue / 100; // Để giá trị phần trăm theo thập phân
+    }
 
     final newCoupon = Coupon(
       id: DateTime.now().millisecondsSinceEpoch.toString(),
       code: codeController.text,
       maxUses: int.tryParse(maxUsesController.text) ?? 0,
-      value: double.tryParse(valueController.text) ?? 0.0,
+      value: finalValue, // Lưu giá trị phần trăm đã nhập
       disable: disable,
       createdAt: Timestamp.fromDate(DateTime.now()),
       timesUsed: 0,
@@ -76,6 +91,15 @@ class _CouponDialogState extends State<CouponDialog> {
       type: _selectedType,
     );
     couponProvider.addCoupon(newCoupon);
+  }
+
+  @override
+  void dispose() {
+    valueFocusNode.dispose();
+    codeController.dispose();
+    maxUsesController.dispose();
+    valueController.dispose();
+    super.dispose();
   }
 
   @override
@@ -129,42 +153,67 @@ class _CouponDialogState extends State<CouponDialog> {
               ),
               TextFormField(
                 controller: valueController,
-                keyboardType: TextInputType.number,
-                decoration: const InputDecoration(labelText: 'Value'),
-                onChanged: (value) {
-                  // Remove any formatting to get the raw number
-                  final rawValue = value.replaceAll(RegExp(r'[^\d]'), '');
-                  if (rawValue.isNotEmpty) {
-                    final formattedValue = FormatHelper.formatCurrency(
-                      int.parse(rawValue),
-                    ); // Your format helper
-                    valueController.value = TextEditingValue(
-                      text: formattedValue,
-                      selection: TextSelection.collapsed(
-                        offset: formattedValue.length,
-                      ),
+                focusNode: valueFocusNode,
+                keyboardType: TextInputType.numberWithOptions(decimal: true),
+                decoration: InputDecoration(
+                  labelText: 'Value',
+                  suffixText: _selectedType == CouponType.percent ? '%' : '₫',
+                ),
+                onTap: () {
+                  valueController.selection = TextSelection(
+                    baseOffset: 0,
+                    extentOffset: valueController.text.length,
+                  );
+                },
+                onEditingComplete: () {
+                  if (_selectedType == CouponType.percent) {
+                    final raw = valueController.text.replaceAll(
+                      RegExp(r'[^\d.]'),
+                      '',
                     );
+                    if (raw.isNotEmpty &&
+                        double.tryParse(raw) != null &&
+                        !raw.contains('.0')) {
+                      valueController.text =
+                          raw; // Ensure it's a valid decimal (not an integer)
+                    } else {
+                      // Optionally, show an error message or clear the field if invalid
+                    }
                   }
+                  FocusScope.of(context).unfocus();
                 },
                 validator: (value) {
                   if (value == null || value.isEmpty) {
                     return 'Value is required';
                   }
-                  // Remove formatting to validate the raw number
-                  final rawValue = value.replaceAll(RegExp(r'[^\d]'), '');
-                  if (double.tryParse(rawValue) == null) {
-                    return 'Enter a valid number';
+
+                  if (_selectedType == CouponType.percent) {
+                    final rawValue = value.replaceAll(RegExp(r'[^\d.]'), '');
+                    if (double.tryParse(rawValue) == null ||
+                        rawValue == '0' ||
+                        rawValue.contains('.0')) {
+                      return 'Please enter a valid decimal number for percentage (not integer)';
+                    }
                   }
+
+                  if (_selectedType == CouponType.fixed) {
+                    final rawValue = value.replaceAll(RegExp(r'[^\d]'), '');
+                    if (int.tryParse(rawValue) == null) {
+                      return 'Please enter a valid number';
+                    }
+                  }
+
                   return null;
                 },
               ),
+
               DropdownButtonFormField<CouponType>(
                 value: _selectedType,
                 decoration: const InputDecoration(labelText: 'Type'),
                 items: const [
                   DropdownMenuItem(
                     value: CouponType.fixed,
-                    child: Text('Percentage (%)'),
+                    child: Text('Fixed Amount (₫)'),
                   ),
                   DropdownMenuItem(
                     value: CouponType.percent,
@@ -174,6 +223,7 @@ class _CouponDialogState extends State<CouponDialog> {
                 onChanged: (value) {
                   setState(() {
                     _selectedType = value!;
+                    valueController.text = '';
                   });
                 },
               ),
