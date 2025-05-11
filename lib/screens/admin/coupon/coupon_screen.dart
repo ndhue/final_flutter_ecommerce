@@ -220,7 +220,13 @@ Widget buildCouponTable(
               ),
               DataCell(Text(coupon.maxUses.toString())),
               DataCell(Text(coupon.timesUsed.toString())),
-              DataCell(Text(FormatHelper.formatCurrency(coupon.value))),
+              DataCell(
+                Text(
+                  coupon.type == CouponType.percent
+                      ? '${(coupon.value * 100).toStringAsFixed(1)}%'
+                      : FormatHelper.formatCurrency(coupon.value),
+                ),
+              ),
               DataCell(Text(coupon.disable ? 'Disabled' : 'Active')),
 
               DataCell(
