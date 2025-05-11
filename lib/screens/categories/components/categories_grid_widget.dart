@@ -5,26 +5,40 @@ import 'package:flutter/material.dart';
 
 class CategoriesGridView extends StatelessWidget {
   final Function(String) onCategorySelected;
+  final int gridCrossAxisCount;
 
-  const CategoriesGridView({super.key, required this.onCategorySelected});
+  const CategoriesGridView({
+    Key? key,
+    required this.onCategorySelected,
+    this.gridCrossAxisCount = 2,
+  }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    return Wrap(
-      spacing: 10, // Horizontal space between items
-      runSpacing: 10, // Vertical space between rows
-      alignment: WrapAlignment.start, // Center align items
-      children:
-          categories.map((category) {
-            return SizedBox(
-              key: ValueKey(category.name),
-              width: MediaQuery.of(context).size.width / 3 - 18,
-              child: CategoryCard(
-                category: category,
-                onTap: () => onCategorySelected(category.name),
-              ),
-            );
-          }).toList(),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        // Calculate item width based on available width
+        final spacing = 10.0;
+        final itemWidth =
+            (constraints.maxWidth - (spacing * (gridCrossAxisCount - 1))) /
+            gridCrossAxisCount;
+
+        return Wrap(
+          spacing: spacing,
+          runSpacing: 10,
+          children:
+              categories.map((category) {
+                return SizedBox(
+                  key: ValueKey(category.name),
+                  width: itemWidth,
+                  child: CategoryCard(
+                    category: category,
+                    onTap: () => onCategorySelected(category.name),
+                  ),
+                );
+              }).toList(),
+        );
+      },
     );
   }
 }

@@ -307,7 +307,23 @@ class _PaymentScreenState extends State<PaymentScreen> {
     final userProvider = context.read<UserProvider>();
     final orderProvider = context.read<OrderProvider>();
     final authProvider = context.read<AuthProvider>();
+    final variantProvider = context.read<VariantProvider>();
     final address = cartProvider.addressInfo;
+
+    // Cap loyalty points used to the total price (excluding shipping fee)
+    final totalPriceBeforeShipping =
+        cartProvider.totalAmount -
+        (couponProvider.appliedCoupon != null
+            ? (couponProvider.appliedCoupon!.type == CouponType.percent
+                ? cartProvider.totalAmount * couponProvider.appliedCoupon!.value
+                : couponProvider.appliedCoupon!.value)
+            : 0.0);
+
+    final adjustedLoyaltyPointsUsed =
+        loyaltyPointsUsed > totalPriceBeforeShipping.toInt()
+            ? totalPriceBeforeShipping.toInt()
+            : loyaltyPointsUsed;
+
     if (address == null ||
         address.receiverName.trim().isEmpty ||
         address.city.trim().isEmpty ||
@@ -449,11 +465,11 @@ class _PaymentScreenState extends State<PaymentScreen> {
                 )
                 .toList(),
         loyaltyPointsEarned: loyaltyPointsEarned,
-        loyaltyPointsUsed: loyaltyPointsUsed,
+        loyaltyPointsUsed: adjustedLoyaltyPointsUsed,
         statusHistory: [StatusHistory(status: 'Pending', time: DateTime.now())],
         total: finalTotalPrice,
         user: OrderUserDetails(
-          userId: userId, // Now using the correctly determined userId
+          userId: userId,
           name: address.receiverName,
           email: email,
           shippingAddress:
@@ -479,21 +495,11 @@ class _PaymentScreenState extends State<PaymentScreen> {
         await orderProvider.addOrder(order);
       }
 
-      if (loyaltyPointsUsed > 0) {
+      if (adjustedLoyaltyPointsUsed > 0) {
         if (userProvider.user?.id != null && userProvider.user?.id != 'guest') {
           await userProvider.updateLoyaltyPoints(
-            pointsChange: -loyaltyPointsUsed,
-            pointsUsed: loyaltyPointsUsed,
-          );
-        }
-      }
-
-      // Add earned points (directly in VND value - consistent with profile screen)
-      if (loyaltyPointsEarned > 0) {
-        // Only update loyalty points if this is not a guest (has a user ID)
-        if (userProvider.user?.id != null && userProvider.user?.id != 'guest') {
-          await userProvider.updateLoyaltyPoints(
-            pointsChange: loyaltyPointsEarned,
+            pointsChange: -adjustedLoyaltyPointsUsed,
+            pointsUsed: adjustedLoyaltyPointsUsed,
           );
         }
       }

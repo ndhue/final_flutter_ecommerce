@@ -121,13 +121,19 @@ class _ProductCatalogState extends State<ProductCatalog> {
 
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isLargeScreen = screenWidth > 900;
+
+    final int gridCrossAxisCount = isLargeScreen ? 4 : 2;
+
     return Scaffold(
       appBar: AppBar(
         actionsPadding: const EdgeInsets.only(right: defaultPadding),
         backgroundColor: Colors.white,
         title: Align(
-          alignment: Alignment.centerLeft,
+          alignment: isLargeScreen ? Alignment.center : Alignment.centerLeft,
           child: Row(
+            mainAxisSize: isLargeScreen ? MainAxisSize.min : MainAxisSize.max,
             children: [
               const SizedBox(width: 8),
               Text(
@@ -140,96 +146,107 @@ class _ProductCatalogState extends State<ProductCatalog> {
             ],
           ),
         ),
+        centerTitle: isLargeScreen,
         actions: [CartButton()],
       ),
       body: Consumer<ProductProvider>(
         builder: (context, provider, child) {
           final filteredProducts = provider.products;
 
-          return Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                if (provider.isLoading && filteredProducts.isEmpty)
-                  const Expanded(child: ProductCatalogSkeleton()),
+          return Center(
+            child: ConstrainedBox(
+              constraints: BoxConstraints(
+                maxWidth: isLargeScreen ? 1200 : double.infinity,
+              ),
+              child: Padding(
+                padding: EdgeInsets.all(isLargeScreen ? 24.0 : 16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    if (provider.isLoading && filteredProducts.isEmpty)
+                      const Expanded(child: ProductCatalogSkeleton()),
 
-                if (!provider.isLoading && filteredProducts.isNotEmpty)
-                  Align(
-                    child: Text(
-                      '${filteredProducts.length} Items',
-                      style: TextStyle(fontSize: 16, color: iconColor),
+                    if (!provider.isLoading && filteredProducts.isNotEmpty)
+                      Align(
+                        child: Text(
+                          '${filteredProducts.length} Items',
+                          style: TextStyle(fontSize: 16, color: iconColor),
+                        ),
+                      ),
+                    FilterSection(
+                      onSortPressed: onSortPressed,
+                      onFilterPressed: onFilterPressed,
+                      selectedSortOption: _selectedSortOption,
                     ),
-                  ),
-                FilterSection(
-                  onSortPressed: onSortPressed,
-                  onFilterPressed: onFilterPressed,
-                  selectedSortOption: _selectedSortOption,
-                ),
-                const SizedBox(height: 20),
+                    const SizedBox(height: 20),
 
-                if (!provider.isLoading || filteredProducts.isNotEmpty)
-                  Expanded(
-                    child:
-                        filteredProducts.isEmpty
-                            ? const Center(
-                              child: Text(
-                                'No products found.',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  color: Colors.grey,
-                                ),
-                              ),
-                            )
-                            : NotificationListener<ScrollNotification>(
-                              onNotification: (scrollNotification) {
-                                if (scrollNotification
-                                    is ScrollEndNotification) {
-                                  _onScroll();
-                                }
-                                return false;
-                              },
-                              child: GridView.builder(
-                                controller: _scrollController,
-                                gridDelegate:
-                                    const SliverGridDelegateWithFixedCrossAxisCount(
-                                      crossAxisCount: 2,
-                                      childAspectRatio: 0.75,
-                                      crossAxisSpacing: 10,
-                                      mainAxisSpacing: 10,
+                    if (!provider.isLoading || filteredProducts.isNotEmpty)
+                      Expanded(
+                        child:
+                            filteredProducts.isEmpty
+                                ? const Center(
+                                  child: Text(
+                                    'No products found.',
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      color: Colors.grey,
                                     ),
-                                itemCount:
-                                    filteredProducts.length +
-                                    (provider.isLoading ? 1 : 0),
-                                itemBuilder: (context, index) {
-                                  if (index == filteredProducts.length &&
-                                      provider.isLoading) {
-                                    return const Center(
-                                      child: CircularProgressIndicator(),
-                                    );
-                                  }
-                                  final product = filteredProducts[index];
-                                  return ProductCard(
-                                    key: ValueKey(product.id),
-                                    product: product,
-                                    onTap: () {
-                                      Navigator.push(
-                                        context,
-                                        MaterialPageRoute(
-                                          builder:
-                                              (context) => ProductDetails(
-                                                product: product,
-                                              ),
+                                  ),
+                                )
+                                : NotificationListener<ScrollNotification>(
+                                  onNotification: (scrollNotification) {
+                                    if (scrollNotification
+                                        is ScrollEndNotification) {
+                                      _onScroll();
+                                    }
+                                    return false;
+                                  },
+                                  child: GridView.builder(
+                                    controller: _scrollController,
+                                    gridDelegate:
+                                        SliverGridDelegateWithFixedCrossAxisCount(
+                                          crossAxisCount: gridCrossAxisCount,
+                                          childAspectRatio: 0.75,
+                                          crossAxisSpacing:
+                                              isLargeScreen ? 20 : 10,
+                                          mainAxisSpacing:
+                                              isLargeScreen ? 20 : 10,
                                         ),
+                                    itemCount:
+                                        filteredProducts.length +
+                                        (provider.isLoading ? 1 : 0),
+                                    itemBuilder: (context, index) {
+                                      if (index == filteredProducts.length &&
+                                          provider.isLoading) {
+                                        return const Center(
+                                          child: CircularProgressIndicator(),
+                                        );
+                                      }
+                                      final product = filteredProducts[index];
+                                      return ProductCard(
+                                        key: ValueKey(product.id),
+                                        product: product,
+                                        onTap: () {
+                                          Navigator.push(
+                                            context,
+                                            MaterialPageRoute(
+                                              builder:
+                                                  (context) => ProductDetails(
+                                                    product: product,
+                                                  ),
+                                            ),
+                                          );
+                                        },
+                                        imgWidth: isLargeScreen ? 250 : 100,
                                       );
                                     },
-                                  );
-                                },
-                              ),
-                            ),
-                  ),
-                const SizedBox(height: 8),
-              ],
+                                  ),
+                                ),
+                      ),
+                    const SizedBox(height: 8),
+                  ],
+                ),
+              ),
             ),
           );
         },
