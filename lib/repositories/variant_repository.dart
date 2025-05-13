@@ -9,15 +9,12 @@ class VariantRepository {
     required String productId,
     required String colorCode,
   }) async {
-    // Convert input colorCode to lowercase for case-insensitive comparison
-    final lowerCaseColorCode = colorCode.toLowerCase();
-
     final querySnapshot =
         await _firestore
             .collection('products')
             .doc(productId)
             .collection('variantInventory')
-            .where('colorCode', isEqualTo: lowerCaseColorCode)
+            .where('colorCode', isEqualTo: colorCode)
             .orderBy('createdAt') // sort theo createdAt tăng dần
             .get();
 

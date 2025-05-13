@@ -29,7 +29,7 @@ class _ChatScreenState extends State<ChatScreen> {
   final List<dynamic> _viewImages = [];
   final List<XFile> _selectedImages = [];
   late UserModel user;
-  bool _isFirstLoad = true;
+  bool _isFirstLoad = true; // Track if this is the first load
 
   @override
   void initState() {
@@ -134,9 +134,11 @@ class _ChatScreenState extends State<ChatScreen> {
     final String messageText = _controller.text;
 
     try {
+      // Prepare a temporary message ID
       final String tempMessageId =
           "temp_${DateTime.now().millisecondsSinceEpoch}";
 
+      // Create a temporary message for instant UI feedback
       List<String> tempImageUrls =
           _selectedImages.map((_) => "loading").toList();
       Message tempMessage = Message(
@@ -149,10 +151,12 @@ class _ChatScreenState extends State<ChatScreen> {
         isRead: false,
       );
 
+      // Add the temporary message to the provider
       chatProvider.addLocalMessage(tempMessage);
       setState(() => _viewImages.clear());
       _controller.clear();
 
+      // Upload images in the background
       List<String> uploadedImageUrls = [];
       for (var i = 0; i < _selectedImages.length; i++) {
         String? imageUrl = await CloudinaryService.uploadImage(
@@ -165,6 +169,7 @@ class _ChatScreenState extends State<ChatScreen> {
         }
       }
 
+      // Send the final message to Firestore
       await chatProvider.sendMessage(
         widget.userId,
         user.id,
@@ -173,6 +178,7 @@ class _ChatScreenState extends State<ChatScreen> {
         imageUrls: uploadedImageUrls,
       );
 
+      // Replace the temporary message with the final message
       chatProvider.replaceTempMessage(tempMessage, uploadedImageUrls);
 
       setState(() => _selectedImages.clear());
@@ -193,121 +199,78 @@ class _ChatScreenState extends State<ChatScreen> {
   @override
   Widget build(BuildContext context) {
     final chatProvider = context.watch<ChatProvider>();
-    final screenWidth = MediaQuery.of(context).size.width;
-    final isLargeScreen = screenWidth > 900;
 
     return Scaffold(
       appBar: AppBar(
         backgroundColor: primaryColor,
         foregroundColor: Colors.white,
-        centerTitle: isLargeScreen,
         title: Text(
           isAdmin(user) ? user.fullName : "Chat with Admin",
           style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w500),
         ),
       ),
-      body: Center(
-        child: ConstrainedBox(
-          constraints: BoxConstraints(
-            maxWidth: isLargeScreen ? 800 : double.infinity,
-          ),
-          child:
-              _isFirstLoad
-                  ? const ChatSkeletonLoader()
-                  : Column(
-                    children: [
-                      Expanded(
-                        child:
-                            chatProvider.messages.isEmpty
-                                ? Center(
-                                  child: Column(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      Icon(
-                                        Icons.chat_bubble_outline,
-                                        size: isLargeScreen ? 80 : 60,
-                                        color: Colors.grey.shade300,
-                                      ),
-                                      const SizedBox(height: 16),
-                                      Text(
-                                        "No messages yet",
-                                        style: TextStyle(
-                                          fontSize: isLargeScreen ? 20 : 16,
-                                          color: Colors.grey.shade600,
-                                        ),
-                                      ),
-                                      const SizedBox(height: 8),
-                                      Text(
-                                        "Start a conversation with our support team",
-                                        style: TextStyle(
-                                          fontSize: isLargeScreen ? 16 : 14,
-                                          color: Colors.grey,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                )
-                                : Column(
-                                  children: [
-                                    if (chatProvider.isLoadingMore)
-                                      const Padding(
-                                        padding: EdgeInsets.all(8.0),
-                                        child: SizedBox(
-                                          height: 20,
-                                          width: 20,
-                                          child: CircularProgressIndicator(
-                                            strokeWidth: 2,
-                                          ),
-                                        ),
-                                      ),
-                                    Expanded(
-                                      child: ListView.builder(
-                                        controller: _scrollController,
-                                        reverse: true,
-                                        padding: EdgeInsets.symmetric(
-                                          horizontal: isLargeScreen ? 24 : 8,
-                                          vertical: isLargeScreen ? 16 : 8,
-                                        ),
-                                        itemCount: chatProvider.messages.length,
-                                        itemBuilder: (context, index) {
-                                          final message =
-                                              chatProvider.messages[index];
-                                          final bool isCurrentUser =
-                                              message.senderId ==
-                                              (isAdmin(user)
-                                                  ? user.id
-                                                  : widget.userId);
-                                          final bool showTime =
-                                              _shouldShowTimeSeparator(
-                                                chatProvider.messages,
-                                                index,
-                                              );
-
-                                          return Column(
-                                            children: [
-                                              if (showTime)
-                                                _buildTimeSeparator(
-                                                  message.timestamp,
-                                                  isLargeScreen: isLargeScreen,
-                                                ),
-                                              _buildBubbleChat(
-                                                isCurrentUser,
-                                                message,
-                                                isLargeScreen: isLargeScreen,
-                                              ),
-                                            ],
-                                          );
-                                        },
+      body:
+          _isFirstLoad
+              ? const ChatSkeletonLoader()
+              : Column(
+                children: [
+                  Expanded(
+                    child:
+                        chatProvider.messages.isEmpty
+                            ? const Center(child: Text("No messages yet"))
+                            : Column(
+                              children: [
+                                if (chatProvider.isLoadingMore)
+                                  const Padding(
+                                    padding: EdgeInsets.all(8.0),
+                                    child: SizedBox(
+                                      height: 20,
+                                      width: 20,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
                                       ),
                                     ),
-                                  ],
+                                  ),
+                                Expanded(
+                                  child: ListView.builder(
+                                    controller: _scrollController,
+                                    reverse: true,
+                                    itemCount: chatProvider.messages.length,
+                                    itemBuilder: (context, index) {
+                                      final message =
+                                          chatProvider.messages[index];
+                                      final bool isCurrentUser =
+                                          message.senderId ==
+                                          (isAdmin(user)
+                                              ? user.id
+                                              : widget.userId);
+                                      final bool showTime =
+                                          _shouldShowTimeSeparator(
+                                            chatProvider.messages,
+                                            index,
+                                          );
+
+                                      return Column(
+                                        children: [
+                                          if (showTime)
+                                            _buildTimeSeparator(
+                                              message.timestamp,
+                                            ),
+                                          _buildBubbleChat(
+                                            isCurrentUser,
+                                            message,
+                                          ),
+                                        ],
+                                      );
+                                    },
+                                  ),
                                 ),
-                      ),
-                      SafeArea(child: _buildMessageInput(isLargeScreen)),
-                    ],
+                              ],
+                            ),
                   ),
-        ),
-      ),
+                  SafeArea(child: _buildMessageInput()),
+                ],
+              ),
     );
   }
 
@@ -324,150 +287,101 @@ class _ChatScreenState extends State<ChatScreen> {
     return currentMessageTime.difference(previousMessageTime).inMinutes > 15;
   }
 
-  Widget _buildTimeSeparator(DateTime timestamp, {bool isLargeScreen = false}) {
+  Widget _buildTimeSeparator(DateTime timestamp) {
     return Padding(
-      padding: EdgeInsets.symmetric(vertical: isLargeScreen ? 16.0 : 8.0),
+      padding: const EdgeInsets.symmetric(vertical: 8.0),
       child: Center(
         child: Container(
-          padding: EdgeInsets.symmetric(
-            vertical: isLargeScreen ? 6 : 4,
-            horizontal: isLargeScreen ? 16 : 12,
-          ),
+          padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 12),
           decoration: BoxDecoration(
             color: Colors.grey[300],
-            borderRadius: BorderRadius.circular(isLargeScreen ? 16 : 12),
+            borderRadius: BorderRadius.circular(12),
           ),
           child: Text(
             DateFormat("MMM d, yyyy - h:mm a").format(timestamp),
-            style: TextStyle(
-              fontSize: isLargeScreen ? 14 : 12,
-              fontWeight: FontWeight.w500,
-            ),
+            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
           ),
         ),
       ),
     );
   }
 
-  Widget _buildBubbleChat(
-    bool isCurrentUser,
-    Message message, {
-    bool isLargeScreen = false,
-  }) {
-    final bubbleMaxWidth =
-        isLargeScreen
-            ? MediaQuery.of(context).size.width * 0.4
-            : MediaQuery.of(context).size.width * 0.7;
-
+  Widget _buildBubbleChat(bool isCurrentUser, Message message) {
     return Align(
       alignment: isCurrentUser ? Alignment.centerRight : Alignment.centerLeft,
-      child: ConstrainedBox(
-        constraints: BoxConstraints(maxWidth: bubbleMaxWidth),
-        child: Container(
-          margin: EdgeInsets.all(isLargeScreen ? 12 : 8),
-          padding: EdgeInsets.all(isLargeScreen ? 16 : 12),
-          decoration: BoxDecoration(
-            color: isCurrentUser ? bubbleChat : Colors.grey[300],
-            borderRadius: BorderRadius.circular(isLargeScreen ? 12 : 8),
-            boxShadow:
-                isLargeScreen
-                    ? [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.05),
-                        offset: const Offset(0, 2),
-                        blurRadius: 8,
-                      ),
-                    ]
-                    : null,
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              if (message.imageUrls.isNotEmpty)
-                GestureDetector(
-                  onTap:
-                      () => _openImagePreview(
-                        context,
-                        message.imageUrls,
-                        message.imageUrls.first,
-                      ),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(isLargeScreen ? 8 : 6),
-                    child:
-                        message.imageUrls.first == "loading"
-                            ? ImageSkeletonLoader(
-                              width: isLargeScreen ? 300 : 200,
-                              height: isLargeScreen ? 300 : 200,
-                            )
-                            : Image.network(
-                              message.imageUrls.first,
-                              width: isLargeScreen ? 300 : 200,
-                              height: isLargeScreen ? 300 : 200,
-                              fit: BoxFit.cover,
-                              errorBuilder: (context, error, stackTrace) {
-                                return Container(
-                                  width: isLargeScreen ? 300 : 200,
-                                  height: isLargeScreen ? 300 : 200,
-                                  color: Colors.grey[300],
-                                  child: Icon(
-                                    Icons.broken_image,
-                                    color: Colors.grey,
-                                    size: isLargeScreen ? 70 : 50,
-                                  ),
-                                );
-                              },
-                            ),
-                  ),
+      child: Container(
+        margin: const EdgeInsets.all(8),
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: isCurrentUser ? bubbleChat : Colors.grey[300],
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (message.imageUrls.isNotEmpty)
+              GestureDetector(
+                onTap:
+                    () => _openImagePreview(
+                      context,
+                      message.imageUrls,
+                      message.imageUrls.first,
+                    ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(6),
+                  child:
+                      message.imageUrls.first == "loading"
+                          ? ImageSkeletonLoader()
+                          : Image.network(
+                            message.imageUrls.first,
+                            width: 200,
+                            height: 200,
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) {
+                              return Container(
+                                width: 200,
+                                height: 200,
+                                color: Colors.grey[300],
+                                child: const Icon(
+                                  Icons.broken_image,
+                                  color: Colors.grey,
+                                  size: 50,
+                                ),
+                              );
+                            },
+                          ),
                 ),
-              if (message.message.isNotEmpty)
-                Padding(
-                  padding: EdgeInsets.only(
-                    top:
-                        message.imageUrls.isNotEmpty
-                            ? (isLargeScreen ? 12 : 8)
-                            : 0,
-                  ),
-                  child: Text(
-                    message.message,
-                    style: TextStyle(fontSize: isLargeScreen ? 16 : 14),
-                  ),
+              ),
+            if (message.message.isNotEmpty)
+              Padding(
+                padding: EdgeInsets.only(
+                  top: message.imageUrls.isNotEmpty ? 8 : 0,
                 ),
-            ],
-          ),
+                child: Text(message.message),
+              ),
+          ],
         ),
       ),
     );
   }
 
-  Widget _buildMessageInput(bool isLargeScreen) {
-    return Container(
-      padding: EdgeInsets.all(isLargeScreen ? 16.0 : 8.0),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.withOpacity(0.1),
-            spreadRadius: 1,
-            blurRadius: 3,
-            offset: const Offset(0, -1),
-          ),
-        ],
-      ),
+  Widget _buildMessageInput() {
+    return Padding(
+      padding: const EdgeInsets.all(8.0),
       child: Column(
         children: [
           if (_viewImages.isNotEmpty)
-            SizedBox(
-              height: isLargeScreen ? 120 : 100,
-              child: ListView(
-                scrollDirection: Axis.horizontal,
-                children: [
-                  ..._viewImages.asMap().entries.map((entry) {
-                    int index = entry.key;
-                    var image = entry.value;
+            Row(
+              children: [
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    ..._viewImages.asMap().entries.take(2).map((entry) {
+                      int index = entry.key;
+                      var image = entry.value;
 
-                    return Container(
-                      margin: const EdgeInsets.only(right: 8),
-                      child: GestureDetector(
+                      return GestureDetector(
                         onTap:
                             () =>
                                 _openImagePreview(context, _viewImages, image),
@@ -480,14 +394,14 @@ class _ChatScreenState extends State<ChatScreen> {
                                   kIsWeb
                                       ? Image.memory(
                                         image as Uint8List,
-                                        width: isLargeScreen ? 120 : 100,
-                                        height: isLargeScreen ? 120 : 100,
+                                        width: 100,
+                                        height: 100,
                                         fit: BoxFit.cover,
                                       )
                                       : Image.file(
                                         image as File,
-                                        width: isLargeScreen ? 120 : 100,
-                                        height: isLargeScreen ? 120 : 100,
+                                        width: 100,
+                                        height: 100,
                                         fit: BoxFit.cover,
                                       ),
                             ),
@@ -500,65 +414,92 @@ class _ChatScreenState extends State<ChatScreen> {
                                       _viewImages.removeAt(index);
                                       _selectedImages.removeAt(index);
                                     }),
-                                child: CircleAvatar(
-                                  radius: isLargeScreen ? 12 : 10,
+                                child: const CircleAvatar(
+                                  radius: 10,
                                   backgroundColor: primaryColor,
                                   child: Icon(
                                     Icons.close,
                                     color: Colors.white,
-                                    size: isLargeScreen ? 12 : 10,
+                                    size: 10,
                                   ),
                                 ),
                               ),
                             ),
                           ],
                         ),
+                      );
+                    }),
+
+                    // Show third image with counter if more than 2 images
+                    if (_viewImages.length > 2)
+                      GestureDetector(
+                        onTap:
+                            () => _openImagePreview(
+                              context,
+                              _viewImages,
+                              _viewImages[2],
+                            ),
+                        child: Stack(
+                          clipBehavior: Clip.none,
+                          children: [
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(8),
+                              child:
+                                  kIsWeb
+                                      ? Image.memory(
+                                        _viewImages[2] as Uint8List,
+                                        width: 100,
+                                        height: 100,
+                                        fit: BoxFit.cover,
+                                      )
+                                      : Image.file(
+                                        _viewImages[2] as File,
+                                        width: 100,
+                                        height: 100,
+                                        fit: BoxFit.cover,
+                                      ),
+                            ),
+                            Container(
+                              width: 100,
+                              height: 100,
+                              color: const Color.fromARGB(136, 158, 158, 158),
+                              alignment: Alignment.center,
+                              child: Text(
+                                "+${_selectedImages.length - 2}",
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
-                    );
-                  }),
-                ],
-              ),
+                  ],
+                ),
+              ],
             ),
           const SizedBox(height: 8),
           Row(
             children: [
               IconButton(
-                icon: Icon(
-                  Icons.image,
-                  color: primaryColor,
-                  size: isLargeScreen ? 28 : 24,
-                ),
+                icon: const Icon(Icons.image, color: primaryColor),
                 onPressed: _pickImage,
               ),
               Expanded(
-                child: Container(
-                  padding: EdgeInsets.symmetric(
-                    horizontal: isLargeScreen ? 16 : 12,
-                    vertical: isLargeScreen ? 8 : 4,
+                child: TextField(
+                  controller: _controller,
+                  decoration: const InputDecoration(
+                    hintText: "Type a message",
+                    hintStyle: TextStyle(color: Colors.grey),
+                    border: InputBorder.none,
                   ),
-                  decoration: BoxDecoration(
-                    color: Colors.grey.shade100,
-                    borderRadius: BorderRadius.circular(24),
-                  ),
-                  child: TextField(
-                    controller: _controller,
-                    decoration: const InputDecoration(
-                      hintText: "Type a message",
-                      hintStyle: TextStyle(color: Colors.grey),
-                      border: InputBorder.none,
-                    ),
-                    maxLines: isLargeScreen ? 2 : 1,
-                    style: TextStyle(fontSize: isLargeScreen ? 16 : 14),
-                    onSubmitted: (_) => _sendMessage(),
-                  ),
+                  onSubmitted: (_) => _sendMessage(),
                 ),
               ),
               IconButton(
-                icon: Icon(
-                  Icons.send,
-                  color: primaryColor,
-                  size: isLargeScreen ? 28 : 24,
-                ),
+                icon: const Icon(Icons.send, color: primaryColor),
                 onPressed: _sendMessage,
               ),
             ],

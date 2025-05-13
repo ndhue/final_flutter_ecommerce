@@ -72,7 +72,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final history = order['statusHistory'];
     if (history is! List || history.isEmpty) return 'unknown';
 
-    final lastItem = history.first;
+    final lastItem = history.last;
     if (lastItem is Map) {
       return lastItem['status']?.toString().toLowerCase() ?? 'unknown';
     } else {
@@ -161,11 +161,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
           .where((order) => _getLastestStatus(order) == 'delivered')
           .length;
 
-  int getCompletedOrders() =>
-      filteredOrders
-          .where((order) => _getLastestStatus(order) == 'completed')
-          .length;
-
   int getShippedOrders() =>
       filteredOrders
           .where((order) => _getLastestStatus(order) == 'shipped')
@@ -249,15 +244,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final canceled = getCanceledOrders();
     final delivered = getDeliveredOrders();
     final shipped = getShippedOrders();
-    final completed = getCompletedOrders();
 
     final statusCounts = {
       'Pending': pending,
       'Confirmed': confirmed,
+      'Delivered': delivered,
       'Canceled': canceled,
       'Shipped': shipped,
-      'Delivered': delivered,
-      'Completed': completed,
     };
 
     final statusColor = {
@@ -266,7 +259,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
       'Shipped': Colors.purple,
       'Canceled': Colors.red,
       'Delivered': Colors.blue,
-      'Completed': Colors.teal,
     };
 
     final pieSections =
@@ -318,7 +310,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 runSpacing: 12,
                 children: [
                   _buildStatCard('Total Orders', getTotalOrders()),
-                  _buildStatCard('Completed', getCompletedOrders()),
+                  _buildStatCard('Delivered', getDeliveredOrders()),
                   _buildStatCard('Revenue', revenue),
                   FutureBuilder<double>(
                     future: calculateProfit(),

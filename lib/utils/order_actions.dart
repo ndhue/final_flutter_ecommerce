@@ -3,7 +3,6 @@ import 'package:final_ecommerce/providers/providers_export.dart';
 import 'package:final_ecommerce/utils/utils.dart';
 import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
-import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
 Future<void> handleCancelOrder(BuildContext context, OrderModel order) async {
@@ -61,9 +60,7 @@ Future<void> handleCancelOrder(BuildContext context, OrderModel order) async {
       );
     }
 
-    // Create and insert the new status at the beginning of the array
     final newStatus = StatusHistory(status: 'Canceled', time: DateTime.now());
-    order.statusHistory.insert(0, newStatus);
     await orderProvider.updateOrderStatusLocally(order.id, newStatus);
 
     Fluttertoast.showToast(
@@ -73,97 +70,6 @@ Future<void> handleCancelOrder(BuildContext context, OrderModel order) async {
       backgroundColor: Colors.green,
       textColor: Colors.white,
     );
-  }
-}
-
-Future<void> handleCompleteOrder(BuildContext context, OrderModel order) async {
-  final confirm = await showDialog<bool>(
-    context: context,
-    builder:
-        (context) => AlertDialog(
-          title: const Text('Complete Order'),
-          content: const Text('Mark this order as completed?'),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(false),
-              child: const Text('No'),
-            ),
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(true),
-              child: const Text('Yes'),
-            ),
-          ],
-        ),
-  );
-
-  if (confirm == true) {
-    if (!context.mounted) return;
-    final userProvider = Provider.of<UserProvider>(context, listen: false);
-    final orderProvider = Provider.of<OrderProvider>(context, listen: false);
-
-    // Award loyalty points when user marks order as completed
-    if (order.loyaltyPointsEarned > 0) {
-      await userProvider.updateLoyaltyPoints(
-        pointsChange: order.loyaltyPointsEarned,
-      );
-
-      Fluttertoast.showToast(
-        msg:
-            'Earned ${NumberFormat.decimalPattern().format(order.loyaltyPointsEarned / 10000)} loyalty points!',
-        toastLength: Toast.LENGTH_SHORT,
-        gravity: ToastGravity.BOTTOM,
-        backgroundColor: Colors.green,
-        textColor: Colors.white,
-      );
-    }
-
-    // Create and insert the new status at the beginning of the array
-    final newStatus = StatusHistory(status: 'Completed', time: DateTime.now());
-    order.statusHistory.insert(0, newStatus);
-    await orderProvider.updateOrderStatusLocally(order.id, newStatus);
-
-    Fluttertoast.showToast(
-      msg: 'Order marked as completed',
-      toastLength: Toast.LENGTH_SHORT,
-      gravity: ToastGravity.BOTTOM,
-      backgroundColor: Colors.green,
-      textColor: Colors.white,
-    );
-  }
-}
-
-List<String> getActionsForStatus(String status) {
-  switch (status) {
-    case 'Pending':
-      return ['Cancel', 'Track'];
-    case 'Confirmed':
-    case 'Shipping':
-      return ['Track'];
-    case 'Delivered':
-      return ['Track', 'Complete'];
-    case 'Completed':
-    case 'Cancelled':
-    default:
-      return ['Track'];
-  }
-}
-
-Color getStatusColor(String status) {
-  switch (status) {
-    case 'Pending':
-      return Colors.orange;
-    case 'Confirmed':
-      return Colors.blue;
-    case 'Shipping':
-      return Colors.purple;
-    case 'Delivered':
-      return Colors.green.shade600;
-    case 'Completed':
-      return Colors.green.shade900;
-    case 'Cancelled':
-      return Colors.red;
-    default:
-      return Colors.grey;
   }
 }
 

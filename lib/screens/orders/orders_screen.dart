@@ -33,25 +33,14 @@ class _OrdersScreenState extends State<OrdersScreen> {
   Widget build(BuildContext context) {
     final orderProvider = context.watch<OrderProvider>();
     final hasOrder = orderProvider.orders.isNotEmpty;
-    final screenWidth = MediaQuery.of(context).size.width;
-    final isLargeScreen = screenWidth > 900;
-
-    debugPrint('Orders Screen: ${orderProvider.orders.length}');
 
     return Scaffold(
-      body: Center(
-        child: ConstrainedBox(
-          constraints: BoxConstraints(
-            maxWidth: isLargeScreen ? 900 : double.infinity,
-          ),
-          child:
-              orderProvider.isLoading
-                  ? const OrderSkeletonLoader()
-                  : hasOrder
-                  ? OrderListView(orders: orderProvider.orders)
-                  : const EmptyOrderView(),
-        ),
-      ),
+      body:
+          orderProvider.isLoading
+              ? const OrderSkeletonLoader()
+              : hasOrder
+              ? OrderListView(orders: orderProvider.orders)
+              : const EmptyOrderView(),
     );
   }
 }
@@ -118,11 +107,8 @@ class OrderListView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final screenWidth = MediaQuery.of(context).size.width;
-    final isLargeScreen = screenWidth > 900;
-
     return ListView(
-      padding: EdgeInsets.all(isLargeScreen ? 24 : 16),
+      padding: const EdgeInsets.all(16),
       children: [
         ...orders.map((order) {
           return Padding(
@@ -263,8 +249,6 @@ class OrderListView extends StatelessWidget {
                                     );
                                   },
                                 );
-                              } else if (action == 'Complete') {
-                                handleCompleteOrder(context, order);
                               }
                             },
                             child: Text(action),

@@ -1,11 +1,10 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:final_ecommerce/models/orders_model.dart';
-import 'package:final_ecommerce/providers/order_provider.dart';
 import 'package:final_ecommerce/utils/format.dart';
-import 'package:final_ecommerce/utils/order_actions.dart';
+import 'package:final_ecommerce/utils/utils.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:provider/provider.dart';
 
 import 'order_details_screen.dart';
 
@@ -32,9 +31,14 @@ class _OrderManagerScreenState extends State<OrderManagerScreen> {
     super.dispose();
   }
 
-  Future<List<OrderModel>> fetchOrders() {
-    final orderProvider = Provider.of<OrderProvider>(context, listen: false);
-    return orderProvider.fetchAllOrders();
+  Future<List<OrderModel>> fetchOrders() async {
+    final snapshot =
+        await FirebaseFirestore.instance.collection('orders').get();
+    return snapshot.docs.map((doc) {
+      final data = doc.data();
+      data['id'] = doc.id;
+      return OrderModel.fromJson(data);
+    }).toList();
   }
 
   Future<void> _refreshOrders() async {
@@ -64,16 +68,6 @@ class _OrderManagerScreenState extends State<OrderManagerScreen> {
     });
   }
 
-  int getOrderCountByStatus(List<OrderModel> orders, String status) {
-    return orders
-        .where(
-          (order) =>
-              order.statusHistory.isNotEmpty &&
-              order.statusHistory.first.status == status,
-        )
-        .length;
-  }
-
   int getTotalOrders(List<OrderModel> orders) => orders.length;
 
   int getCompletedOrders(List<OrderModel> orders) {
@@ -81,7 +75,7 @@ class _OrderManagerScreenState extends State<OrderManagerScreen> {
         .where(
           (order) =>
               order.statusHistory.isNotEmpty &&
-              order.statusHistory.first.status == 'Delivered',
+              order.statusHistory.last.status == 'Delivered',
         )
         .length;
   }
@@ -91,7 +85,7 @@ class _OrderManagerScreenState extends State<OrderManagerScreen> {
         .where(
           (order) =>
               order.statusHistory.isEmpty ||
-              order.statusHistory.first.status == 'Pending',
+              order.statusHistory.last.status != 'Delivered',
         )
         .length;
   }
@@ -217,8 +211,6 @@ class _OrderManagerScreenState extends State<OrderManagerScreen> {
                           ],
                         ),
                         const SizedBox(height: 16),
-                        _buildOrderStatusChart(orders),
-                        const SizedBox(height: 16),
                         Card(
                           color: Colors.white,
                           elevation: 2,
@@ -269,202 +261,6 @@ class _OrderManagerScreenState extends State<OrderManagerScreen> {
     );
   }
 
-  Widget _buildOrderStatusChart(List<OrderModel> orders) {
-    final List<String> statuses = [
-      'Pending',
-      'Confirmed',
-      'Shipping',
-      'Delivered',
-      'Completed',
-      'Cancelled',
-    ];
-
-    final List<int> statusCounts =
-        statuses
-            .map((status) => getOrderCountByStatus(orders, status))
-            .toList();
-
-    final int maxCount =
-        statusCounts.isEmpty ? 1 : statusCounts.reduce((a, b) => a > b ? a : b);
-    final int maxCountWithBuffer = maxCount < 5 ? 5 : (maxCount * 1.2).ceil();
-
-    return Card(
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Orders by Status',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 16),
-            SizedBox(
-              height: 220,
-              child: BarChart(
-                BarChartData(
-                  alignment: BarChartAlignment.spaceAround,
-                  maxY: maxCountWithBuffer.toDouble(),
-                  titlesData: FlTitlesData(
-                    leftTitles: AxisTitles(
-                      sideTitles: SideTitles(
-                        showTitles: true,
-                        reservedSize: 30,
-                        getTitlesWidget: (value, meta) {
-                          return SideTitleWidget(
-                            meta: meta,
-                            child: Text(
-                              value == 0
-                                  ? '0'
-                                  : value % 1 == 0
-                                  ? value.toInt().toString()
-                                  : '',
-                              style: const TextStyle(
-                                color: Colors.grey,
-                                fontSize: 12,
-                              ),
-                            ),
-                          );
-                        },
-                      ),
-                    ),
-                    bottomTitles: AxisTitles(
-                      sideTitles: SideTitles(
-                        showTitles: true,
-                        reservedSize: 40,
-                        getTitlesWidget: (value, meta) {
-                          final index = value.toInt();
-                          String label = '';
-
-                          if (index >= 0 && index < statuses.length) {
-                            switch (statuses[index]) {
-                              case 'Pending':
-                                label = 'Pnd';
-                                break;
-                              case 'Confirmed':
-                                label = 'Cnf';
-                                break;
-                              case 'Shipping':
-                                label = 'Shp';
-                                break;
-                              case 'Delivered':
-                                label = 'Dlv';
-                                break;
-                              case 'Completed':
-                                label = 'Cmp';
-                                break;
-                              case 'Cancelled':
-                                label = 'Cnc';
-                                break;
-                              default:
-                                label = statuses[index].substring(
-                                  0,
-                                  min(3, statuses[index].length),
-                                );
-                            }
-                          }
-
-                          return SideTitleWidget(
-                            meta: meta,
-                            angle: 45,
-                            child: Text(
-                              label,
-                              style: const TextStyle(
-                                color: Colors.grey,
-                                fontSize: 10,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          );
-                        },
-                      ),
-                    ),
-                    rightTitles: const AxisTitles(
-                      sideTitles: SideTitles(showTitles: false),
-                    ),
-                    topTitles: const AxisTitles(
-                      sideTitles: SideTitles(showTitles: false),
-                    ),
-                  ),
-                  borderData: FlBorderData(
-                    show: true,
-                    border: Border(
-                      bottom: BorderSide(color: Colors.grey.shade300, width: 1),
-                      left: BorderSide(color: Colors.grey.shade300, width: 1),
-                    ),
-                  ),
-                  gridData: FlGridData(
-                    show: true,
-                    horizontalInterval: 1,
-                    getDrawingHorizontalLine:
-                        (value) =>
-                            FlLine(color: Colors.grey.shade200, strokeWidth: 1),
-                  ),
-                  barGroups: List.generate(
-                    statuses.length,
-                    (index) => BarChartGroupData(
-                      x: index,
-                      barRods: [
-                        BarChartRodData(
-                          toY: statusCounts[index].toDouble(),
-                          color: getStatusColor(statuses[index]),
-                          width: 20,
-                          borderRadius: BorderRadius.circular(4),
-                          backDrawRodData: BackgroundBarChartRodData(
-                            show: true,
-                            toY: maxCountWithBuffer.toDouble(),
-                            color: getStatusColor(
-                              statuses[index],
-                            ).withAlpha(10),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
-            Wrap(
-              spacing: 16,
-              runSpacing: 8,
-              children:
-                  statuses
-                      .map(
-                        (status) => _buildLegendItem(
-                          status,
-                          getStatusColor(status),
-                          count: getOrderCountByStatus(orders, status),
-                        ),
-                      )
-                      .toList(),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildLegendItem(String label, Color color, {required int count}) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(
-          width: 12,
-          height: 12,
-          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-        ),
-        const SizedBox(width: 4),
-        Text(
-          '$label ($count)',
-          style: TextStyle(fontSize: 12, color: Colors.grey.shade700),
-        ),
-      ],
-    );
-  }
-
   Widget _buildOrderTable(List<OrderModel> orders) {
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -478,7 +274,7 @@ class _OrderManagerScreenState extends State<OrderManagerScreen> {
               dataRowMaxHeight: 80,
               columnSpacing: 24,
               headingRowHeight: 50,
-              headingRowColor: WidgetStateProperty.resolveWith(
+              headingRowColor: MaterialStateProperty.resolveWith(
                 (states) => Colors.grey[50],
               ),
               columns: const [
@@ -524,7 +320,7 @@ class _OrderManagerScreenState extends State<OrderManagerScreen> {
                 final order = orders[index];
                 final latestStatus =
                     order.statusHistory.isNotEmpty
-                        ? order.statusHistory.first.status
+                        ? order.statusHistory.last.status
                         : 'Pending';
 
                 final orderDate =
