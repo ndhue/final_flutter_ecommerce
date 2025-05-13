@@ -17,6 +17,7 @@ class _HomeScreenState extends State<HomeScreen> {
     return ProductListSlider(
       title: title,
       onProductSelected: (product) {
+        debugPrint('Product tapped: ${product.name}');
         Navigator.push(
           context,
           MaterialPageRoute(
@@ -29,83 +30,38 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final screenWidth = MediaQuery.of(context).size.width;
-    final isLargeScreen = screenWidth > 900;
-    final horizontalPadding =
-        isLargeScreen
-            ? screenWidth *
-                0.1 // 10% of screen width on large screens
-            : defaultPadding;
-    final verticalPadding = isLargeScreen ? defaultPadding * 2 : defaultPadding;
-
     return Scaffold(
       backgroundColor: Colors.white,
       body: SingleChildScrollView(
         child: Padding(
-          padding: EdgeInsets.symmetric(
-            horizontal: horizontalPadding,
-            vertical: defaultPadding,
-          ),
+          padding: const EdgeInsets.all(defaultPadding),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Banner with constraints for web
-              Center(
-                child: ConstrainedBox(
-                  constraints: BoxConstraints(
-                    maxWidth: isLargeScreen ? 1000 : double.infinity,
-                  ),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(defaultBorderRadius),
-                    child: Image.asset(
-                      'assets/images/banner.png',
-                      width: double.infinity,
-                      height: isLargeScreen ? 300 : 180,
-                      fit: BoxFit.cover,
+              ClipRRect(
+                borderRadius: BorderRadius.circular(defaultBorderRadius),
+                child: Image.asset(
+                  'assets/images/banner.png',
+                  width: double.infinity,
+                  height: 180,
+                  fit: BoxFit.cover,
+                ),
+              ),
+              const SizedBox(height: 10),
+              CategoriesSection(
+                onCategorySelected: (category) {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => ProductCatalog(category: category),
                     ),
-                  ),
-                ),
+                  );
+                },
               ),
-              const SizedBox(height: 20),
-              // Center categories for better web display
-              Center(
-                child: ConstrainedBox(
-                  constraints: BoxConstraints(
-                    maxWidth: isLargeScreen ? 1000 : double.infinity,
-                  ),
-                  child: CategoriesSection(
-                    onCategorySelected: (category) {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder:
-                              (context) => ProductCatalog(category: category),
-                        ),
-                      );
-                    },
-                  ),
-                ),
-              ),
-              const SizedBox(height: 20),
-              // Product sliders with constraints
-              Center(
-                child: ConstrainedBox(
-                  constraints: BoxConstraints(
-                    maxWidth: isLargeScreen ? 1000 : double.infinity,
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      buildSlider("Best Sellers"),
-                      SizedBox(height: verticalPadding),
-                      buildSlider("Promotional"),
-                      SizedBox(height: verticalPadding),
-
-                      buildSlider("New Products"),
-                    ],
-                  ),
-                ),
-              ),
+              const SizedBox(height: 16),
+              buildSlider("Best Sellers"),
+              buildSlider("Promotional"),
+              buildSlider("New Products"),
             ],
           ),
         ),

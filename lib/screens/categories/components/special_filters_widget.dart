@@ -9,43 +9,32 @@ class SpecialFiltersWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final screenWidth = MediaQuery.of(context).size.width;
-    final isLargeScreen = screenWidth > 900;
-
-    // Define number of items per row based on screen width
-    final itemsPerRow = isLargeScreen ? 6 : 3;
-
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final containerWidth = constraints.maxWidth;
-        final calculatedItemWidth = (containerWidth / itemsPerRow) - 10;
-
-        return Wrap(
-          spacing: 10,
-          runSpacing: 10,
-          alignment: WrapAlignment.start,
-          children:
-              specialCategories.map((category) {
-                return SizedBox(
-                  width: calculatedItemWidth,
-                  child: CategoryCard(
-                    key: ValueKey(category.name),
-                    category: category,
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder:
-                              (context) =>
-                                  ProductCatalog(category: category.name),
-                        ),
-                      );
-                    },
-                  ),
-                );
-              }).toList(),
-        );
-      },
+    return Wrap(
+      spacing: 10, // Horizontal space between items
+      runSpacing: 10, // Vertical space between rows
+      alignment: WrapAlignment.start,
+      children:
+          specialCategories.map((category) {
+            return SizedBox(
+              width:
+                  MediaQuery.of(context).size.width / 3 -
+                  18, // Ensures 3 items per row
+              child: CategoryCard(
+                key: ValueKey(category.name),
+                category: category,
+                onTap: () {
+                  // Handle tap event
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder:
+                          (context) => ProductCatalog(category: category.name),
+                    ),
+                  );
+                },
+              ),
+            );
+          }).toList(),
     );
   }
 }
