@@ -113,7 +113,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             as ImageProvider,
                 radius: 30,
               ),
-          if (!isAvatarLoading) // Only show camera icon when not loading
+          if (!isAvatarLoading)
             Positioned(
               right: 0,
               bottom: 0,
@@ -136,6 +136,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final userProvider = context.watch<UserProvider>();
     final user = userProvider.user;
     final isAvatarLoading = userProvider.isAvatarLoading;
+
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isLargeScreen = screenWidth > 900;
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -165,112 +168,187 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   ],
                 ),
               )
-              : ListView(
-                padding: EdgeInsets.all(20),
-                children: [
-                  Card(
-                    color: primaryColor,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.vertical(
-                        top: Radius.circular(15),
-                      ),
-                    ),
-                    child: ListTile(
-                      leading: _buildAvatarSection(user, isAvatarLoading),
-                      title:
-                          _isEditingName
-                              ? TextField(
-                                controller: _nameController,
-                                autofocus: true,
-                                decoration: InputDecoration(
-                                  hintText: "Enter your name",
-                                  border: InputBorder.none,
-                                ),
-                                style: TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              )
-                              : Text(
-                                user.fullName,
-                                style: TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                      subtitle: Text(user.email),
-                      trailing: IconButton(
-                        icon: Icon(
-                          _isEditingName ? Icons.check : Icons.edit,
-                          color: iconColor,
+              : Center(
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(
+                    maxWidth: isLargeScreen ? 800 : double.infinity,
+                  ),
+                  child: ListView(
+                    padding: EdgeInsets.all(isLargeScreen ? 32 : 20),
+                    children: [
+                      Card(
+                        color: primaryColor,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.vertical(
+                            top: Radius.circular(15),
+                          ),
                         ),
-                        onPressed: () {
-                          if (_isEditingName) {
-                            userProvider.updateFullName(_nameController.text);
-                          }
-                          setState(() {
-                            _isEditingName = !_isEditingName;
-                          });
-                        },
+                        child: ListTile(
+                          leading: _buildAvatarSection(user, isAvatarLoading),
+                          title:
+                              _isEditingName
+                                  ? TextField(
+                                    controller: _nameController,
+                                    autofocus: true,
+                                    decoration: InputDecoration(
+                                      hintText: "Enter your name",
+                                      border: InputBorder.none,
+                                    ),
+                                    style: TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  )
+                                  : Text(
+                                    user.fullName,
+                                    style: TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                          subtitle: Text(user.email),
+                          trailing: IconButton(
+                            icon: Icon(
+                              _isEditingName ? Icons.check : Icons.edit,
+                              color: iconColor,
+                            ),
+                            onPressed: () {
+                              if (_isEditingName) {
+                                userProvider.updateFullName(
+                                  _nameController.text,
+                                );
+                              }
+                              setState(() {
+                                _isEditingName = !_isEditingName;
+                              });
+                            },
+                          ),
+                        ),
                       ),
-                    ),
+                      SizedBox(height: 20),
+                      isLargeScreen
+                          ? _buildWebLayout(user)
+                          : _buildMobileLayout(user),
+                    ],
                   ),
-                  SizedBox(height: 20),
-                  _buildSectionTitle("Loyalty Points"),
-                  _buildLoyaltyPointItem(user.loyaltyPoints),
-                  _buildSectionTitle("Personal Information"),
-                  _buildMenuItemCustom(
-                    Icons.local_shipping,
-                    "Shipping Address",
-                    () {
-                      _showAddressPicker(context);
-                    },
-                  ),
-                  _buildMenuItem(
-                    Icons.payment,
-                    "Payment Method",
-                    context,
-                    null,
-                  ),
-                  SizedBox(height: 20),
-                  _buildSectionTitle("Support & Information"),
-                  _buildMenuItem(
-                    Icons.security,
-                    "Privacy Policy ",
-                    context,
-                    pravicyAndPolicyScreenRoute,
-                  ),
-                  _buildMenuItem(
-                    Icons.help,
-                    "Helps and support",
-                    context,
-                    helpsAndSupportScreenRoute,
-                  ),
-                  _buildMenuItem(
-                    Icons.question_answer,
-                    "FAQs",
-                    context,
-                    faqsScreenRoute,
-                  ),
-                  SizedBox(height: 20),
-                  _buildSectionTitle("Account Management"),
-                  _buildMenuItemCustom(Icons.lock, "Change Password", () {
-                    _showChangePasswordDialog(context);
-                  }),
-                  _buildMenuItemCustom(Icons.logout, "Logout", () {
-                    AppDialogs.showCustomDialog(
-                      context: context,
-                      title: "Log out",
-                      content: "Are you sure you want to logout?",
-                      confirmText: "Log out",
-                      onConfirm: () => handleLogout(context),
-                      cancelText: "Cancel",
-                      icon: Icons.exit_to_app,
-                      confirmColor: Colors.red,
-                    );
-                  }),
-                ],
+                ),
               ),
+    );
+  }
+
+  Widget _buildWebLayout(UserModel user) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildSectionTitle("Loyalty Points"),
+              _buildLoyaltyPointItem(user.loyaltyPoints),
+              _buildSectionTitle("Personal Information"),
+              _buildMenuItemCustom(
+                Icons.local_shipping,
+                "Shipping Address",
+                () {
+                  _showAddressPicker(context);
+                },
+              ),
+              _buildMenuItem(Icons.payment, "Payment Method", context, null),
+            ],
+          ),
+        ),
+        const SizedBox(width: 24),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildSectionTitle("Support & Information"),
+              _buildMenuItem(
+                Icons.security,
+                "Privacy Policy ",
+                context,
+                pravicyAndPolicyScreenRoute,
+              ),
+              _buildMenuItem(
+                Icons.help,
+                "Helps and support",
+                context,
+                helpsAndSupportScreenRoute,
+              ),
+              _buildMenuItem(
+                Icons.question_answer,
+                "FAQs",
+                context,
+                faqsScreenRoute,
+              ),
+              _buildSectionTitle("Account Management"),
+              _buildMenuItemCustom(Icons.lock, "Change Password", () {
+                _showChangePasswordDialog(context);
+              }),
+              _buildMenuItemCustom(Icons.logout, "Logout", () {
+                AppDialogs.showCustomDialog(
+                  context: context,
+                  title: "Log out",
+                  content: "Are you sure you want to logout?",
+                  confirmText: "Log out",
+                  onConfirm: () => handleLogout(context),
+                  cancelText: "Cancel",
+                  icon: Icons.exit_to_app,
+                  confirmColor: Colors.red,
+                );
+              }),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildMobileLayout(UserModel user) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildSectionTitle("Loyalty Points"),
+        _buildLoyaltyPointItem(user.loyaltyPoints),
+        _buildSectionTitle("Personal Information"),
+        _buildMenuItemCustom(Icons.local_shipping, "Shipping Address", () {
+          _showAddressPicker(context);
+        }),
+        _buildMenuItem(Icons.payment, "Payment Method", context, null),
+        SizedBox(height: 20),
+        _buildSectionTitle("Support & Information"),
+        _buildMenuItem(
+          Icons.security,
+          "Privacy Policy ",
+          context,
+          pravicyAndPolicyScreenRoute,
+        ),
+        _buildMenuItem(
+          Icons.help,
+          "Helps and support",
+          context,
+          helpsAndSupportScreenRoute,
+        ),
+        _buildMenuItem(Icons.question_answer, "FAQs", context, faqsScreenRoute),
+        SizedBox(height: 20),
+        _buildSectionTitle("Account Management"),
+        _buildMenuItemCustom(Icons.lock, "Change Password", () {
+          _showChangePasswordDialog(context);
+        }),
+        _buildMenuItemCustom(Icons.logout, "Logout", () {
+          AppDialogs.showCustomDialog(
+            context: context,
+            title: "Log out",
+            content: "Are you sure you want to logout?",
+            confirmText: "Log out",
+            onConfirm: () => handleLogout(context),
+            cancelText: "Cancel",
+            icon: Icons.exit_to_app,
+            confirmColor: Colors.red,
+          );
+        }),
+      ],
     );
   }
 

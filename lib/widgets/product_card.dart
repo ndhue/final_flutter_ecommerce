@@ -8,8 +8,14 @@ import '../models/models_export.dart';
 class ProductCard extends StatelessWidget {
   final NewProduct product;
   final VoidCallback onTap;
+  final double? imgWidth;
 
-  const ProductCard({super.key, required this.product, required this.onTap});
+  const ProductCard({
+    super.key,
+    required this.product,
+    required this.onTap,
+    this.imgWidth = 100,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -37,7 +43,7 @@ class ProductCard extends StatelessWidget {
                   ),
                   child: Image.network(
                     product.images.first,
-                    height: 100,
+                    height: this.imgWidth ?? 100,
                     width: double.infinity,
                     fit: BoxFit.cover,
                   ),
