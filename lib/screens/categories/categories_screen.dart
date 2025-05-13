@@ -16,27 +16,43 @@ class CategoriesScreen extends StatefulWidget {
 class _CategoriesScreenState extends State<CategoriesScreen> {
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isLargeScreen = screenWidth > 900;
+
     return Material(
       color: Colors.white,
-      child: Padding(
-        padding: const EdgeInsets.all(defaultPadding),
-        child: Column(
-          children: [
-            const SearchBarWidget(),
-            const SizedBox(height: defaultPadding),
-            const SpecialFiltersWidget(),
-            const SizedBox(height: defaultPadding),
-            CategoriesGridView(
-              onCategorySelected: (category) {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => ProductCatalog(category: category),
-                  ),
-                );
-              },
+      child: Center(
+        child: ConstrainedBox(
+          constraints: BoxConstraints(
+            maxWidth: isLargeScreen ? 1000 : double.infinity,
+          ),
+          child: Padding(
+            padding: EdgeInsets.all(
+              isLargeScreen ? defaultPadding * 1.5 : defaultPadding,
             ),
-          ],
+            child: Column(
+              children: [
+                const SearchBarWidget(),
+                const SizedBox(height: defaultPadding),
+                const SpecialFiltersWidget(),
+                const SizedBox(height: defaultPadding),
+                Expanded(
+                  child: CategoriesGridView(
+                    onCategorySelected: (category) {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder:
+                              (context) => ProductCatalog(category: category),
+                        ),
+                      );
+                    },
+                    gridCrossAxisCount: isLargeScreen ? 6 : 3,
+                  ),
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );

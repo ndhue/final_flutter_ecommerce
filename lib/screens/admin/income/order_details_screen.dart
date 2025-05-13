@@ -1,8 +1,10 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:final_ecommerce/models/orders_model.dart';
+import 'package:final_ecommerce/providers/providers_export.dart';
+import 'package:final_ecommerce/utils/order_actions.dart';
 import 'package:final_ecommerce/utils/utils.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
 
 class OrderDetailScreen extends StatefulWidget {
   final OrderModel order;
@@ -41,22 +43,30 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
     });
 
     try {
-      // Add new status to Firestore
-      final statusUpdate = {'status': newStatus, 'time': DateTime.now()};
+      // Create new status update
+      final statusUpdate = StatusHistory(
+        status: newStatus,
+        time: DateTime.now(),
+      );
 
-      await FirebaseFirestore.instance
-          .collection('orders')
-          .doc(widget.order.id)
-          .update({
-            'statusHistory': FieldValue.arrayUnion([statusUpdate]),
-          });
+      // Use OrderProvider to update the status
+      final orderProvider = Provider.of<OrderProvider>(context, listen: false);
+      await orderProvider.updateOrderStatus(widget.order.id, statusUpdate);
+
+      // Special handling for Cancelled status
+      if (newStatus == 'Cancelled') {
+        await _handleCancelOrder();
+      }
+
+      // Special handling for Delivered status
+      if (newStatus == 'Delivered') {
+        await _handleDeliverOrder();
+      }
 
       // Update the local state
       setState(() {
         _currentStatus = newStatus;
-        widget.order.statusHistory.add(
-          StatusHistory(status: newStatus, time: DateTime.now()),
-        );
+        _isProcessing = false;
       });
 
       ScaffoldMessenger.of(context).showSnackBar(
@@ -72,6 +82,63 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
       setState(() {
         _isProcessing = false;
       });
+    }
+  }
+
+  Future<void> _handleCancelOrder() async {
+    final userProvider = Provider.of<UserProvider>(context, listen: false);
+    final couponProvider = Provider.of<CouponProvider>(context, listen: false);
+    final variantProvider = Provider.of<VariantProvider>(
+      context,
+      listen: false,
+    );
+
+    // Revert loyalty points if used
+    if (widget.order.loyaltyPointsUsed > 0) {
+      await userProvider.updateLoyaltyPoints(
+        pointsChange: widget.order.loyaltyPointsUsed,
+      );
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Returned ${widget.order.loyaltyPointsUsed} loyalty points to user account',
+          ),
+        ),
+      );
+    }
+
+    // Revert coupon usage if applied
+    if (widget.order.coupon != null) {
+      await couponProvider.updateCouponUsage(
+        widget.order.coupon!.code,
+        widget.order.id,
+        revert: true,
+      );
+    }
+
+    // Return inventory for product variants
+    for (final detail in widget.order.orderDetails) {
+      await variantProvider.updateVariantInventory(
+        productId: detail.productId,
+        variantId: detail.variantId,
+        quantityChange: detail.quantity,
+      );
+    }
+  }
+
+  Future<void> _handleDeliverOrder() async {
+    final productProvider = Provider.of<ProductProvider>(
+      context,
+      listen: false,
+    );
+
+    // Update sellCount for each product in the order
+    for (final detail in widget.order.orderDetails) {
+      await productProvider.incrementSellCount(
+        productId: detail.productId,
+        quantity: detail.quantity,
+      );
     }
   }
 

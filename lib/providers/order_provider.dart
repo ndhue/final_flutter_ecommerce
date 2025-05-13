@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:final_ecommerce/models/models_export.dart';
 import 'package:flutter/material.dart';
 
@@ -26,6 +27,32 @@ class OrderProvider with ChangeNotifier {
     _isLoading = false;
     _hasFetchedOrders = true;
     notifyListeners();
+  }
+
+  Future<List<OrderModel>> fetchAllOrders() async {
+    _isLoading = true;
+    notifyListeners();
+
+    try {
+      final snapshot =
+          await FirebaseFirestore.instance
+              .collection('orders')
+              .orderBy('createdAt', descending: true)
+              .get();
+
+      _orders =
+          snapshot.docs.map((doc) {
+            final data = doc.data();
+            data['id'] = doc.id;
+            return OrderModel.fromJson(data);
+          }).toList();
+
+      _hasFetchedOrders = true;
+      return _orders;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
   }
 
   Future<void> addOrder(OrderModel order) async {

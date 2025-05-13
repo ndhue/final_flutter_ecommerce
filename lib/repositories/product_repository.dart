@@ -131,7 +131,7 @@ class ProductRepository {
   Future<List<NewProduct>> fetchBestSellers({int limit = 10}) async {
     final snapshot =
         await _products
-            .orderBy('soldCount', descending: true)
+            .orderBy('salesCount', descending: true)
             .limit(limit)
             .get();
 
@@ -295,6 +295,29 @@ class ProductRepository {
     } catch (e) {
       debugPrint('Error fetching products by keyword: $e');
       return [];
+    }
+  }
+
+  // Increment product's salesCount when an order is delivered
+  Future<void> incrementProductSellCount({
+    required String productId,
+    int quantity = 1,
+  }) async {
+    try {
+      // Use a transaction to ensure data consistency
+      await _firestore.runTransaction((transaction) async {
+        final docRef = _products.doc(productId);
+        final snapshot = await transaction.get(docRef);
+
+        if (snapshot.exists) {
+          final currentSales =
+              (snapshot.data() as Map<String, dynamic>)['salesCount'] ?? 0;
+          transaction.update(docRef, {'salesCount': currentSales + quantity});
+        }
+      });
+    } catch (e) {
+      debugPrint('Error incrementing product sell count: $e');
+      rethrow;
     }
   }
 }
