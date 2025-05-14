@@ -47,11 +47,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
     });
 
     try {
-      // Recalculate fromDate relative to now each time
-      // DateTime now = DateTime.now();
-      // fromDate = now.subtract(const Duration(days: 30));
-      // fromDate = DateTime(fromDate!.year, fromDate!.month, fromDate!.day);
-
       final orders = await _fetchOrdersFromFirestore(fromDate!, toDate!);
       setState(() {
         filteredOrders = orders;
@@ -86,11 +81,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   ) async {
     try {
       final snapshot =
-          await FirebaseFirestore.instance
-              .collection('orders')
-              // .where('createdAt', isGreaterThanOrEqualTo: from) // Remove this line
-              // .where('createdAt', isLessThanOrEqualTo: to)    // Remove this line
-              .get();
+          await FirebaseFirestore.instance.collection('orders').get();
 
       return snapshot.docs
           .map((doc) {
@@ -242,7 +233,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
     if (isLoading) return const Center(child: CircularProgressIndicator());
     if (errorMessage.isNotEmpty) return Center(child: Text(errorMessage));
 
-    //final total = getTotalOrders();
     final pending = getPendingOrders();
     final confirmed = getConfirmedOrders();
     final revenue = calculateRevenue();
@@ -287,65 +277,238 @@ class _DashboardScreenState extends State<DashboardScreen> {
             )
             .toList();
 
+    // Check screen size
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isLargeScreen = screenWidth > 900;
+
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Dashboard'),
-        backgroundColor: Colors.white,
-        foregroundColor: Colors.black,
-        elevation: 0,
-      ),
       body: RefreshIndicator(
         onRefresh: _fetchOrders,
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(16),
+          padding: EdgeInsets.all(isLargeScreen ? 24 : 16),
+          child: Center(
+            child: ConstrainedBox(
+              constraints: BoxConstraints(
+                maxWidth: isLargeScreen ? 1200 : double.infinity,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Date filter controls
+                  _buildDateFilterControls(),
+                  SizedBox(height: isLargeScreen ? 24 : 16),
+
+                  // Statistics title
+                  Text(
+                    'Naturify shop data statistics',
+                    style: TextStyle(
+                      fontSize: isLargeScreen ? 20 : 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  SizedBox(height: isLargeScreen ? 24 : 16),
+
+                  // Statistics cards - use grid layout on larger screens
+                  isLargeScreen
+                      ? _buildStatsGridView(revenue, completed)
+                      : _buildStatsMobileView(revenue, completed),
+
+                  SizedBox(height: isLargeScreen ? 32 : 24),
+
+                  // Charts in columns for large screens
+                  if (filteredOrders.isEmpty)
+                    const Center(
+                      child: Padding(
+                        padding: EdgeInsets.all(40),
+                        child: Text(
+                          'No orders found in the selected date range',
+                          style: TextStyle(fontSize: 16),
+                        ),
+                      ),
+                    )
+                  else
+                    isLargeScreen
+                        ? _buildChartsRowLayout(
+                          pieSections,
+                          statusCounts,
+                          statusColor,
+                        )
+                        : _buildChartsMobileLayout(
+                          pieSections,
+                          statusCounts,
+                          statusColor,
+                        ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStatsGridView(double revenue, int completed) {
+    return GridView.count(
+      crossAxisCount: 4,
+      childAspectRatio: 1.7,
+      crossAxisSpacing: 16,
+      mainAxisSpacing: 16,
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      children: [
+        _buildStatCard('Total Orders', getTotalOrders()),
+        _buildStatCard('Completed', completed),
+        _buildStatCard('Revenue', revenue),
+        FutureBuilder<double>(
+          future: calculateProfit(),
+          builder: (context, snapshot) {
+            return _buildStatCard(
+              'Profit',
+              snapshot.data ?? 0,
+              isLoading: snapshot.connectionState == ConnectionState.waiting,
+            );
+          },
+        ),
+      ],
+    );
+  }
+
+  Widget _buildStatsMobileView(double revenue, int completed) {
+    return Wrap(
+      spacing: 12,
+      runSpacing: 12,
+      children: [
+        _buildStatCard('Total Orders', getTotalOrders()),
+        _buildStatCard('Completed', completed),
+        _buildStatCard('Revenue', revenue),
+        FutureBuilder<double>(
+          future: calculateProfit(),
+          builder: (context, snapshot) {
+            return _buildStatCard(
+              'Profit',
+              snapshot.data ?? 0,
+              isLoading: snapshot.connectionState == ConnectionState.waiting,
+            );
+          },
+        ),
+      ],
+    );
+  }
+
+  Widget _buildChartsRowLayout(
+    List<PieChartSectionData> pieSections,
+    Map<String, int> statusCounts,
+    Map<String, Color> statusColor,
+  ) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Pie chart on the left side
+        Expanded(
+          flex: 1,
+          child: SizedBox(
+            height: 400,
+            child: _buildPieChart(pieSections, statusCounts, statusColor),
+          ),
+        ),
+        const SizedBox(width: 24),
+        // Bar chart on the right side
+        Expanded(
+          flex: 1,
+          child: SizedBox(height: 400, child: _buildTopSellingBarChart()),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildChartsMobileLayout(
+    List<PieChartSectionData> pieSections,
+    Map<String, int> statusCounts,
+    Map<String, Color> statusColor,
+  ) {
+    return Column(
+      children: [
+        SizedBox(
+          height: 300,
+          child: _buildPieChart(pieSections, statusCounts, statusColor),
+        ),
+        const SizedBox(height: 24),
+        SizedBox(height: 300, child: _buildTopSellingBarChart()),
+      ],
+    );
+  }
+
+  Widget _buildDateFilterControls() {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isLargeScreen = screenWidth > 900;
+
+    return Container(
+      width: double.infinity,
+      margin: EdgeInsets.only(bottom: isLargeScreen ? 24 : 16),
+      child: Card(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        elevation: 2,
+        child: Padding(
+          padding: EdgeInsets.all(isLargeScreen ? 20 : 16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Date filter controls
-              _buildDateFilterControls(),
-              const SizedBox(height: 16),
-
-              // Statistics title
-              const Text(
-                'Naturify shop data statistics',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              Text(
+                'Date Range Filter',
+                style: TextStyle(
+                  fontSize: isLargeScreen ? 18 : 16,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
               const SizedBox(height: 16),
-
-              // Statistics cards
               Wrap(
-                spacing: 12,
-                runSpacing: 12,
+                spacing: 16,
+                runSpacing: 16,
+                alignment: WrapAlignment.spaceBetween,
+                crossAxisAlignment: WrapCrossAlignment.end,
                 children: [
-                  _buildStatCard('Total Orders', getTotalOrders()),
-                  _buildStatCard('Completed', getCompletedOrders()),
-                  _buildStatCard('Revenue', revenue),
-                  FutureBuilder<double>(
-                    future: calculateProfit(),
-                    builder: (context, snapshot) {
-                      return _buildStatCard(
-                        'Profit',
-                        snapshot.data ?? 0,
-                        isLoading:
-                            snapshot.connectionState == ConnectionState.waiting,
-                      );
-                    },
+                  _buildDatePicker('From:', fromDate!, (picked) {
+                    setState(() {
+                      fromDate = picked;
+                      // Ensure fromDate is not after toDate
+                      if (toDate != null && fromDate!.isAfter(toDate!)) {
+                        toDate = DateTime(
+                          picked.year,
+                          picked.month,
+                          picked.day,
+                          23,
+                          59,
+                          59,
+                        );
+                      }
+                    });
+                  }),
+                  _buildDatePicker('To:', toDate!, (picked) {
+                    setState(() {
+                      toDate = picked;
+                      // Ensure toDate is not before fromDate
+                      if (fromDate != null && toDate!.isBefore(fromDate!)) {
+                        fromDate = DateTime(
+                          picked.year,
+                          picked.month,
+                          picked.day,
+                        );
+                      }
+                    });
+                  }),
+                  ElevatedButton.icon(
+                    onPressed: _fetchOrders,
+                    style: ElevatedButton.styleFrom(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: isLargeScreen ? 24 : 16,
+                        vertical: isLargeScreen ? 16 : 12,
+                      ),
+                    ),
+                    icon: const Icon(Icons.filter_alt),
+                    label: const Text("Apply Filter"),
                   ),
                 ],
               ),
-              const SizedBox(height: 24),
-
-              // Charts
-              if (filteredOrders.isEmpty)
-                const Center(child: Text('No orders found'))
-              else ...[
-                SizedBox(
-                  height: 300,
-                  child: _buildPieChart(pieSections, statusCounts, statusColor),
-                ),
-                const SizedBox(height: 24),
-                SizedBox(height: 300, child: _buildTopSellingBarChart()),
-              ],
             ],
           ),
         ),
@@ -353,80 +516,38 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  Widget _buildDateFilterControls() {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      child: Row(
-        children: [
-          const Spacer(),
-          _buildDatePicker('From:', fromDate!, (picked) {
-            setState(() {
-              fromDate = picked;
-              // Ensure fromDate is not after toDate
-              if (toDate != null && fromDate!.isAfter(toDate!)) {
-                toDate = DateTime(
-                  picked.year,
-                  picked.month,
-                  picked.day,
-                  23,
-                  59,
-                  59,
-                );
-              }
-            });
-          }),
-          const SizedBox(width: 16),
-          _buildDatePicker('To:', toDate!, (picked) {
-            setState(() {
-              toDate = picked;
-              // Ensure toDate is not before fromDate
-              if (fromDate != null && toDate!.isBefore(fromDate!)) {
-                fromDate = DateTime(picked.year, picked.month, picked.day);
-              }
-            });
-          }),
-          const SizedBox(width: 16),
-          ElevatedButton(
-            onPressed: _fetchOrders,
-            style: ElevatedButton.styleFrom(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-            ),
-            child: const Text("Filter"),
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget _buildStatCard(String title, num value, {bool isLoading = false}) {
-    return Container(
-      width: 160,
-      child: Card(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        elevation: 2,
-        child: Padding(
-          padding: const EdgeInsets.all(12),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                title,
-                style: const TextStyle(fontSize: 12, color: Colors.grey),
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isLargeScreen = screenWidth > 900;
+
+    return Card(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      elevation: 2,
+      child: Padding(
+        padding: EdgeInsets.all(isLargeScreen ? 20 : 12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              title,
+              style: TextStyle(
+                fontSize: isLargeScreen ? 14 : 12,
+                color: Colors.grey,
               ),
-              const SizedBox(height: 4),
-              isLoading
-                  ? const Center(child: CircularProgressIndicator())
-                  : Text(
-                    (title == 'Revenue' || title == 'Profit')
-                        ? _formatCurrency(value)
-                        : value.toString(),
-                    style: const TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                    ),
+            ),
+            const SizedBox(height: 8),
+            isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : Text(
+                  (title == 'Revenue' || title == 'Profit')
+                      ? _formatCurrency(value)
+                      : value.toString(),
+                  style: TextStyle(
+                    fontSize: isLargeScreen ? 24 : 20,
+                    fontWeight: FontWeight.bold,
                   ),
-            ],
-          ),
+                ),
+          ],
         ),
       ),
     );
@@ -436,9 +557,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
     Map<String, int> statusCounts,
     Map<String, Color> statusColor,
   ) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isLargeScreen = screenWidth > 900;
+
     return Wrap(
-      spacing: 8,
-      runSpacing: 8,
+      spacing: isLargeScreen ? 16 : 8,
+      runSpacing: isLargeScreen ? 12 : 8,
       alignment: WrapAlignment.center,
       children:
           statusCounts.entries
@@ -448,14 +572,19 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Container(
-                      width: 12,
-                      height: 12,
-                      color: statusColor[entry.key],
+                      width: isLargeScreen ? 16 : 12,
+                      height: isLargeScreen ? 16 : 12,
+                      decoration: BoxDecoration(
+                        color: statusColor[entry.key],
+                        borderRadius: BorderRadius.circular(
+                          isLargeScreen ? 4 : 2,
+                        ),
+                      ),
                     ),
-                    const SizedBox(width: 4),
+                    SizedBox(width: isLargeScreen ? 8 : 4),
                     Text(
                       '${entry.key} (${entry.value})',
-                      style: const TextStyle(fontSize: 12),
+                      style: TextStyle(fontSize: isLargeScreen ? 14 : 12),
                     ),
                   ],
                 ),
@@ -645,17 +774,34 @@ class _DashboardScreenState extends State<DashboardScreen> {
     DateTime initial,
     Function(DateTime) onPicked,
   ) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isLargeScreen = screenWidth > 900;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: const TextStyle(fontSize: 12)),
-        ElevatedButton(
+        Text(label, style: TextStyle(fontSize: isLargeScreen ? 14 : 12)),
+        const SizedBox(height: 4),
+        OutlinedButton.icon(
+          icon: const Icon(Icons.calendar_today, size: 16),
           onPressed: () async {
             final DateTime? picked = await showDatePicker(
               context: context,
               initialDate: initial,
               firstDate: DateTime(2020),
               lastDate: DateTime.now(),
+              builder: (context, child) {
+                return Theme(
+                  data: Theme.of(context).copyWith(
+                    dialogBackgroundColor: Colors.white,
+                    colorScheme: const ColorScheme.light(
+                      primary: Colors.blue,
+                      onPrimary: Colors.white,
+                    ),
+                  ),
+                  child: child!,
+                );
+              },
             );
             if (picked != null) {
               DateTime adjustedDate;
@@ -676,7 +822,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
               onPicked(adjustedDate);
             }
           },
-          child: Text(DateFormat('dd/MM/yyyy').format(initial)),
+          style: OutlinedButton.styleFrom(
+            padding: EdgeInsets.symmetric(
+              horizontal: isLargeScreen ? 16 : 12,
+              vertical: isLargeScreen ? 12 : 8,
+            ),
+          ),
+          label: Text(DateFormat('dd/MM/yyyy').format(initial)),
         ),
       ],
     );

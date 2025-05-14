@@ -37,6 +37,7 @@ class ProductProvider with ChangeNotifier {
     int? minPrice,
     int? maxPrice,
     bool isInitial = false,
+    bool includeInactive = false, // Add this parameter
   }) async {
     if ((_isLoading || !_hasMore) && !isInitial) return;
 
@@ -59,6 +60,7 @@ class ProductProvider with ChangeNotifier {
         categories: category,
         minPrice: minPrice,
         maxPrice: maxPrice,
+        includeInactive: includeInactive, // Pass the parameter
       );
 
       if (result.length < 10) {
@@ -85,31 +87,58 @@ class ProductProvider with ChangeNotifier {
   }
 
   // New Products - Cache logic
-  Future<List<NewProduct>> getNewProducts() async {
+  Future<List<NewProduct>> getNewProducts({
+    bool includeInactive = false,
+  }) async {
     if (_newProducts.isNotEmpty) {
+      // If we have cached products and don't need inactive ones, filter them
+      if (!includeInactive) {
+        return _newProducts.where((product) => product.activated).toList();
+      }
       return _newProducts;
     }
-    _newProducts = await _repository.fetchNewProducts(limit: 10);
+    _newProducts = await _repository.fetchNewProducts(
+      limit: 10,
+      includeInactive: includeInactive,
+    );
     return _newProducts;
   }
 
   // Promotional Products - Cache logic
-  Future<List<NewProduct>> getPromotionalProducts() async {
+  Future<List<NewProduct>> getPromotionalProducts({
+    bool includeInactive = false,
+  }) async {
     if (_promotionalProducts.isNotEmpty) {
+      // If we have cached products and don't need inactive ones, filter them
+      if (!includeInactive) {
+        return _promotionalProducts
+            .where((product) => product.activated)
+            .toList();
+      }
       return _promotionalProducts;
     }
     _promotionalProducts = await _repository.fetchPromotionalProducts(
       limit: 10,
+      includeInactive: includeInactive,
     );
     return _promotionalProducts;
   }
 
   // Best Sellers - Cache logic
-  Future<List<NewProduct>> getBestSellers() async {
+  Future<List<NewProduct>> getBestSellers({
+    bool includeInactive = false,
+  }) async {
     if (_bestSellers.isNotEmpty) {
+      // If we have cached products and don't need inactive ones, filter them
+      if (!includeInactive) {
+        return _bestSellers.where((product) => product.activated).toList();
+      }
       return _bestSellers;
     }
-    _bestSellers = await _repository.fetchBestSellers(limit: 10);
+    _bestSellers = await _repository.fetchBestSellers(
+      limit: 10,
+      includeInactive: includeInactive,
+    );
     return _bestSellers;
   }
 
@@ -132,6 +161,7 @@ class ProductProvider with ChangeNotifier {
   Future<void> fetchProductsByCategory({
     required String category,
     bool isInitial = false,
+    bool includeInactive = false, // Add this parameter
   }) async {
     if (_isLoading) return;
 
@@ -149,6 +179,7 @@ class ProductProvider with ChangeNotifier {
         category: category,
         lastDocument: _lastDocument,
         limit: 10,
+        includeInactive: includeInactive, // Pass the parameter
       );
 
       if (result.length < 10) {
@@ -170,6 +201,7 @@ class ProductProvider with ChangeNotifier {
     String orderBy = 'name',
     bool descending = false,
     bool isInitial = false,
+    bool includeInactive = false, // Add this parameter
   }) async {
     if (_isLoading) return;
 
@@ -189,6 +221,7 @@ class ProductProvider with ChangeNotifier {
         limit: 10,
         orderBy: orderBy,
         descending: descending,
+        includeInactive: includeInactive, // Pass the parameter
       );
 
       if (result.length < 10) {

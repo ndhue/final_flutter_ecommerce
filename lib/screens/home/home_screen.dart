@@ -100,7 +100,6 @@ class _HomeScreenState extends State<HomeScreen> {
                       SizedBox(height: verticalPadding),
                       buildSlider("Promotional"),
                       SizedBox(height: verticalPadding),
-
                       buildSlider("New Products"),
                     ],
                   ),

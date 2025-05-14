@@ -40,4 +40,23 @@ class Chat {
       'unreadCount': unreadCount,
     };
   }
+
+  // Add copyWith method to create a new Chat instance with some properties updated
+  Chat copyWith({
+    String? id,
+    String? userId,
+    String? userName,
+    String? lastMessage,
+    DateTime? lastMessageTimestamp,
+    int? unreadCount,
+  }) {
+    return Chat(
+      id: id ?? this.id,
+      userId: userId ?? this.userId,
+      userName: userName ?? this.userName,
+      lastMessage: lastMessage ?? this.lastMessage,
+      lastMessageTimestamp: lastMessageTimestamp ?? this.lastMessageTimestamp,
+      unreadCount: unreadCount ?? this.unreadCount,
+    );
+  }
 }

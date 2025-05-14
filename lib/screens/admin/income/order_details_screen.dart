@@ -31,7 +31,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
     super.initState();
     _currentStatus =
         widget.order.statusHistory.isNotEmpty
-            ? widget.order.statusHistory.last.status
+            ? widget.order.statusHistory.first.status
             : 'Pending';
   }
 

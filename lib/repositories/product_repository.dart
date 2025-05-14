@@ -22,8 +22,15 @@ class ProductRepository {
     List<String>? categories,
     int? minPrice,
     int? maxPrice,
+    bool includeInactive =
+        false, // New parameter to optionally include inactive products
   }) async {
     Query query = _products;
+
+    // Filter out inactive products by default
+    if (!includeInactive) {
+      query = query.where('activated', isEqualTo: true);
+    }
 
     // Filter brands
     if (brands != null && brands.isNotEmpty) {
@@ -51,7 +58,7 @@ class ProductRepository {
 
       // Nếu có Best Sellers, orderBy soldCount
       if (hasBestSellers) {
-        query = query.orderBy('soldCount', descending: true);
+        query = query.orderBy('salesCount', descending: true);
       }
 
       // Nếu có Promotional, filter discount > 0
@@ -96,12 +103,13 @@ class ProductRepository {
   }
 
   // Fetch New Products (sorted by createdAt)
-  Future<List<NewProduct>> fetchNewProducts({int limit = 10}) async {
-    final snapshot =
-        await _products
-            .orderBy('createdAt', descending: true)
-            .limit(limit)
-            .get();
+  Future<List<NewProduct>> fetchNewProducts({
+    int limit = 10,
+    bool includeInactive = false,
+  }) async {
+    Query query = _products.orderBy('createdAt', descending: true);
+
+    final snapshot = await query.limit(limit).get();
 
     return snapshot.docs.map((doc) => NewProduct.fromMap(doc)).toList();
   }
@@ -116,24 +124,27 @@ class ProductRepository {
   }
 
   // Fetch Promotional Products (has discount)
-  Future<List<NewProduct>> fetchPromotionalProducts({int limit = 10}) async {
-    final snapshot =
-        await _products
-            .where('discount', isGreaterThan: 0)
-            .orderBy('discount', descending: true)
-            .limit(limit)
-            .get();
+  Future<List<NewProduct>> fetchPromotionalProducts({
+    int limit = 10,
+    bool includeInactive = false,
+  }) async {
+    Query query = _products
+        .where('discount', isGreaterThan: 0)
+        .orderBy('discount', descending: true);
+
+    final snapshot = await query.limit(limit).get();
 
     return snapshot.docs.map((doc) => NewProduct.fromMap(doc)).toList();
   }
 
   // Fetch Best Seller Products (sorted by soldCount)
-  Future<List<NewProduct>> fetchBestSellers({int limit = 10}) async {
-    final snapshot =
-        await _products
-            .orderBy('salesCount', descending: true)
-            .limit(limit)
-            .get();
+  Future<List<NewProduct>> fetchBestSellers({
+    int limit = 10,
+    bool includeInactive = false,
+  }) async {
+    Query query = _products.orderBy('salesCount', descending: true);
+
+    final snapshot = await query.limit(limit).get();
 
     return snapshot.docs.map((doc) => NewProduct.fromMap(doc)).toList();
   }
@@ -142,16 +153,22 @@ class ProductRepository {
     required String category,
     DocumentSnapshot? lastDocument,
     int limit = 10,
+    bool includeInactive = false,
   }) async {
     try {
       Query query = _products;
+
+      // Filter out inactive products by default
+      if (!includeInactive) {
+        query = query.where('activated', isEqualTo: true);
+      }
 
       switch (category) {
         case 'All':
           // No filter
           break;
         case 'Best Sellers':
-          query = query.orderBy('soldCount', descending: true);
+          query = query.orderBy('salesCount', descending: true);
           break;
         case 'Promotional':
           query = query
@@ -277,8 +294,13 @@ class ProductRepository {
     int limit = 10,
     String orderBy = 'name',
     bool descending = false,
+    bool includeInactive = false,
   }) async {
     try {
+      // For keyword search, we need a different approach because of the compound query limitation
+      // Firestore doesn't allow inequality filters on different fields in a compound query
+
+      // First get all products matching the name pattern
       Query query = _products
           .orderBy('name', descending: descending)
           .where('name', isGreaterThanOrEqualTo: keyword)
@@ -288,10 +310,25 @@ class ProductRepository {
         query = query.startAfterDocument(lastDocument);
       }
 
-      final snapshot = await query.limit(limit).get();
-      return snapshot.docs
-          .map((doc) => NewProduct.fromMap(doc.data() as Map<String, dynamic>))
-          .toList();
+      final snapshot =
+          await query
+              .limit(includeInactive ? limit : limit * 2)
+              .get(); // Fetch more to account for filtering
+
+      // Then filter out inactive products in the application
+      List<NewProduct> products =
+          snapshot.docs
+              .map(
+                (doc) => NewProduct.fromMap(doc.data() as Map<String, dynamic>),
+              )
+              .toList();
+
+      if (!includeInactive) {
+        products = products.where((product) => product.activated).toList();
+      }
+
+      // Limit the results after filtering
+      return products.take(limit).toList();
     } catch (e) {
       debugPrint('Error fetching products by keyword: $e');
       return [];

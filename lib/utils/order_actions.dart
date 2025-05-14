@@ -62,7 +62,7 @@ Future<void> handleCancelOrder(BuildContext context, OrderModel order) async {
     }
 
     // Create and insert the new status at the beginning of the array
-    final newStatus = StatusHistory(status: 'Canceled', time: DateTime.now());
+    final newStatus = StatusHistory(status: 'Cancelled', time: DateTime.now());
     order.statusHistory.insert(0, newStatus);
     await orderProvider.updateOrderStatusLocally(order.id, newStatus);
 

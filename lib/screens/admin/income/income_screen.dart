@@ -81,7 +81,7 @@ class _OrderManagerScreenState extends State<OrderManagerScreen> {
         .where(
           (order) =>
               order.statusHistory.isNotEmpty &&
-              order.statusHistory.first.status == 'Delivered',
+              order.statusHistory.first.status == 'Completed',
         )
         .length;
   }

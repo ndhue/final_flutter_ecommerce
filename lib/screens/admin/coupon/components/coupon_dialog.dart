@@ -147,6 +147,8 @@ class _CouponDialogState extends State<CouponDialog> {
                   }
                   if (int.tryParse(value) == null) {
                     return 'Enter a valid number';
+                  } if (int.parse(value) <= 0) {
+                    return 'Max Uses must be greater than 0';
                   }
                   return null;
                 },

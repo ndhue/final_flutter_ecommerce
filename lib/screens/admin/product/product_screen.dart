@@ -43,7 +43,7 @@ class _AdminProductScreenState extends State<AdminProductScreen> {
 
     try {
       productProvider.resetPagination();
-      await productProvider.fetchProducts(isInitial: true);
+      await productProvider.fetchProducts(isInitial: true, includeInactive: true);
 
       if (mounted) {
         _loadVariantCounts(productProvider.products);
@@ -244,8 +244,22 @@ class _AdminProductScreenState extends State<AdminProductScreen> {
     }
   }
 
+  // Check if the screen is large
+  bool _isLargeScreen(BuildContext context) {
+    return MediaQuery.of(context).size.width > 1200;
+  }
+
+  // Check if the screen is medium
+  bool _isMediumScreen(BuildContext context) {
+    final width = MediaQuery.of(context).size.width;
+    return width > 800 && width <= 1200;
+  }
+
   @override
   Widget build(BuildContext context) {
+    final bool isLargeScreen = _isLargeScreen(context);
+    final bool isMediumScreen = _isMediumScreen(context);
+
     return Scaffold(
       appBar: AppBar(
         title: const Text(
@@ -348,6 +362,7 @@ class _AdminProductScreenState extends State<AdminProductScreen> {
                                       value: getTotalProducts(products),
                                       icon: Icons.inventory,
                                       color: Colors.blueAccent,
+                                      isLargeScreen: isLargeScreen,
                                     ),
                                     const SizedBox(width: 12),
                                     _buildStatCard(
@@ -356,6 +371,7 @@ class _AdminProductScreenState extends State<AdminProductScreen> {
                                       value: getInStockProducts(products),
                                       icon: Icons.check_circle,
                                       color: Colors.green,
+                                      isLargeScreen: isLargeScreen,
                                     ),
                                     const SizedBox(width: 12),
                                     _buildStatCard(
@@ -364,6 +380,7 @@ class _AdminProductScreenState extends State<AdminProductScreen> {
                                       value: getActiveProducts(products),
                                       icon: Icons.toggle_on,
                                       color: Colors.orange,
+                                      isLargeScreen: isLargeScreen,
                                     ),
                                   ],
                                 ),
@@ -380,15 +397,33 @@ class _AdminProductScreenState extends State<AdminProductScreen> {
                                       crossAxisAlignment:
                                           CrossAxisAlignment.start,
                                       children: [
-                                        const Text(
-                                          'Product List',
-                                          style: TextStyle(
-                                            fontSize: 18,
-                                            fontWeight: FontWeight.bold,
-                                          ),
+                                        Row(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.spaceBetween,
+                                          children: [
+                                            const Text(
+                                              'Product List',
+                                              style: TextStyle(
+                                                fontSize: 18,
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            ),
+                                            if (isLargeScreen || isMediumScreen)
+                                              ElevatedButton.icon(
+                                                onPressed:
+                                                    _navigateToAddProduct,
+                                                icon: const Icon(Icons.add),
+                                                label: const Text(
+                                                  'Add New Product',
+                                                ),
+                                              ),
+                                          ],
                                         ),
                                         const SizedBox(height: 16),
-                                        _buildProductTable(products),
+                                        _buildProductTable(
+                                          products,
+                                          isLargeScreen,
+                                        ),
                                       ],
                                     ),
                                   ),
@@ -424,7 +459,7 @@ class _AdminProductScreenState extends State<AdminProductScreen> {
     );
   }
 
-  Widget _buildProductTable(List<NewProduct> products) {
+  Widget _buildProductTable(List<NewProduct> products, bool isLargeScreen) {
     return LayoutBuilder(
       builder: (context, constraints) {
         return SingleChildScrollView(
@@ -435,52 +470,59 @@ class _AdminProductScreenState extends State<AdminProductScreen> {
               dividerThickness: 1,
               dataRowMinHeight: 60,
               dataRowMaxHeight: 120,
-              columnSpacing: 24,
+              columnSpacing: isLargeScreen ? 40 : 24,
               headingRowHeight: 50,
               headingRowColor: WidgetStateProperty.resolveWith(
                 (states) => Colors.grey[50],
               ),
-              columns: const [
-                DataColumn(
+              columns: [
+                const DataColumn(
                   label: Text(
                     'Product',
                     style: TextStyle(fontWeight: FontWeight.bold),
                   ),
                 ),
-                DataColumn(
+                const DataColumn(
                   label: Text(
                     'Category',
                     style: TextStyle(fontWeight: FontWeight.bold),
                   ),
                 ),
-                DataColumn(
+                const DataColumn(
                   label: Text(
                     'Cost price',
                     style: TextStyle(fontWeight: FontWeight.bold),
                   ),
                   numeric: true,
                 ),
-                DataColumn(
+                const DataColumn(
                   label: Text(
                     'Selling price',
                     style: TextStyle(fontWeight: FontWeight.bold),
                   ),
                   numeric: true,
                 ),
-                DataColumn(
+                const DataColumn(
                   label: Text(
                     'Variant Count',
                     style: TextStyle(fontWeight: FontWeight.bold),
                   ),
                   numeric: true,
                 ),
-                DataColumn(
+                if (isLargeScreen)
+                  const DataColumn(
+                    label: Text(
+                      'Created Date',
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                const DataColumn(
                   label: Text(
                     'Status',
                     style: TextStyle(fontWeight: FontWeight.bold),
                   ),
                 ),
-                DataColumn(
+                const DataColumn(
                   label: Text(
                     'Actions',
                     style: TextStyle(fontWeight: FontWeight.bold),
@@ -514,7 +556,7 @@ class _AdminProductScreenState extends State<AdminProductScreen> {
                           ),
                           const SizedBox(width: 12),
                           SizedBox(
-                            width: 150,
+                            width: isLargeScreen ? 250 : 150,
                             child: Text(
                               product.name,
                               overflow: TextOverflow.ellipsis,
@@ -529,7 +571,13 @@ class _AdminProductScreenState extends State<AdminProductScreen> {
                       onTap: () => _viewProductDetails(product),
                     ),
                     DataCell(
-                      Text(product.category, overflow: TextOverflow.ellipsis),
+                      SizedBox(
+                        width: isLargeScreen ? 150 : 100,
+                        child: Text(
+                          product.category,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
                     ),
                     DataCell(
                       Text(FormatHelper.formatCurrency(product.costPrice)),
@@ -552,6 +600,14 @@ class _AdminProductScreenState extends State<AdminProductScreen> {
                             ),
                           ),
                     ),
+                    if (isLargeScreen)
+                      DataCell(
+                        Text(
+                          FormatHelper.formatDateTime(
+                            product.createdAt.toDate(),
+                          ),
+                        ),
+                      ),
                     DataCell(
                       // Using a stateful builder to avoid calling setState during build
                       StatefulBuilder(
@@ -571,12 +627,18 @@ class _AdminProductScreenState extends State<AdminProductScreen> {
                       Row(
                         children: [
                           IconButton(
-                            icon: const Icon(Icons.visibility, size: 20),
+                            icon: Icon(
+                              Icons.visibility,
+                              size: isLargeScreen ? 24 : 20,
+                            ),
                             onPressed: () => _viewProductDetails(product),
                             color: Colors.blue,
                           ),
                           IconButton(
-                            icon: const Icon(Icons.delete, size: 20),
+                            icon: Icon(
+                              Icons.delete,
+                              size: isLargeScreen ? 24 : 20,
+                            ),
                             onPressed: () => _deleteProduct(product),
                             color: Colors.red,
                           ),
@@ -599,6 +661,7 @@ class _AdminProductScreenState extends State<AdminProductScreen> {
     required int total,
     required IconData icon,
     required Color color,
+    bool isLargeScreen = false,
   }) {
     double percentage = total == 0 ? 0 : (value / total) * 100;
 
@@ -607,7 +670,7 @@ class _AdminProductScreenState extends State<AdminProductScreen> {
         elevation: 2,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
         child: Padding(
-          padding: const EdgeInsets.all(16.0),
+          padding: EdgeInsets.all(isLargeScreen ? 24.0 : 16.0),
           child: LayoutBuilder(
             builder: (context, constraints) {
               bool isSmallScreen = constraints.maxWidth < 300;
@@ -624,14 +687,20 @@ class _AdminProductScreenState extends State<AdminProductScreen> {
                             Icon(
                               icon,
                               color: color,
-                              size: isSmallScreen ? 16 : 20,
+                              size:
+                                  isLargeScreen
+                                      ? 28
+                                      : (isSmallScreen ? 16 : 20),
                             ),
-                            const SizedBox(width: 8),
+                            SizedBox(width: isLargeScreen ? 12 : 8),
                             Flexible(
                               child: Text(
                                 title,
                                 style: TextStyle(
-                                  fontSize: isSmallScreen ? 12 : 14,
+                                  fontSize:
+                                      isLargeScreen
+                                          ? 18
+                                          : (isSmallScreen ? 12 : 14),
                                   overflow: TextOverflow.ellipsis,
                                 ),
                               ),
@@ -642,16 +711,17 @@ class _AdminProductScreenState extends State<AdminProductScreen> {
                       Text(
                         value.toString(),
                         style: TextStyle(
-                          fontSize: isSmallScreen ? 18 : 24,
+                          fontSize:
+                              isLargeScreen ? 32 : (isSmallScreen ? 18 : 24),
                           fontWeight: FontWeight.bold,
                           color: color,
                         ),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 16),
+                  SizedBox(height: isLargeScreen ? 24 : 16),
                   SizedBox(
-                    height: isSmallScreen ? 50 : 60,
+                    height: isLargeScreen ? 80 : (isSmallScreen ? 50 : 60),
                     child: PieChart(
                       PieChartData(
                         sections: [
@@ -659,9 +729,13 @@ class _AdminProductScreenState extends State<AdminProductScreen> {
                             value: percentage,
                             color: color,
                             title: '${percentage.toStringAsFixed(1)}%',
-                            radius: isSmallScreen ? 15 : 20,
+                            radius:
+                                isLargeScreen ? 30 : (isSmallScreen ? 15 : 20),
                             titleStyle: TextStyle(
-                              fontSize: isSmallScreen ? 10 : 12,
+                              fontSize:
+                                  isLargeScreen
+                                      ? 16
+                                      : (isSmallScreen ? 10 : 12),
                               fontWeight: FontWeight.bold,
                               color: Colors.white,
                             ),
@@ -669,16 +743,44 @@ class _AdminProductScreenState extends State<AdminProductScreen> {
                           PieChartSectionData(
                             value: 100 - percentage,
                             color: color.withOpacity(0.1),
-                            radius: isSmallScreen ? 15 : 20,
+                            radius:
+                                isLargeScreen ? 30 : (isSmallScreen ? 15 : 20),
                             showTitle: false,
                           ),
                         ],
                         sectionsSpace: 0,
-                        centerSpaceRadius: isSmallScreen ? 10 : 12,
+                        centerSpaceRadius:
+                            isLargeScreen ? 20 : (isSmallScreen ? 10 : 12),
                         startDegreeOffset: -90,
                       ),
                     ),
                   ),
+                  if (isLargeScreen)
+                    Container(
+                      margin: const EdgeInsets.only(top: 16),
+                      height: 6,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(3),
+                        color: Colors.grey.shade200,
+                      ),
+                      child: Row(
+                        children: [
+                          Flexible(
+                            flex: percentage.round(),
+                            child: Container(
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(3),
+                                color: color,
+                              ),
+                            ),
+                          ),
+                          Flexible(
+                            flex: (100 - percentage).round(),
+                            child: Container(),
+                          ),
+                        ],
+                      ),
+                    ),
                 ],
               );
             },
