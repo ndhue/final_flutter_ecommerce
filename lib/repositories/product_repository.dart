@@ -16,19 +16,20 @@ class ProductRepository {
   Future<List<NewProduct>> fetchProducts({
     DocumentSnapshot? lastDocument,
     int limit = 10,
-    String orderBy = 'sellingPrice', // default để dùng pagination an toàn
+    String orderBy = 'sellingPrice',
     bool descending = false,
     List<String>? brands,
     List<String>? categories,
     int? minPrice,
     int? maxPrice,
-    bool includeInactive =
-        false, // New parameter to optionally include inactive products
+    bool includeInactive = false,
+    bool? activationStatus,
   }) async {
     Query query = _products;
 
-    // Filter out inactive products by default
-    if (!includeInactive) {
+    if (activationStatus != null) {
+      query = query.where('activated', isEqualTo: activationStatus);
+    } else if (!includeInactive) {
       query = query.where('activated', isEqualTo: true);
     }
 
@@ -51,22 +52,18 @@ class ProductRepository {
       bool hasPromotional = categories.contains('Promotional');
       bool hasNewProducts = categories.contains('New Products');
 
-      // Nếu có category thường, filter theo category
       if (normalCategories.isNotEmpty) {
         query = query.where('category', whereIn: normalCategories);
       }
 
-      // Nếu có Best Sellers, orderBy soldCount
       if (hasBestSellers) {
         query = query.orderBy('salesCount', descending: true);
       }
 
-      // Nếu có Promotional, filter discount > 0
       if (hasPromotional) {
         query = query.where('discount', isGreaterThan: 0);
       }
 
-      // Nếu có New Products, orderBy createdAt
       if (hasNewProducts) {
         query = query.orderBy('createdAt', descending: true);
       }
@@ -264,7 +261,7 @@ class ProductRepository {
           .map(
             (doc) => ProductReview.fromMap(
               doc.data() as Map<String, dynamic>,
-              snapshot: doc, // Pass the DocumentSnapshot
+              snapshot: doc, 
             ),
           )
           .toList();

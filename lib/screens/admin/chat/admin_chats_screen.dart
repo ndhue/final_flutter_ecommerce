@@ -1,8 +1,9 @@
-import 'package:final_ecommerce/models/user_model.dart';
+import 'dart:async';
+
+import 'package:final_ecommerce/models/models_export.dart';
 import 'package:final_ecommerce/providers/chat_provider.dart';
 import 'package:final_ecommerce/providers/user_provider.dart';
 import 'package:final_ecommerce/routes/route_constants.dart';
-import 'package:final_ecommerce/screens/chat/chat_screen.dart';
 import 'package:final_ecommerce/utils/constants.dart';
 import 'package:final_ecommerce/widgets/skeletons.dart';
 import 'package:flutter/material.dart';
@@ -17,15 +18,13 @@ class AdminChatsScreen extends StatefulWidget {
 }
 
 class _AdminChatsScreenState extends State<AdminChatsScreen> {
-  String _selectedUserId = '';
   String _searchQuery = '';
   final TextEditingController _searchController = TextEditingController();
   final TextEditingController _messageController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
-  Map<String, UserModel?> _userCache = {}; // Cache for user data
-  Map<String, int> _unreadCountCache = {}; // Cache for unread counts
+  Map<String, UserModel?> _userCache = {};
   bool _initialLoadDone = false;
-  final Set<String> _chatInitializedForUser = {};
+  StreamSubscription? _chatSubscription;
 
   bool _isLargeScreen(BuildContext context) {
     return MediaQuery.of(context).size.width > 1200;
@@ -39,14 +38,24 @@ class _AdminChatsScreenState extends State<AdminChatsScreen> {
   @override
   void initState() {
     super.initState();
-    final chatProvider = context.read<ChatProvider>();
+    context.read<ChatProvider>();
 
     if (!_initialLoadDone) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        chatProvider.fetchChats();
+        _subscribeToChatUpdates();
         _initialLoadDone = true;
       });
     }
+  }
+
+  void _subscribeToChatUpdates() {
+    final chatProvider = context.read<ChatProvider>();
+    _chatSubscription = chatProvider.listenToChats().listen(
+      (chats) {},
+      onError: (error) {
+        debugPrint("Error listening to chats: $error");
+      },
+    );
   }
 
   String _formatTimestamp(DateTime timestamp) {
@@ -67,33 +76,13 @@ class _AdminChatsScreenState extends State<AdminChatsScreen> {
     final chatProvider = Provider.of<ChatProvider>(context, listen: false);
     chatProvider.markChatAsRead(userId);
 
-    if (_isLargeScreen(context)) {
-      setState(() {
-        _selectedUserId = userId;
-      });
-    } else {
-      Navigator.pushNamed(
-        context,
-        adminSingleChat,
-        arguments: {"userId": userId},
-      );
-    }
-  }
-
-  void _sendMessage() {
-    final chatProvider = context.read<ChatProvider>();
-    final userProvider = context.read<UserProvider>();
-    final message = _messageController.text.trim();
-
-    if (message.isNotEmpty && _selectedUserId.isNotEmpty) {
-      chatProvider.sendMessage(
-        _selectedUserId,
-        userProvider.user!.id,
-        userProvider.user!.fullName,
-        message,
-      );
-      _messageController.clear();
-    }
+    Navigator.pushNamed(
+      context,
+      adminSingleChat,
+      arguments: {"userId": userId},
+    ).then((_) {
+      chatProvider.fetchChats();
+    });
   }
 
   Future<UserModel?> _getCachedUserById(String userId) async {
@@ -105,19 +94,6 @@ class _AdminChatsScreenState extends State<AdminChatsScreen> {
     final user = await userProvider.getUserById(userId);
     _userCache[userId] = user;
     return user;
-  }
-
-  int _getCachedUnreadCount(ChatProvider chatProvider, String userId) {
-    if (!_unreadCountCache.containsKey(userId)) {
-      _unreadCountCache[userId] = 0;
-
-      WidgetsBinding.instance.addPostFrameCallback((_) async {
-        await chatProvider.fetchUnreadMessagesCount(userId);
-        _unreadCountCache[userId] = chatProvider.unreadMessages;
-        if (mounted) setState(() {});
-      });
-    }
-    return _unreadCountCache[userId] ?? 0;
   }
 
   @override
@@ -138,11 +114,9 @@ class _AdminChatsScreenState extends State<AdminChatsScreen> {
           IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: () {
-              final chatProvider = Provider.of<ChatProvider>(
-                context,
-                listen: false,
-              );
-              chatProvider.fetchChats();
+              Provider.of<ChatProvider>(context, listen: false);
+              _chatSubscription?.cancel();
+              _subscribeToChatUpdates();
             },
             tooltip: "Refresh chats",
           ),
@@ -198,6 +172,7 @@ class _AdminChatsScreenState extends State<AdminChatsScreen> {
             if (isLargeScreen) {
               return Row(
                 children: [
+                  // Chat list panel (left)
                   Expanded(
                     flex: 2,
                     child: Column(
@@ -206,7 +181,6 @@ class _AdminChatsScreenState extends State<AdminChatsScreen> {
                         Expanded(
                           child: _buildChatList(
                             filteredChats,
-                            chatProvider,
                             user,
                             isLargeScreen,
                           ),
@@ -214,6 +188,7 @@ class _AdminChatsScreenState extends State<AdminChatsScreen> {
                       ],
                     ),
                   ),
+                  // Dashboard info panel (right)
                   Expanded(
                     flex: 3,
                     child: Container(
@@ -222,10 +197,7 @@ class _AdminChatsScreenState extends State<AdminChatsScreen> {
                           left: BorderSide(color: borderColor, width: 0.5),
                         ),
                       ),
-                      child:
-                          _selectedUserId.isEmpty
-                              ? _buildEmptyChatPanel()
-                              : _buildChatDetailPanel(_selectedUserId),
+                      child: _buildDashboardInfoPanel(),
                     ),
                   ),
                 ],
@@ -235,12 +207,7 @@ class _AdminChatsScreenState extends State<AdminChatsScreen> {
                 children: [
                   _buildSearchBar(),
                   Expanded(
-                    child: _buildChatList(
-                      filteredChats,
-                      chatProvider,
-                      user,
-                      isMediumScreen,
-                    ),
+                    child: _buildChatList(filteredChats, user, isMediumScreen),
                   ),
                 ],
               );
@@ -248,14 +215,7 @@ class _AdminChatsScreenState extends State<AdminChatsScreen> {
               return Column(
                 children: [
                   _buildSearchBar(),
-                  Expanded(
-                    child: _buildChatList(
-                      filteredChats,
-                      chatProvider,
-                      user,
-                      false,
-                    ),
-                  ),
+                  Expanded(child: _buildChatList(filteredChats, user, false)),
                 ],
               );
             }
@@ -355,170 +315,235 @@ class _AdminChatsScreenState extends State<AdminChatsScreen> {
     );
   }
 
-  Widget _buildEmptyChatPanel() {
-    return Center(
+  Widget _buildDashboardInfoPanel() {
+    return Container(
+      padding: const EdgeInsets.all(24),
+      color: Colors.grey.shade50,
       child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(Icons.chat_bubble_outlined, size: 80, color: Colors.grey[400]),
-          const SizedBox(height: 16),
           const Text(
-            "Select a conversation",
-            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            "Customer Support Dashboard",
+            style: TextStyle(
+              fontSize: 22,
+              fontWeight: FontWeight.bold,
+              color: primaryColor,
+            ),
           ),
-          const SizedBox(height: 8),
-          Text(
-            "Choose a chat from the list to start messaging",
-            style: TextStyle(fontSize: 16, color: Colors.grey[600]),
+          const SizedBox(height: 24),
+
+          // Quick Stats Card
+          Card(
+            elevation: 2,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    "Quick Stats",
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+                  ),
+                  const SizedBox(height: 16),
+                  Consumer<ChatProvider>(
+                    builder: (context, chatProvider, _) {
+                      return Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceAround,
+                        children: [
+                          _buildStatItem(
+                            Icons.chat,
+                            chatProvider.chats.length.toString(),
+                            "Active Chats",
+                          ),
+                          _buildStatItem(
+                            Icons.notification_important,
+                            chatProvider.chats
+                                .where((chat) => chat.unreadCount > 0)
+                                .length
+                                .toString(),
+                            "Unread",
+                          ),
+                          _buildStatItem(
+                            Icons.people,
+                            chatProvider.chats
+                                .map((chat) => chat.userId)
+                                .toSet()
+                                .length
+                                .toString(),
+                            "Customers",
+                          ),
+                        ],
+                      );
+                    },
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+          const SizedBox(height: 32),
+
+          // Quick Actions Card
+          Card(
+            elevation: 2,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    "Quick Actions",
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+                  ),
+                  const SizedBox(height: 16),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceAround,
+                    children: [
+                      _buildActionButton(Icons.refresh, "Refresh Chats", () {
+                        final chatProvider = Provider.of<ChatProvider>(
+                          context,
+                          listen: false,
+                        );
+                        chatProvider.fetchChats();
+                      }),
+                      _buildActionButton(
+                        Icons.mark_chat_read,
+                        "Mark All Read",
+                        () {
+                          final chatProvider = Provider.of<ChatProvider>(
+                            context,
+                            listen: false,
+                          );
+
+                          // Mark all chats as read
+                          for (final chat in chatProvider.chats) {
+                            chatProvider.markChatAsRead(chat.userId);
+                          }
+
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text("All chats marked as read"),
+                            ),
+                          );
+                        },
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+          const SizedBox(height: 32),
+
+          // Announcements or Notes
+          Expanded(
+            child: Card(
+              elevation: 2,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      "Support Team Announcements",
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Expanded(
+                      child: ListView(
+                        children: const [
+                          _AnnouncementItem(
+                            title: "Welcome to the Support Dashboard",
+                            content:
+                                "Use this panel to manage all customer communications. Select a chat from the left to open the conversation.",
+                            date: "Today",
+                            isPinned: true,
+                          ),
+                          _AnnouncementItem(
+                            title: "Customer Response Guidelines",
+                            content:
+                                "Remember to respond to all customer inquiries within 2 hours during business hours.",
+                            date: "Yesterday",
+                          ),
+                          _AnnouncementItem(
+                            title: "New Feature: Image Attachments",
+                            content:
+                                "You can now send images in chat responses. Try it out with our customers!",
+                            date: "Feb 15, 2023",
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildChatDetailPanel(String userId) {
-    if (_selectedUserId.isNotEmpty && _selectedUserId == userId) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (!_chatInitializedForUser.contains(userId)) {
-          final chatProvider = Provider.of<ChatProvider>(
-            context,
-            listen: false,
-          );
-          chatProvider.ensureChatExists(userId);
-          chatProvider.markChatAsRead(userId);
-
-          _chatInitializedForUser.add(userId);
-        }
-      });
-    }
-
+  Widget _buildStatItem(IconData icon, String value, String label) {
     return Column(
       children: [
-        FutureBuilder<UserModel?>(
-          future: _getCachedUserById(userId),
-          builder: (context, snapshot) {
-            String username = "User ID: $userId";
-            String status = "Customer";
-
-            if (snapshot.hasData && snapshot.data != null) {
-              username = snapshot.data!.fullName;
-              status = snapshot.data!.email;
-            }
-
-            return Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.05),
-                    blurRadius: 2,
-                    spreadRadius: 1,
-                    offset: const Offset(0, 1),
-                  ),
-                ],
-              ),
-              child: Row(
-                children: [
-                  CircleAvatar(
-                    backgroundColor: Colors.blue.shade100,
-                    radius: 20,
-                    backgroundImage:
-                        snapshot.hasData &&
-                                snapshot.data!.avatar != null &&
-                                snapshot.data!.avatar!.isNotEmpty
-                            ? NetworkImage(snapshot.data!.avatar!)
-                            : null,
-                    child:
-                        snapshot.hasData &&
-                                snapshot.data!.avatar != null &&
-                                snapshot.data!.avatar!.isNotEmpty
-                            ? null
-                            : Text(
-                              username.isNotEmpty
-                                  ? username[0].toUpperCase()
-                                  : "?",
-                              style: TextStyle(
-                                color: Colors.blue.shade800,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 16,
-                              ),
-                            ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          username,
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16,
-                          ),
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        Text(
-                          status,
-                          style: TextStyle(
-                            fontSize: 13,
-                            color: Colors.grey[600],
-                          ),
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ],
-                    ),
-                  ),
-                  TextButton.icon(
-                    icon: const Icon(Icons.open_in_new),
-                    label: const Text("Open Full Chat"),
-                    onPressed: () {
-                      Navigator.pushNamed(
-                        context,
-                        adminSingleChat,
-                        arguments: {"userId": userId},
-                      );
-                    },
-                  ),
-                ],
-              ),
-            );
-          },
+        Icon(icon, color: primaryColor, size: 28),
+        const SizedBox(height: 8),
+        Text(
+          value,
+          style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
         ),
-        Expanded(
-          child: ChatScreen(
-            key: ValueKey<String>(userId),
-            userId: userId,
-            isWidget: true,
-          ),
+        Text(
+          label,
+          style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
         ),
       ],
     );
   }
 
-  Widget _buildChatList(
-    List chatList,
-    ChatProvider chatProvider,
-    dynamic user,
-    bool isWideScreen,
+  Widget _buildActionButton(
+    IconData icon,
+    String label,
+    VoidCallback onPressed,
   ) {
+    return ElevatedButton.icon(
+      icon: Icon(icon),
+      label: Text(label),
+      style: ElevatedButton.styleFrom(
+        backgroundColor: primaryColor,
+        foregroundColor: Colors.white,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      ),
+      onPressed: onPressed,
+    );
+  }
+
+  Widget _buildChatList(List<Chat> chatList, dynamic user, bool isWideScreen) {
     return ListView.builder(
       physics: const BouncingScrollPhysics(),
       itemCount: chatList.length,
       itemBuilder: (context, index) {
         final chat = chatList[index];
 
-        int unreadCount = _getCachedUnreadCount(chatProvider, chat.userId);
-
         final isLastMessageFromAdmin = chat.userId == user?.id;
-
-        final isSelected = chat.userId == _selectedUserId;
 
         return Column(
           children: [
             ListTile(
-              selected: isSelected,
-              selectedTileColor: Colors.blue.withAlpha(10),
+              selectedTileColor: primaryColor.withAlpha(10),
               contentPadding: EdgeInsets.symmetric(
                 horizontal: 16.0,
                 vertical: isWideScreen ? 8.0 : 4.0,
@@ -531,23 +556,18 @@ class _AdminChatsScreenState extends State<AdminChatsScreen> {
                       snapshot.data!.avatar != null &&
                       snapshot.data!.avatar!.isNotEmpty) {
                     return CircleAvatar(
-                      backgroundColor:
-                          isSelected ? Colors.blue : Colors.blue.shade100,
                       backgroundImage: NetworkImage(snapshot.data!.avatar!),
                       radius: 20,
                     );
                   }
 
                   return CircleAvatar(
-                    backgroundColor:
-                        isSelected ? Colors.blue : Colors.blue.shade100,
                     radius: 20,
                     child: Text(
                       chat.userName.isNotEmpty
                           ? chat.userName[0].toUpperCase()
                           : "?",
                       style: TextStyle(
-                        color: isSelected ? Colors.white : Colors.blue.shade800,
                         fontWeight: FontWeight.bold,
                         fontSize: 16,
                       ),
@@ -559,7 +579,7 @@ class _AdminChatsScreenState extends State<AdminChatsScreen> {
                 chat.userName,
                 style: TextStyle(
                   fontWeight:
-                      isSelected || unreadCount > 0
+                      chat.unreadCount > 0
                           ? FontWeight.bold
                           : FontWeight.normal,
                 ),
@@ -577,7 +597,8 @@ class _AdminChatsScreenState extends State<AdminChatsScreen> {
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
                       fontSize: 14,
-                      color: unreadCount > 0 ? Colors.black : Colors.black87,
+                      color:
+                          chat.unreadCount > 0 ? Colors.black : Colors.black87,
                     ),
                   ),
                   const SizedBox(height: 4),
@@ -588,7 +609,7 @@ class _AdminChatsScreenState extends State<AdminChatsScreen> {
                 ],
               ),
               trailing:
-                  unreadCount > 0
+                  chat.unreadCount > 0
                       ? Container(
                         padding: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
@@ -596,15 +617,13 @@ class _AdminChatsScreenState extends State<AdminChatsScreen> {
                           shape: BoxShape.circle,
                         ),
                         child: Text(
-                          unreadCount.toString(),
+                          chat.unreadCount.toString(),
                           style: const TextStyle(
                             color: Colors.white,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
                       )
-                      : isSelected
-                      ? const Icon(Icons.check_circle, color: Colors.blue)
                       : null,
               onTap: () => _navigateToChat(chat.userId),
             ),
@@ -620,6 +639,67 @@ class _AdminChatsScreenState extends State<AdminChatsScreen> {
     _searchController.dispose();
     _messageController.dispose();
     _scrollController.dispose();
+    _chatSubscription?.cancel(); // Cancel the subscription when disposing
     super.dispose();
+  }
+}
+
+class _AnnouncementItem extends StatelessWidget {
+  final String title;
+  final String content;
+  final String date;
+  final bool isPinned;
+
+  const _AnnouncementItem({
+    required this.title,
+    required this.content,
+    required this.date,
+    this.isPinned = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: isPinned ? primaryColor.withAlpha(5) : Colors.white,
+        border: Border.all(
+          color: isPinned ? primaryColor.withAlpha(10) : Colors.grey.shade200,
+        ),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  title,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                  ),
+                ),
+              ),
+              if (isPinned)
+                const Icon(Icons.push_pin, color: primaryColor, size: 16),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(content, style: TextStyle(color: Colors.grey.shade700)),
+          const SizedBox(height: 8),
+          Text(
+            date,
+            style: TextStyle(
+              fontSize: 12,
+              color: Colors.grey.shade500,
+              fontStyle: FontStyle.italic,
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }

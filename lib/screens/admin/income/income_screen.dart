@@ -10,12 +10,15 @@ import 'package:provider/provider.dart';
 import 'order_details_screen.dart';
 
 class OrderManagerScreen extends StatefulWidget {
+  const OrderManagerScreen({Key? super.key});
+
   @override
   State<OrderManagerScreen> createState() => _OrderManagerScreenState();
 }
 
 class _OrderManagerScreenState extends State<OrderManagerScreen> {
-  late Future<List<OrderModel>> _ordersFuture;
+  List<OrderModel> _orders = [];
+  bool _isLoading = true;
   bool _isLocalLoading = false;
   TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
@@ -23,7 +26,10 @@ class _OrderManagerScreenState extends State<OrderManagerScreen> {
   @override
   void initState() {
     super.initState();
-    _ordersFuture = fetchOrders();
+    // Schedule the fetch for after the first frame
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _fetchOrders();
+    });
   }
 
   @override
@@ -32,36 +38,61 @@ class _OrderManagerScreenState extends State<OrderManagerScreen> {
     super.dispose();
   }
 
-  Future<List<OrderModel>> fetchOrders() {
-    final orderProvider = Provider.of<OrderProvider>(context, listen: false);
-    return orderProvider.fetchAllOrders();
+  Future<void> _fetchOrders() async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      final orderProvider = Provider.of<OrderProvider>(context, listen: false);
+      final orders = await orderProvider.fetchAllOrders();
+
+      if (mounted) {
+        setState(() {
+          _orders = orders;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
   }
 
   Future<void> _refreshOrders() async {
     setState(() {
       _isLocalLoading = true;
-      _ordersFuture = fetchOrders();
     });
-    await _ordersFuture;
-    if (mounted) {
-      setState(() {
-        _isLocalLoading = false;
-      });
+
+    try {
+      await _fetchOrders();
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLocalLoading = false;
+        });
+      }
     }
   }
 
   void _searchOrders(String query) {
     setState(() {
       _searchQuery = query;
-      _ordersFuture = fetchOrders().then((orders) {
-        if (query.isEmpty) return orders;
-
-        return orders.where((order) {
-          return order.user.email.toLowerCase().contains(query.toLowerCase()) ||
-              order.id.toLowerCase().contains(query.toLowerCase());
-        }).toList();
-      });
     });
+  }
+
+  List<OrderModel> get _filteredOrders {
+    if (_searchQuery.isEmpty) return _orders;
+
+    return _orders.where((order) {
+      return order.user.email.toLowerCase().contains(
+            _searchQuery.toLowerCase(),
+          ) ||
+          order.id.toLowerCase().contains(_searchQuery.toLowerCase());
+    }).toList();
   }
 
   int getOrderCountByStatus(List<OrderModel> orders, String status) {
@@ -102,6 +133,8 @@ class _OrderManagerScreenState extends State<OrderManagerScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final filteredOrders = _filteredOrders;
+
     return Scaffold(
       appBar: AppBar(
         title: const Text(
@@ -114,7 +147,7 @@ class _OrderManagerScreenState extends State<OrderManagerScreen> {
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
-            onPressed: _isLocalLoading ? null : _refreshOrders,
+            onPressed: _isLoading || _isLocalLoading ? null : _refreshOrders,
             tooltip: 'Refresh Orders',
           ),
         ],
@@ -150,121 +183,114 @@ class _OrderManagerScreenState extends State<OrderManagerScreen> {
               ),
             ),
             Expanded(
-              child: FutureBuilder<List<OrderModel>>(
-                future: _ordersFuture,
-                builder: (context, snapshot) {
-                  if (snapshot.connectionState == ConnectionState.waiting ||
-                      _isLocalLoading) {
-                    return const Center(child: CircularProgressIndicator());
-                  } else if (snapshot.hasError) {
-                    return Center(child: Text('Error: ${snapshot.error}'));
-                  } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                    return Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const Icon(
-                            Icons.shopping_bag_outlined,
-                            size: 64,
-                            color: Colors.grey,
-                          ),
-                          const SizedBox(height: 16),
-                          Text(
-                            _searchQuery.isEmpty
-                                ? 'No orders found'
-                                : 'No orders matching "$_searchQuery"',
-                            style: const TextStyle(
-                              fontSize: 18,
-                              color: Colors.grey,
-                            ),
-                          ),
-                        ],
-                      ),
-                    );
-                  }
-
-                  final orders = snapshot.data!;
-
-                  return SingleChildScrollView(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: Column(
-                      children: [
-                        Row(
-                          children: [
-                            _buildStatCard(
-                              total: getTotalOrders(orders),
-                              title: 'Total Orders',
-                              value: getTotalOrders(orders),
-                              icon: Icons.shopping_bag,
-                              color: Colors.blueAccent,
-                            ),
-                            const SizedBox(width: 12),
-                            _buildStatCard(
-                              total: getTotalOrders(orders),
-                              title: 'Completed',
-                              value: getCompletedOrders(orders),
-                              icon: Icons.check_circle,
-                              color: Colors.green,
-                            ),
-                            const SizedBox(width: 12),
-                            _buildStatCard(
-                              total: getTotalOrders(orders),
-                              title: 'Pending',
-                              value: getPendingOrders(orders),
-                              icon: Icons.pending_actions,
-                              color: Colors.orange,
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 16),
-                        _buildOrderStatusChart(orders),
-                        const SizedBox(height: 16),
-                        Card(
-                          color: Colors.white,
-                          elevation: 2,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Padding(
-                            padding: const EdgeInsets.all(16.0),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    const Text(
-                                      'Orders',
-                                      style: TextStyle(
-                                        fontSize: 18,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                    Text(
-                                      'Total Revenue: ${FormatHelper.formatCurrency(getTotalRevenue(orders))}',
-                                      style: const TextStyle(
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.bold,
-                                        color: Colors.green,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                const SizedBox(height: 16),
-                                _buildOrderTable(orders),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  );
-                },
-              ),
+              child:
+                  _isLoading
+                      ? const Center(child: CircularProgressIndicator())
+                      : _buildContent(filteredOrders),
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildContent(List<OrderModel> orders) {
+    if (orders.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(
+              Icons.shopping_bag_outlined,
+              size: 64,
+              color: Colors.grey,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              _searchQuery.isEmpty
+                  ? 'No orders found'
+                  : 'No orders matching "$_searchQuery"',
+              style: const TextStyle(fontSize: 18, color: Colors.grey),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              _buildStatCard(
+                total: getTotalOrders(orders),
+                title: 'Total Orders',
+                value: getTotalOrders(orders),
+                icon: Icons.shopping_bag,
+                color: Colors.blueAccent,
+              ),
+              const SizedBox(width: 12),
+              _buildStatCard(
+                total: getTotalOrders(orders),
+                title: 'Completed',
+                value: getCompletedOrders(orders),
+                icon: Icons.check_circle,
+                color: Colors.green,
+              ),
+              const SizedBox(width: 12),
+              _buildStatCard(
+                total: getTotalOrders(orders),
+                title: 'Pending',
+                value: getPendingOrders(orders),
+                icon: Icons.pending_actions,
+                color: Colors.orange,
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          _buildOrderStatusChart(orders),
+          const SizedBox(height: 16),
+          Card(
+            color: Colors.white,
+            elevation: 2,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        'Orders',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      Text(
+                        'Total Revenue: ${FormatHelper.formatCurrency(getTotalRevenue(orders))}',
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.green,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  _buildOrderTable(orders),
+                ],
+              ),
+            ),
+          ),
+          // Add some bottom padding
+          const SizedBox(height: 24),
+        ],
       ),
     );
   }

@@ -62,6 +62,19 @@ class ChatRepository {
         );
   }
 
+  // Listen to real-time chat updates (for Admin)
+  Stream<List<Chat>> listenToChats() {
+    return _firestore
+        .collection('chats')
+        .orderBy('lastMessageTimestamp', descending: true)
+        .snapshots()
+        .debounceTime(const Duration(milliseconds: 500))
+        .map(
+          (snapshot) =>
+              snapshot.docs.map((doc) => Chat.fromMap(doc.data())).toList(),
+        );
+  }
+
   // Get unread messages count
   Future<int> getUnreadMessagesCount(String userId) async {
     final snapshot =

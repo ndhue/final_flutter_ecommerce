@@ -102,7 +102,9 @@ class _ChatScreenState extends State<ChatScreen> {
     });
 
     // Mark as read only once during initialization
-    chatProvider.markChatAsRead(widget.userId);
+    if (isAdmin(user)) {
+      await chatProvider.markChatAsRead(widget.userId);
+    }
   }
 
   void _onScroll() {
@@ -355,11 +357,10 @@ class _ChatScreenState extends State<ChatScreen> {
                                         itemBuilder: (context, index) {
                                           final message =
                                               chatProvider.messages[index];
+                                          
                                           final bool isCurrentUser =
-                                              message.senderId ==
-                                              (isAdmin(user)
-                                                  ? user.id
-                                                  : widget.userId);
+                                              message.senderId == user.id;
+
                                           final bool showTime =
                                               _shouldShowTimeSeparator(
                                                 chatProvider.messages,

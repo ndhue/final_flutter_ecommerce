@@ -38,6 +38,7 @@ class ProductProvider with ChangeNotifier {
     int? maxPrice,
     bool isInitial = false,
     bool includeInactive = false, // Add this parameter
+    bool? activationStatus, // Add this parameter to filter by activation status
   }) async {
     if ((_isLoading || !_hasMore) && !isInitial) return;
 
@@ -51,10 +52,9 @@ class ProductProvider with ChangeNotifier {
         _hasMore = true;
       }
 
-      // Check if category contains "All" and set it to null to fetch all categories
       List<String>? filteredCategory = category;
       if (category != null && category.contains('All')) {
-        filteredCategory = null; // Pass null to fetch all categories
+        filteredCategory = null;
       }
 
       final result = await _repository.fetchProducts(
@@ -63,10 +63,11 @@ class ProductProvider with ChangeNotifier {
         orderBy: orderBy,
         descending: descending,
         brands: brand,
-        categories: filteredCategory, // Use the filtered category
+        categories: filteredCategory,
         minPrice: minPrice,
         maxPrice: maxPrice,
         includeInactive: includeInactive,
+        activationStatus: activationStatus,
       );
 
       if (result.length < 10) {
@@ -97,7 +98,6 @@ class ProductProvider with ChangeNotifier {
     bool includeInactive = false,
   }) async {
     if (_newProducts.isNotEmpty) {
-      // If we have cached products and don't need inactive ones, filter them
       if (!includeInactive) {
         return _newProducts.where((product) => product.activated).toList();
       }
@@ -115,7 +115,6 @@ class ProductProvider with ChangeNotifier {
     bool includeInactive = false,
   }) async {
     if (_promotionalProducts.isNotEmpty) {
-      // If we have cached products and don't need inactive ones, filter them
       if (!includeInactive) {
         return _promotionalProducts
             .where((product) => product.activated)
@@ -135,7 +134,6 @@ class ProductProvider with ChangeNotifier {
     bool includeInactive = false,
   }) async {
     if (_bestSellers.isNotEmpty) {
-      // If we have cached products and don't need inactive ones, filter them
       if (!includeInactive) {
         return _bestSellers.where((product) => product.activated).toList();
       }
@@ -185,7 +183,7 @@ class ProductProvider with ChangeNotifier {
         category: category,
         lastDocument: _lastDocument,
         limit: 10,
-        includeInactive: includeInactive, // Pass the parameter
+        includeInactive: includeInactive, 
       );
 
       if (result.length < 10) {
@@ -207,7 +205,7 @@ class ProductProvider with ChangeNotifier {
     String orderBy = 'name',
     bool descending = false,
     bool isInitial = false,
-    bool includeInactive = false, // Add this parameter
+    bool includeInactive = false, 
   }) async {
     if (_isLoading) return;
 
@@ -227,7 +225,7 @@ class ProductProvider with ChangeNotifier {
         limit: 10,
         orderBy: orderBy,
         descending: descending,
-        includeInactive: includeInactive, // Pass the parameter
+        includeInactive: includeInactive, 
       );
 
       if (result.length < 10) {
@@ -425,7 +423,6 @@ class ProductProvider with ChangeNotifier {
 
   Future<void> deleteProduct(String productId) async {
     try {
-      // First, delete all variants in the variantInventory subcollection
       final variantSnapshot =
           await FirebaseFirestore.instance
               .collection('products')
@@ -439,14 +436,12 @@ class ProductProvider with ChangeNotifier {
         batch.delete(doc.reference);
       }
 
-      // Then delete the product document itself
       batch.delete(
         FirebaseFirestore.instance.collection('products').doc(productId),
       );
 
       await batch.commit();
 
-      // Update local list
       _products.removeWhere((product) => product.id == productId);
       notifyListeners();
     } catch (e) {
@@ -491,7 +486,6 @@ class ProductProvider with ChangeNotifier {
           docSnapshot: product.docSnapshot,
         );
 
-        // Also update in other cached lists
         _updateProductInCachedLists(productId, quantity);
 
         notifyListeners();

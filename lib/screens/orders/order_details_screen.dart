@@ -1,6 +1,5 @@
 import 'package:final_ecommerce/models/models_export.dart';
 import 'package:final_ecommerce/providers/providers_export.dart';
-import 'package:final_ecommerce/screens/orders/components/rate_order_widget.dart';
 import 'package:final_ecommerce/utils/constants.dart';
 import 'package:final_ecommerce/utils/format.dart';
 import 'package:final_ecommerce/utils/order_actions.dart';
@@ -326,37 +325,6 @@ class OrderDetailScreen extends StatelessWidget {
                     ),
                   ),
                 ),
-                const SizedBox(height: 16),
-                Container(
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(8),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withAlpha(25),
-                        blurRadius: 6,
-                        offset: const Offset(0, 2),
-                      ),
-                    ],
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: const [
-                        Text(
-                          'Rate Your Order',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        SizedBox(height: 16),
-                        RateOrderWidget(),
-                      ],
-                    ),
-                  ),
-                ),
               ],
             ),
           ),
@@ -507,9 +475,6 @@ class OrderDetailScreen extends StatelessWidget {
         ),
 
         const SizedBox(height: 16),
-        RateOrderWidget(),
-        const SizedBox(height: 16),
-
         // Action buttons
         ...getActions(context, status),
       ],

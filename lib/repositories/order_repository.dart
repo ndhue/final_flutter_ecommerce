@@ -13,10 +13,8 @@ class OrderRepository {
     OrderModel order,
     Map<String, dynamic> guestInfo,
   ) async {
-    // First create the order
     final orderData = order.toJson();
 
-    // Ensure user ID is set correctly
     if (orderData['user']['userId'] == 'guest' &&
         guestInfo.containsKey('email')) {
       // If there's no specific userId, generate one based on email
@@ -26,7 +24,6 @@ class OrderRepository {
 
     await _orders.doc(order.id).set(orderData);
 
-    // Associate the order with email for later linking
     if (guestInfo.containsKey('email')) {
       await _orders.doc(order.id).update({
         'guestEmail': guestInfo['email'],
@@ -37,7 +34,6 @@ class OrderRepository {
 
   // Generate a consistent user ID for guests based on their email
   String generateGuestUserId(String email) {
-    // Simple function to generate a predictable ID from email
     return 'guest_${email.hashCode.abs()}';
   }
 

@@ -35,3 +35,14 @@ const List<String> brandList = [
   'Lenovo',
   'Asus',
 ];
+
+// Product categories for filtering
+final List<String> productCategories = [
+  'All',
+  'Desktops',
+  'Laptops',
+  'Monitors',
+  'Speakers',
+  'Keyboards',
+  'Headphones',
+];

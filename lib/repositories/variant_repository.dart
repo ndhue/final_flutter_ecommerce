@@ -9,7 +9,6 @@ class VariantRepository {
     required String productId,
     required String colorCode,
   }) async {
-    // Convert input colorCode to lowercase for case-insensitive comparison
     final lowerCaseColorCode = colorCode.toLowerCase();
 
     final querySnapshot =
@@ -18,7 +17,7 @@ class VariantRepository {
             .doc(productId)
             .collection('variantInventory')
             .where('colorCode', isEqualTo: lowerCaseColorCode)
-            .orderBy('createdAt') // sort theo createdAt tăng dần
+            .orderBy('createdAt') 
             .get();
 
     if (querySnapshot.docs.isNotEmpty) {
