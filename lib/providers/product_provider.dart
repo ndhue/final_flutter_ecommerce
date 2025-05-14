@@ -51,16 +51,22 @@ class ProductProvider with ChangeNotifier {
         _hasMore = true;
       }
 
+      // Check if category contains "All" and set it to null to fetch all categories
+      List<String>? filteredCategory = category;
+      if (category != null && category.contains('All')) {
+        filteredCategory = null; // Pass null to fetch all categories
+      }
+
       final result = await _repository.fetchProducts(
         lastDocument: _lastDocument,
         limit: 10,
         orderBy: orderBy,
         descending: descending,
         brands: brand,
-        categories: category,
+        categories: filteredCategory, // Use the filtered category
         minPrice: minPrice,
         maxPrice: maxPrice,
-        includeInactive: includeInactive, // Pass the parameter
+        includeInactive: includeInactive,
       );
 
       if (result.length < 10) {
