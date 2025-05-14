@@ -164,7 +164,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   double calculateRevenue() {
     return filteredOrders
-        .where((order) => _getLastestStatus(order) == 'delivered')
+        .where((order) => _getLastestStatus(order) == 'completed')
         .fold(0.0, (sum, order) {
           final total = order['total'];
           if (total is String) {
@@ -181,7 +181,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final productCostCache = <String, double>{};
 
     for (final order in filteredOrders) {
-      if (_getLastestStatus(order) != 'delivered') continue;
+      if (_getLastestStatus(order) != 'completed') continue;
 
       final details = order['orderDetails'] as List<dynamic>? ?? [];
       for (final item in details) {

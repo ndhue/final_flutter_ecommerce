@@ -7,6 +7,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 class CartProvider with ChangeNotifier {
   List<CartItem> _cartItems = [];
+  // Change from Set<String> to store composite keys (productId:variantId)
   Set<String> _selectedItemIds = {};
   String _userId = 'guest';
   AddressInfo? _addressInfo;
@@ -24,6 +25,11 @@ class CartProvider with ChangeNotifier {
   List<CartItem> get cartItems => _cartItems;
   Set<String> get selectedItemIds => _selectedItemIds;
   AddressInfo? get addressInfo => _addressInfo;
+
+  // Helper method to create a composite key
+  String _getItemKey(String productId, String variantId) {
+    return "$productId:$variantId";
+  }
 
   void updateAddress(AddressInfo info) {
     _addressInfo = info;
@@ -126,19 +132,25 @@ class CartProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  // Toggle chọn sản phẩm
-  void toggleItemSelection(String productId) {
-    if (_selectedItemIds.contains(productId)) {
-      _selectedItemIds.remove(productId);
+  void toggleItemSelection(String productId, String variantId) {
+    final itemKey = _getItemKey(productId, variantId);
+
+    if (_selectedItemIds.contains(itemKey)) {
+      _selectedItemIds.remove(itemKey);
     } else {
-      _selectedItemIds.add(productId);
+      _selectedItemIds.add(itemKey);
     }
     notifyListeners();
   }
 
   void toggleSelectAll(bool selectAll) {
     if (selectAll) {
-      _selectedItemIds = _cartItems.map((item) => item.product.id).toSet();
+      _selectedItemIds =
+          _cartItems
+              .map(
+                (item) => _getItemKey(item.product.id, item.variant.variantId),
+              )
+              .toSet();
     } else {
       _selectedItemIds.clear();
     }
@@ -147,9 +159,14 @@ class CartProvider with ChangeNotifier {
 
   bool isAllSelected() =>
       _cartItems.isNotEmpty &&
-      _cartItems.every((item) => _selectedItemIds.contains(item.product.id));
+      _cartItems.every(
+        (item) => _selectedItemIds.contains(
+          _getItemKey(item.product.id, item.variant.variantId),
+        ),
+      );
 
-  bool isSelected(String productId) => _selectedItemIds.contains(productId);
+  bool isSelected(String productId, String variantId) =>
+      _selectedItemIds.contains(_getItemKey(productId, variantId));
 
   Future<void> addToCart(CartItem newItem) async {
     final index = _cartItems.indexWhere(
@@ -169,9 +186,13 @@ class CartProvider with ChangeNotifier {
   }
 
   Future<void> saveCart() async {
-    final prefs = await SharedPreferences.getInstance();
-    final cartJson = jsonEncode(_cartItems.map((e) => e.toMap()).toList());
-    await prefs.setString('cart_$_userId', cartJson);
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final cartJson = jsonEncode(_cartItems.map((e) => e.toMap()).toList());
+      await prefs.setString('cart_$_userId', cartJson);
+    } catch (e) {
+      debugPrint('Error saving cart: $e');
+    }
   }
 
   Future<void> loadCart() async {
@@ -195,23 +216,47 @@ class CartProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  void clearSelection() {
-    _cartItems.removeWhere(
-      (item) => _selectedItemIds.contains(item.product.id),
-    );
+  Future<void> clearSelection() async {
+    // Use the composite keys to identify items to remove
+    final itemsToRemove =
+        _cartItems
+            .where(
+              (item) => _selectedItemIds.contains(
+                _getItemKey(item.product.id, item.variant.variantId),
+              ),
+            )
+            .toList();
+
+    for (var item in itemsToRemove) {
+      _cartItems.remove(item);
+    }
+
     _selectedItemIds.clear();
-    saveCart();
+    await saveCart(); // Use await to ensure completion
     notifyListeners();
   }
 
-  void removeItem(String productId) {
-    _cartItems.removeWhere((item) => item.product.id == productId);
+  Future<void> removeItem(String productId, String variantId) async {
+    final itemKey = _getItemKey(productId, variantId);
+    _selectedItemIds.remove(itemKey);
+
+    _cartItems.removeWhere(
+      (item) =>
+          item.product.id == productId && item.variant.variantId == variantId,
+    );
+
+    await saveCart();
+
     notifyListeners();
   }
 
   double get totalAmount {
     return _cartItems
-        .where((item) => _selectedItemIds.contains(item.product.id))
+        .where(
+          (item) => _selectedItemIds.contains(
+            _getItemKey(item.product.id, item.variant.variantId),
+          ),
+        )
         .fold(
           0,
           (sum, item) =>
@@ -220,11 +265,15 @@ class CartProvider with ChangeNotifier {
         );
   }
 
-  void updateItemQuantity(String productId, int newQuantity) {
-    final index = _cartItems.indexWhere((item) => item.product.id == productId);
+  void updateItemQuantity(String productId, String variantId, int newQuantity) {
+    final index = _cartItems.indexWhere(
+      (item) =>
+          item.product.id == productId && item.variant.variantId == variantId,
+    );
+
     if (index != -1) {
       _cartItems[index].quantity = newQuantity;
-      saveCart();
+      saveCart(); 
       notifyListeners();
     }
   }

@@ -128,11 +128,9 @@ class UserProvider with ChangeNotifier {
       _user = _user!.copyWith(fullName: fullName);
       notifyListeners();
 
-      // Show success toast
       Fluttertoast.showToast(msg: "Name updated successfully");
       return true;
     } catch (e) {
-      // Show failure toast
       Fluttertoast.showToast(msg: "Failed to update name");
       return false;
     }

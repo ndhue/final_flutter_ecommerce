@@ -49,19 +49,17 @@ class ChatProvider extends ChangeNotifier {
   }
 
   // Fetch all chats (Admin only)
-  // Props callback to here
   Future<void> fetchChats() async {
     setLoading(true);
     final rawChats = await _chatRepository.getChatsOnce();
 
-    // Map raw chats to include customerName
     _chats = await Future.wait(
       rawChats.map((chat) async {
         final customer = await _userRepository.getUserDetails(chat.userId);
         return Chat(
           id: chat.id,
           userId: chat.userId,
-          userName: customer?.fullName ?? "Unknown", // Use customer name
+          userName: customer?.fullName ?? "Unknown", 
           lastMessage: chat.lastMessage,
           lastMessageTimestamp: chat.lastMessageTimestamp,
           unreadCount: chat.unreadCount,
@@ -129,7 +127,35 @@ class ChatProvider extends ChangeNotifier {
         });
   }
 
-  // Check if messages list actually changed to avoid unnecessary updates
+  // Listen to real-time chat updates
+  Stream<List<Chat>> listenToChats() {
+    return _chatRepository
+        .listenToChats()
+        .map((rawChats) async {
+          final updatedChats = await Future.wait(
+            rawChats.map((chat) async {
+              final customer = await _userRepository.getUserDetails(
+                chat.userId,
+              );
+              return Chat(
+                id: chat.id,
+                userId: chat.userId,
+                userName: customer?.fullName ?? "Unknown",
+                lastMessage: chat.lastMessage,
+                lastMessageTimestamp: chat.lastMessageTimestamp,
+                unreadCount: chat.unreadCount,
+              );
+            }),
+          );
+
+          _chats = updatedChats;
+          notifyListeners();
+
+          return updatedChats;
+        })
+        .switchMap((future) => Stream.fromFuture(future));
+  }
+
   bool _messagesChanged(List<Message> newMessages) {
     if (newMessages.length != _messages.length) return true;
 

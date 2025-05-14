@@ -307,7 +307,6 @@ class _PaymentScreenState extends State<PaymentScreen> {
     final userProvider = context.read<UserProvider>();
     final orderProvider = context.read<OrderProvider>();
     final authProvider = context.read<AuthProvider>();
-    final variantProvider = context.read<VariantProvider>();
     final address = cartProvider.addressInfo;
 
     // Cap loyalty points used to the total price (excluding shipping fee)

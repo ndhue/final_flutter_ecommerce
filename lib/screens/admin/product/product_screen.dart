@@ -3,10 +3,13 @@ import 'package:final_ecommerce/models/new_product_model.dart';
 import 'package:final_ecommerce/providers/product_provider.dart';
 import 'package:final_ecommerce/screens/admin/product/product_add.dart';
 import 'package:final_ecommerce/screens/admin/product/product_detail.dart';
+import 'package:final_ecommerce/utils/constants.dart';
 import 'package:final_ecommerce/utils/format.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+
+enum ActivationFilter { all, active, inactive }
 
 class AdminProductScreen extends StatefulWidget {
   const AdminProductScreen({super.key});
@@ -19,16 +22,75 @@ class _AdminProductScreenState extends State<AdminProductScreen> {
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
   bool _isLocalLoading = false;
-
-  // Map to store variant counts for each product
+  String _selectedCategory = 'All';
+  bool _isLoadingMore = false;
+  ActivationFilter _activationFilter = ActivationFilter.all;
   final Map<String, int> _variantCounts = {};
+
+  int _totalProductCount = 0;
+  int _activeProductCount = 0;
+  int _inStockProductCount = 0;
+  bool _isLoadingStats = false;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _loadProducts();
+      _fetchProductStats();
     });
+  }
+
+  Future<void> _fetchProductStats() async {
+    if (!mounted) return;
+
+    setState(() => _isLoadingStats = true);
+
+    try {
+      final firestore = FirebaseFirestore.instance;
+
+      final totalCountSnapshot =
+          await firestore.collection('products').count().get();
+      final totalCount = totalCountSnapshot.count;
+
+      final activeCountSnapshot =
+          await firestore
+              .collection('products')
+              .where('activated', isEqualTo: true)
+              .count()
+              .get();
+      final activeCount = activeCountSnapshot.count;
+
+      int inStockCount = 0;
+      final productsWithVariants = await firestore.collection('products').get();
+
+      for (var doc in productsWithVariants.docs) {
+        final variantsSnapshot =
+            await firestore
+                .collection('products')
+                .doc(doc.id)
+                .collection('variantInventory')
+                .get();
+
+        if (variantsSnapshot.docs.isNotEmpty) {
+          inStockCount++;
+        }
+      }
+
+      if (mounted) {
+        setState(() {
+          _totalProductCount = totalCount!;
+          _activeProductCount = activeCount!;
+          _inStockProductCount = inStockCount;
+          _isLoadingStats = false;
+        });
+      }
+    } catch (e) {
+      debugPrint('Error fetching product stats: $e');
+      if (mounted) {
+        setState(() => _isLoadingStats = false);
+      }
+    }
   }
 
   Future<void> _loadProducts() async {
@@ -43,16 +105,34 @@ class _AdminProductScreenState extends State<AdminProductScreen> {
 
     try {
       productProvider.resetPagination();
-      await productProvider.fetchProducts(isInitial: true, includeInactive: true);
+
+      if (_selectedCategory != 'All') {
+        await productProvider.fetchProducts(
+          isInitial: true,
+          includeInactive: _activationFilter != ActivationFilter.active,
+          category: [_selectedCategory],
+          activationStatus: _getActivationFilterValue(),
+        );
+      } else {
+        await productProvider.fetchProducts(
+          isInitial: true,
+          includeInactive: _activationFilter != ActivationFilter.active,
+          activationStatus: _getActivationFilterValue(),
+        );
+      }
 
       if (mounted) {
-        _loadVariantCounts(productProvider.products);
+        // Load variant counts for all products
+        await _loadVariantCounts(productProvider.products);
+        // Reset the loading more flag
+        _isLoadingMore = false;
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text('Error loading products: $e')));
+        debugPrint('$e');
       }
     } finally {
       if (mounted) {
@@ -61,10 +141,29 @@ class _AdminProductScreenState extends State<AdminProductScreen> {
     }
   }
 
+  bool? _getActivationFilterValue() {
+    switch (_activationFilter) {
+      case ActivationFilter.active:
+        return true;
+      case ActivationFilter.inactive:
+        return false;
+      case ActivationFilter.all:
+        return null;
+    }
+  }
+
+  void _onActivationFilterChanged(ActivationFilter filter) {
+    if (_activationFilter == filter) return;
+
+    setState(() {
+      _activationFilter = filter;
+    });
+    _loadProducts();
+  }
+
   Future<void> _loadVariantCounts(List<NewProduct> products) async {
     try {
       for (var product in products) {
-        // Skip if we already have the count
         if (_variantCounts.containsKey(product.id)) {
           continue;
         }
@@ -89,6 +188,65 @@ class _AdminProductScreenState extends State<AdminProductScreen> {
 
   Future<void> _refreshProducts() async {
     await _loadProducts();
+    await _fetchProductStats();
+  }
+
+  void _onCategoryChanged(String category) {
+    setState(() {
+      _selectedCategory = category;
+      _searchQuery = '';
+      _searchController.clear();
+      _variantCounts.clear();
+    });
+    _loadProducts();
+
+    if (category == 'All') {
+      _fetchProductStats();
+    }
+  }
+
+  Future<void> _loadMoreProducts() async {
+    if (_isLoadingMore) return;
+
+    setState(() => _isLoadingMore = true);
+
+    final productProvider = Provider.of<ProductProvider>(
+      context,
+      listen: false,
+    );
+
+    try {
+      if (_selectedCategory != 'All') {
+        await productProvider.fetchProducts(
+          category: [_selectedCategory],
+          includeInactive: _activationFilter != ActivationFilter.active,
+          activationStatus: _getActivationFilterValue(),
+        );
+      } else {
+        await productProvider.fetchProducts(
+          includeInactive: _activationFilter != ActivationFilter.active,
+          activationStatus: _getActivationFilterValue(),
+        );
+      }
+
+      if (mounted) {
+        final newProducts =
+            productProvider.products
+                .where((p) => !_variantCounts.containsKey(p.id))
+                .toList();
+
+        await _loadVariantCounts(newProducts);
+
+        setState(() {
+          _isLoadingMore = false;
+        });
+      }
+    } catch (e) {
+      debugPrint('Error loading more products: $e');
+      if (mounted) {
+        setState(() => _isLoadingMore = false);
+      }
+    }
   }
 
   @override
@@ -97,15 +255,38 @@ class _AdminProductScreenState extends State<AdminProductScreen> {
     super.dispose();
   }
 
-  // Statistics getters
-  int getTotalProducts(List<NewProduct> products) => products.length;
+  bool _isLargeScreen(BuildContext context) {
+    return MediaQuery.of(context).size.width > 1200;
+  }
+
+  bool _isMediumScreen(BuildContext context) {
+    final width = MediaQuery.of(context).size.width;
+    return width > 800 && width <= 1200;
+  }
+
+  int getTotalProducts(List<NewProduct> products) =>
+      _isLoadingStats || _selectedCategory != 'All'
+          ? products.length
+          : _totalProductCount;
 
   int getInStockProducts(List<NewProduct> products) {
-    return _variantCounts.values.where((itemCount) => itemCount > 0).length;
+    if (_isLoadingStats || _selectedCategory != 'All') {
+      int count = 0;
+      for (var product in products) {
+        if (_variantCounts.containsKey(product.id) &&
+            _variantCounts[product.id]! > 0) {
+          count++;
+        }
+      }
+      return count;
+    }
+    return _inStockProductCount;
   }
 
   int getActiveProducts(List<NewProduct> products) =>
-      products.where((p) => p.activated).length;
+      _isLoadingStats || _selectedCategory != 'All'
+          ? products.where((p) => p.activated).length
+          : _activeProductCount;
 
   void _viewProductDetails(NewProduct product) {
     Navigator.push(
@@ -114,7 +295,6 @@ class _AdminProductScreenState extends State<AdminProductScreen> {
         builder: (context) => AdminProductDetailScreen(product: product),
       ),
     ).then((_) {
-      // Refresh products list when returning from details
       _refreshProducts();
     });
   }
@@ -194,7 +374,6 @@ class _AdminProductScreenState extends State<AdminProductScreen> {
       context,
       MaterialPageRoute(builder: (context) => const AddProductPage()),
     ).then((_) {
-      // Refresh products list when returning from add screen
       _refreshProducts();
     });
   }
@@ -228,33 +407,6 @@ class _AdminProductScreenState extends State<AdminProductScreen> {
     }
   }
 
-  Future<void> _loadMoreProducts() async {
-    final productProvider = Provider.of<ProductProvider>(
-      context,
-      listen: false,
-    );
-    await productProvider.fetchProducts();
-    if (mounted) {
-      // Only load variant counts for newly loaded products
-      _loadVariantCounts(
-        productProvider.products
-            .where((p) => !_variantCounts.containsKey(p.id))
-            .toList(),
-      );
-    }
-  }
-
-  // Check if the screen is large
-  bool _isLargeScreen(BuildContext context) {
-    return MediaQuery.of(context).size.width > 1200;
-  }
-
-  // Check if the screen is medium
-  bool _isMediumScreen(BuildContext context) {
-    final width = MediaQuery.of(context).size.width;
-    return width > 800 && width <= 1200;
-  }
-
   @override
   Widget build(BuildContext context) {
     final bool isLargeScreen = _isLargeScreen(context);
@@ -264,7 +416,7 @@ class _AdminProductScreenState extends State<AdminProductScreen> {
       appBar: AppBar(
         title: const Text(
           'Product Management',
-          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w500),
+          style: TextStyle(fontSize: 18, fontWeight: FontWeight.w500),
         ),
         backgroundColor: Colors.white,
         foregroundColor: Colors.black,
@@ -293,67 +445,147 @@ class _AdminProductScreenState extends State<AdminProductScreen> {
               children: [
                 Padding(
                   padding: const EdgeInsets.all(16.0),
-                  child: TextField(
-                    controller: _searchController,
-                    decoration: InputDecoration(
-                      hintText: 'Search products...',
-                      prefixIcon: const Icon(Icons.search),
-                      suffixIcon:
-                          _searchQuery.isNotEmpty
-                              ? IconButton(
-                                icon: const Icon(Icons.clear),
-                                onPressed: () {
-                                  _searchController.clear();
-                                  _searchProducts('');
-                                },
-                              )
-                              : null,
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
+                  child: Row(
+                    children: [
+                      // Search field
+                      Expanded(
+                        flex: 3,
+                        child: TextField(
+                          controller: _searchController,
+                          decoration: InputDecoration(
+                            hintText: 'Search products...',
+                            prefixIcon: const Icon(Icons.search),
+                            suffixIcon:
+                                _searchQuery.isNotEmpty
+                                    ? IconButton(
+                                      icon: const Icon(Icons.clear),
+                                      onPressed: () {
+                                        _searchController.clear();
+                                        _searchProducts('');
+                                      },
+                                    )
+                                    : null,
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            contentPadding: const EdgeInsets.symmetric(
+                              vertical: 12,
+                            ),
+                          ),
+                          onSubmitted: _searchProducts,
+                          textInputAction: TextInputAction.search,
+                        ),
                       ),
-                      contentPadding: const EdgeInsets.symmetric(vertical: 12),
-                    ),
-                    onSubmitted: _searchProducts,
-                    textInputAction: TextInputAction.search,
+
+                      const SizedBox(width: 16),
+
+                      // Category dropdown
+                      Expanded(
+                        flex: 2,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12),
+                          decoration: BoxDecoration(
+                            border: Border.all(color: Colors.grey.shade400),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: DropdownButtonHideUnderline(
+                            child: DropdownButton<String>(
+                              isExpanded: true,
+                              value: _selectedCategory,
+                              hint: const Text('Filter by Category'),
+                              icon: const Icon(Icons.filter_list),
+                              items:
+                                  productCategories.map((String category) {
+                                    return DropdownMenuItem<String>(
+                                      value: category,
+                                      child: Text(category),
+                                    );
+                                  }).toList(),
+                              onChanged: (String? newValue) {
+                                if (newValue != null) {
+                                  _onCategoryChanged(newValue);
+                                }
+                              },
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
+
+                // Add activation filter segmented button
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16.0, 0, 16.0, 8.0),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: SegmentedButton<ActivationFilter>(
+                          segments: const [
+                            ButtonSegment<ActivationFilter>(
+                              value: ActivationFilter.all,
+                              label: Text('All'),
+                              icon: Icon(Icons.view_list),
+                            ),
+                            ButtonSegment<ActivationFilter>(
+                              value: ActivationFilter.active,
+                              label: Text('Active'),
+                              icon: Icon(Icons.toggle_on),
+                            ),
+                            ButtonSegment<ActivationFilter>(
+                              value: ActivationFilter.inactive,
+                              label: Text('Inactive'),
+                              icon: Icon(Icons.toggle_off),
+                            ),
+                          ],
+                          selected: {_activationFilter},
+                          onSelectionChanged: (
+                            Set<ActivationFilter> selection,
+                          ) {
+                            if (selection.isNotEmpty) {
+                              _onActivationFilterChanged(selection.first);
+                            }
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                // Display active category filter if one is selected
+                if (_selectedCategory != 'All')
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 8.0),
+                    child: Chip(
+                      label: Text('Category: $_selectedCategory'),
+                      deleteIcon: const Icon(Icons.close, size: 18),
+                      onDeleted: () => _onCategoryChanged('All'),
+                      backgroundColor: Colors.blue.shade100,
+                    ),
+                  ),
+
                 Expanded(
                   child:
                       isLoading && products.isEmpty
                           ? const Center(child: CircularProgressIndicator())
                           : products.isEmpty
-                          ? Center(
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                const Icon(
-                                  Icons.inventory_2_outlined,
-                                  size: 64,
-                                  color: Colors.grey,
-                                ),
-                                const SizedBox(height: 16),
-                                Text(
-                                  _searchQuery.isEmpty
-                                      ? 'No products found'
-                                      : 'No products matching "$_searchQuery"',
-                                  style: const TextStyle(
-                                    fontSize: 18,
-                                    color: Colors.grey,
-                                  ),
-                                ),
-                                const SizedBox(height: 24),
-                                ElevatedButton.icon(
-                                  onPressed: _navigateToAddProduct,
-                                  icon: const Icon(Icons.add),
-                                  label: const Text('Add New Product'),
-                                ),
-                              ],
-                            ),
-                          )
+                          ? _buildEmptyProductsView(_searchQuery)
                           : SingleChildScrollView(
                             padding: const EdgeInsets.symmetric(horizontal: 16),
                             child: Column(
                               children: [
+                                // Display loading indicator for stats if needed
+                                if (_isLoadingStats)
+                                  const Padding(
+                                    padding: EdgeInsets.only(bottom: 8.0),
+                                    child: Center(
+                                      child: LinearProgressIndicator(
+                                        backgroundColor: Colors.transparent,
+                                        minHeight: 2,
+                                      ),
+                                    ),
+                                  ),
+
                                 Row(
                                   children: [
                                     _buildStatCard(
@@ -384,6 +616,21 @@ class _AdminProductScreenState extends State<AdminProductScreen> {
                                     ),
                                   ],
                                 ),
+
+                                // If filtering by category, show a note about stats
+                                if (_selectedCategory != 'All')
+                                  Padding(
+                                    padding: const EdgeInsets.only(top: 8.0),
+                                    child: Text(
+                                      'Note: Statistics shown are for the "${_selectedCategory}" category only',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: Colors.grey.shade600,
+                                        fontStyle: FontStyle.italic,
+                                      ),
+                                    ),
+                                  ),
+
                                 const SizedBox(height: 24),
                                 Card(
                                   color: Colors.white,
@@ -428,7 +675,9 @@ class _AdminProductScreenState extends State<AdminProductScreen> {
                                     ),
                                   ),
                                 ),
-                                if (productProvider.hasMore && !isLoading)
+                                if (productProvider.hasMore &&
+                                    !isLoading &&
+                                    !_isLoadingMore)
                                   Padding(
                                     padding: const EdgeInsets.symmetric(
                                       vertical: 16.0,
@@ -438,7 +687,8 @@ class _AdminProductScreenState extends State<AdminProductScreen> {
                                       child: const Text('Load More'),
                                     ),
                                   ),
-                                if (isLoading && products.isNotEmpty)
+                                if ((isLoading || _isLoadingMore) &&
+                                    products.isNotEmpty)
                                   const Padding(
                                     padding: EdgeInsets.symmetric(
                                       vertical: 16.0,
@@ -457,6 +707,53 @@ class _AdminProductScreenState extends State<AdminProductScreen> {
         ),
       ),
     );
+  }
+
+  Widget _buildEmptyProductsView(String searchQuery) {
+    // Create an appropriate message based on filters
+    String message;
+    if (searchQuery.isNotEmpty) {
+      message = 'No products matching "$searchQuery"';
+    } else if (_selectedCategory != 'All') {
+      message =
+          'No ${_activationFilter != ActivationFilter.all ? _getActivationText().toLowerCase() + " " : ""}products in category "$_selectedCategory"';
+    } else if (_activationFilter != ActivationFilter.all) {
+      message = 'No ${_getActivationText().toLowerCase()} products found';
+    } else {
+      message = 'No products found';
+    }
+
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Icon(Icons.inventory_2_outlined, size: 64, color: Colors.grey),
+          const SizedBox(height: 16),
+          Text(
+            message,
+            style: const TextStyle(fontSize: 18, color: Colors.grey),
+          ),
+          const SizedBox(height: 24),
+          ElevatedButton.icon(
+            onPressed: _navigateToAddProduct,
+            icon: const Icon(Icons.add),
+            label: const Text('Add New Product'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _getActivationText() {
+    switch (_activationFilter) {
+      case ActivationFilter.active:
+        return 'Active';
+      case ActivationFilter.inactive:
+        return 'Inactive';
+      case ActivationFilter.all:
+      default:
+        return 'All';
+    }
   }
 
   Widget _buildProductTable(List<NewProduct> products, bool isLargeScreen) {
@@ -663,7 +960,11 @@ class _AdminProductScreenState extends State<AdminProductScreen> {
     required Color color,
     bool isLargeScreen = false,
   }) {
+    // Ensure we don't divide by zero
     double percentage = total == 0 ? 0 : (value / total) * 100;
+
+    // Ensure the percentage is between 0 and 100
+    percentage = percentage.clamp(0, 100);
 
     return Expanded(
       child: Card(

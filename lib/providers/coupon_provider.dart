@@ -89,7 +89,8 @@ class CouponProvider with ChangeNotifier {
       (c) =>
           c.code.toLowerCase() == code.toLowerCase() &&
           !c.disable &&
-          c.timesUsed < c.maxUses,
+          c.timesUsed < c.maxUses &&
+          c.maxUses > 0,
       orElse: () => null as Coupon,
     );
 
