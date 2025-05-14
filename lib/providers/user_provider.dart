@@ -20,6 +20,9 @@ class UserProvider with ChangeNotifier {
   bool get isLoading => _isLoading;
   bool get isAvatarLoading => _isAvatarLoading;
 
+  // Cache to store fetched users by ID
+  final Map<String, UserModel> _userCache = {};
+
   // Check if the user is logged in
   bool get isLoggedIn => _user != null;
 
@@ -45,6 +48,34 @@ class UserProvider with ChangeNotifier {
     } finally {
       _isLoading = false;
       notifyListeners();
+    }
+  }
+
+  // Get a user by ID
+  Future<UserModel?> getUserById(String userId) async {
+    try {
+      // Check if user is already in the cache
+      if (_userCache.containsKey(userId)) {
+        return _userCache[userId];
+      }
+
+      // Fetch from Firestore if not in cache
+      DocumentSnapshot userDoc =
+          await _firestore.collection('users').doc(userId).get();
+
+      if (userDoc.exists) {
+        final userData = UserModel.fromMap(
+          userDoc.data() as Map<String, dynamic>,
+        );
+        // Store in cache for future use
+        _userCache[userId] = userData;
+        return userData;
+      }
+
+      return null;
+    } catch (e) {
+      debugPrint('Error fetching user by ID: $e');
+      return null;
     }
   }
 

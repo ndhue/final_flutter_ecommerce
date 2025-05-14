@@ -36,6 +36,7 @@ An Ecommerce app using Flutter.
    ```
 
 6. **Account**
+
    ```sh
    Admin:
       email: superadmin@gmail.com
@@ -45,3 +46,5 @@ An Ecommerce app using Flutter.
       email: user2@example.com
       password: userpassword
    ```
+
+https://console.firebase.google.com/v1/r/project/e-commerce-flutter-6762d/firestore/indexes?create_composite=ClIwcm9qZWN0cy9ILWNvbW1|cmNILWZsdXROZXItNjc2MmQvZGFOYWJhc2VzLyhkZWZhdWx0KS9jb2xsZWN0aW9uR3JvdXBzL3Byb2R1Y3RzL2luZGV4ZXMvXxABGg0KCWFjdGI2YXRIZBABGg4KCnNhbGVzQ291bnQQAhoMCghfX25hbWVfXxAC

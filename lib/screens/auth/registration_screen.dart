@@ -92,53 +92,110 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final size = MediaQuery.of(context).size;
+
     return Scaffold(
       backgroundColor: Colors.white,
       body: LayoutBuilder(
         builder: (context, constraints) {
-          bool isWideScreen =
-              constraints.maxWidth > 600; // Kiểm tra màn hình lớn
+          bool isWideScreen = constraints.maxWidth > 800;
 
           return Center(
             child:
                 isWideScreen
-                    ? Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Expanded(
-                          flex: 1,
-                          child: Padding(
-                            padding: const EdgeInsets.all(20.0),
-                            child: Image.asset(
-                              "assets/images/vector-2.png",
-                              width: constraints.maxWidth * 0.3,
-                              fit: BoxFit.contain,
+                    ? Container(
+                      width: double.infinity,
+                      height: double.infinity,
+                      decoration: const BoxDecoration(color: Colors.white),
+                      child: Row(
+                        children: [
+                          // Image Section (Only on large screens)
+                          Expanded(
+                            child: Container(
+                              padding: const EdgeInsets.all(32.0),
+                              color: Colors.white,
+                              child: Center(
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Flexible(
+                                      child: Image.asset(
+                                        "assets/images/vector-2.png",
+                                        fit: BoxFit.contain,
+                                        height: constraints.maxHeight * 0.6,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 24),
+                                    const Text(
+                                      "Join Naturify Today",
+                                      style: TextStyle(
+                                        fontSize: 24,
+                                        fontWeight: FontWeight.bold,
+                                        color: primaryColor,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 12),
+                                    const Text(
+                                      "Create your account to start shopping",
+                                      textAlign: TextAlign.center,
+                                      style: TextStyle(
+                                        fontSize: 16,
+                                        color: Colors.black54,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
                             ),
                           ),
-                        ),
-                        Expanded(
-                          flex: 1,
-                          child: Align(
-                            alignment: Alignment.center,
-                            child: ConstrainedBox(
-                              constraints: const BoxConstraints(maxWidth: 400),
-                              child: _buildForm(),
+
+                          // Form Section with visual separation
+                          Expanded(
+                            child: Container(
+                              decoration: BoxDecoration(
+                                color: Colors.grey[50],
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withOpacity(0.03),
+                                    spreadRadius: 0,
+                                    blurRadius: 10,
+                                    offset: const Offset(-5, 0),
+                                  ),
+                                ],
+                              ),
+                              child: Center(
+                                child: ConstrainedBox(
+                                  constraints: const BoxConstraints(
+                                    maxWidth: 450,
+                                  ),
+                                  child: SingleChildScrollView(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 40,
+                                    ),
+                                    child: _buildForm(),
+                                  ),
+                                ),
+                              ),
                             ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     )
                     : SingleChildScrollView(
+                      padding: const EdgeInsets.symmetric(horizontal: 24),
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
+                          SizedBox(height: size.height * 0.05),
                           Image.asset(
                             "assets/images/vector-2.png",
-                            width: constraints.maxWidth * 0.8,
+                            width: constraints.maxWidth * 0.7,
+                            height: constraints.maxHeight * 0.25,
                             fit: BoxFit.contain,
                           ),
                           const SizedBox(height: 30),
                           _buildForm(),
+                          SizedBox(height: size.height * 0.05),
                         ],
                       ),
                     ),
@@ -150,134 +207,163 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
 
   // Widget xây dựng form đăng ký
   Widget _buildForm() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 10),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'Sign Up',
-            style: TextStyle(
-              color: primaryColor,
-              fontSize: 24,
-              fontWeight: FontWeight.w600,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Create Account',
+          style: TextStyle(
+            color: primaryColor,
+            fontSize: 28,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          'Please fill in your information to get started',
+          style: TextStyle(color: Colors.grey[600], fontSize: 16),
+        ),
+        const SizedBox(height: 28),
+
+        // Full Name Input
+        TextField(
+          controller: _fullNameController,
+          decoration: InputDecoration(
+            labelText: 'Full Name',
+            prefixIcon: const Icon(Icons.person, color: primaryColor),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10),
+              borderSide: const BorderSide(color: primaryColor, width: 2),
             ),
           ),
-          const SizedBox(height: 20),
+        ),
+        const SizedBox(height: 20),
 
-          TextField(
-            controller: _fullNameController,
-            decoration: InputDecoration(
-              labelText: 'Full Name',
-              prefixIcon: const Icon(Icons.person, color: primaryColor),
-              border: OutlineInputBorder(
+        // Email Input
+        TextField(
+          controller: _emailController,
+          keyboardType: TextInputType.emailAddress,
+          decoration: InputDecoration(
+            labelText: 'Email',
+            prefixIcon: const Icon(Icons.email, color: primaryColor),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10),
+              borderSide: const BorderSide(color: primaryColor, width: 2),
+            ),
+          ),
+        ),
+        const SizedBox(height: 20),
+
+        // Password Input
+        TextField(
+          controller: _passController,
+          obscureText: _isObscure,
+          decoration: InputDecoration(
+            labelText: 'Password',
+            prefixIcon: const Icon(Icons.lock, color: primaryColor),
+            suffixIcon: IconButton(
+              icon: Icon(
+                _isObscure ? Icons.visibility_off : Icons.visibility,
+                color: primaryColor,
+              ),
+              onPressed: () {
+                setState(() {
+                  _isObscure = !_isObscure;
+                });
+              },
+            ),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10),
+              borderSide: const BorderSide(color: primaryColor, width: 2),
+            ),
+          ),
+        ),
+        const SizedBox(height: 20),
+
+        // Address Input
+        TextField(
+          controller: _addressController,
+          readOnly: true,
+          onTap: _showAddressPicker,
+          decoration: InputDecoration(
+            labelText: 'Shipping Address',
+            prefixIcon: const Icon(Icons.home, color: primaryColor),
+            suffixIcon: const Icon(Icons.arrow_drop_down, color: primaryColor),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10),
+              borderSide: const BorderSide(color: primaryColor, width: 2),
+            ),
+          ),
+        ),
+        const SizedBox(height: 32),
+
+        // Sign Up Button
+        SizedBox(
+          width: double.infinity,
+          height: 50,
+          child: ElevatedButton(
+            onPressed: _isLoading ? null : handleSignUp,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: primaryColor,
+              shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(10),
               ),
+              elevation: 2,
             ),
+            child:
+                _isLoading
+                    ? const SizedBox(
+                      width: 24,
+                      height: 24,
+                      child: CircularProgressIndicator(
+                        color: Colors.white,
+                        strokeWidth: 2,
+                      ),
+                    )
+                    : const Text(
+                      'Create Account',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
           ),
-          const SizedBox(height: 10),
+        ),
 
-          TextField(
-            controller: _emailController,
-            decoration: InputDecoration(
-              labelText: 'Email',
-              prefixIcon: const Icon(Icons.email, color: primaryColor),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(10),
-              ),
+        const SizedBox(height: 24),
+
+        // Sign In Option
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(
+              'Already have an account?',
+              style: TextStyle(fontSize: 14, color: Colors.grey[700]),
             ),
-          ),
-          const SizedBox(height: 10),
-
-          TextField(
-            controller: _passController,
-            obscureText: _isObscure,
-            decoration: InputDecoration(
-              labelText: 'Password',
-              prefixIcon: const Icon(Icons.lock, color: primaryColor),
-              suffixIcon: IconButton(
-                icon: Icon(
-                  _isObscure ? Icons.visibility_off : Icons.visibility,
+            TextButton(
+              onPressed: () {
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(builder: (context) => const LoginScreen()),
+                );
+              },
+              child: const Text(
+                'Sign In',
+                style: TextStyle(
                   color: primaryColor,
-                ),
-                onPressed: () {
-                  setState(() {
-                    _isObscure = !_isObscure;
-                  });
-                },
-              ),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(10),
-              ),
-            ),
-          ),
-          const SizedBox(height: 10),
-
-          TextField(
-            controller: _addressController,
-            readOnly: true,
-            onTap: _showAddressPicker,
-            decoration: InputDecoration(
-              labelText: 'Shipping Address',
-              prefixIcon: const Icon(Icons.home, color: primaryColor),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(10),
-              ),
-            ),
-          ),
-          const SizedBox(height: 20),
-
-          Align(
-            alignment: Alignment.center,
-            child: SizedBox(
-              width: double.infinity,
-              height: 50,
-              child: ElevatedButton(
-                onPressed: _isLoading ? null : handleSignUp,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: primaryColor,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                ),
-                child: const Text(
-                  'Sign Up',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 15,
-                    fontWeight: FontWeight.w500,
-                  ),
+                  fontWeight: FontWeight.bold,
+                  fontSize: 14,
                 ),
               ),
             ),
-          ),
-
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Text(
-                'Already have an account?',
-                style: TextStyle(fontSize: 13),
-              ),
-              TextButton(
-                onPressed: () {
-                  Navigator.pushReplacement(
-                    context,
-                    MaterialPageRoute(builder: (context) => LoginScreen()),
-                  );
-                },
-                child: const Text(
-                  'Sign In',
-                  style: TextStyle(
-                    color: primaryColor,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
+          ],
+        ),
+      ],
     );
   }
 }

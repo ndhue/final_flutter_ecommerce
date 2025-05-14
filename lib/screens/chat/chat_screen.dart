@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:final_ecommerce/models/models_export.dart';
@@ -16,8 +17,9 @@ import 'package:provider/provider.dart';
 
 class ChatScreen extends StatefulWidget {
   final String userId;
+  final bool isWidget;
 
-  const ChatScreen({super.key, required this.userId});
+  const ChatScreen({super.key, required this.userId, this.isWidget = false});
 
   @override
   State<ChatScreen> createState() => _ChatScreenState();
@@ -30,6 +32,9 @@ class _ChatScreenState extends State<ChatScreen> {
   final List<XFile> _selectedImages = [];
   late UserModel user;
   bool _isFirstLoad = true;
+  StreamSubscription? _messageSubscription;
+  Timer? _debounce;
+  bool _chatInitialized = false;
 
   @override
   void initState() {
@@ -40,33 +45,78 @@ class _ChatScreenState extends State<ChatScreen> {
       user = currentUser;
     }
 
-    WidgetsBinding.instance.addPostFrameCallback((_) async {
-      final chatProvider = context.read<ChatProvider>();
-
-      if (chatProvider.messages.isEmpty) {
-        setState(() => _isFirstLoad = true);
-        await chatProvider.ensureChatExists(widget.userId);
-
-        chatProvider.listenToMessages(widget.userId).listen((messages) {
-          setState(() => _isFirstLoad = false);
-        });
-
-        chatProvider.markChatAsRead(widget.userId);
-      } else {
-        setState(() => _isFirstLoad = false);
+    // Delay initialization slightly to prevent UI blocking
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!_chatInitialized) {
+        _initializeChat();
+        _chatInitialized = true;
       }
     });
 
     _scrollController.addListener(_onScroll);
   }
 
-  void _onScroll() async {
+  @override
+  void didUpdateWidget(ChatScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+
+    // If the userId changes, reinitialize the chat
+    if (oldWidget.userId != widget.userId) {
+      // Cancel existing subscription first
+      _cancelMessageSubscription();
+
+      final chatProvider = context.read<ChatProvider>();
+      chatProvider.clearMessages(); // Clear previous messages
+      _chatInitialized = false; // Reset initialization flag
+
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _initializeChat(); // Load new messages for the changed userId
+        _chatInitialized = true;
+      });
+    }
+  }
+
+  void _cancelMessageSubscription() {
+    _messageSubscription?.cancel();
+    _messageSubscription = null;
+  }
+
+  void _initializeChat() async {
     final chatProvider = context.read<ChatProvider>();
-    if (_scrollController.position.pixels >=
-            _scrollController.position.maxScrollExtent - 100 &&
-        chatProvider.hasMoreMessages &&
-        !chatProvider.isLoadingMore) {
-      chatProvider.fetchMessages(widget.userId, loadMore: true);
+
+    setState(() => _isFirstLoad = true);
+
+    // Only ensure the chat exists once
+    await chatProvider.ensureChatExists(widget.userId);
+
+    // Cancel previous subscription if exists
+    _cancelMessageSubscription();
+
+    // Setup a single subscription to messages
+    _messageSubscription = chatProvider.listenToMessages(widget.userId).listen((
+      messages,
+    ) {
+      if (_isFirstLoad) {
+        setState(() => _isFirstLoad = false);
+      }
+    });
+
+    // Mark as read only once during initialization
+    chatProvider.markChatAsRead(widget.userId);
+  }
+
+  void _onScroll() {
+    // Debounce the scroll event to prevent multiple API calls
+    if (!(_debounce?.isActive ?? false)) {
+      _debounce = Timer(const Duration(milliseconds: 300), () {
+        final chatProvider = context.read<ChatProvider>();
+        if (_scrollController.position.pixels >=
+                _scrollController.position.maxScrollExtent - 100 &&
+            chatProvider.hasMoreMessages &&
+            !chatProvider.isLoadingMore) {
+          chatProvider.fetchMessages(widget.userId, loadMore: true);
+        }
+      });
     }
   }
 
@@ -139,9 +189,10 @@ class _ChatScreenState extends State<ChatScreen> {
 
       List<String> tempImageUrls =
           _selectedImages.map((_) => "loading").toList();
+
       Message tempMessage = Message(
         id: tempMessageId,
-        senderId: user.role == "admin" ? "admin" : widget.userId,
+        senderId: user.id,
         senderName: user.fullName,
         message: messageText,
         timestamp: DateTime.now(),
@@ -187,25 +238,57 @@ class _ChatScreenState extends State<ChatScreen> {
   void dispose() {
     _controller.dispose();
     _scrollController.dispose();
+    _cancelMessageSubscription();
+    _debounce?.cancel();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     final chatProvider = context.watch<ChatProvider>();
+    final userProvider = context.watch<UserProvider>();
     final screenWidth = MediaQuery.of(context).size.width;
     final isLargeScreen = screenWidth > 900;
 
     return Scaffold(
-      appBar: AppBar(
-        backgroundColor: primaryColor,
-        foregroundColor: Colors.white,
-        centerTitle: isLargeScreen,
-        title: Text(
-          isAdmin(user) ? user.fullName : "Chat with Admin",
-          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w500),
-        ),
-      ),
+      appBar:
+          !widget.isWidget
+              ? AppBar(
+                backgroundColor: primaryColor,
+                foregroundColor: Colors.white,
+                centerTitle: isLargeScreen,
+                title: FutureBuilder<UserModel?>(
+                  future:
+                      isAdmin(user)
+                          ? userProvider.getUserById(widget.userId)
+                          : null,
+                  builder: (context, snapshot) {
+                    if (isAdmin(user)) {
+                      if (snapshot.connectionState == ConnectionState.waiting) {
+                        return const Text("Loading...");
+                      }
+                      return Text(
+                        snapshot.hasData
+                            ? snapshot.data!.fullName
+                            : "Chat with Customer",
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      );
+                    } else {
+                      return const Text(
+                        "Chat with Admin",
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      );
+                    }
+                  },
+                ),
+              )
+              : null,
       body: Center(
         child: ConstrainedBox(
           constraints: BoxConstraints(

@@ -1,6 +1,41 @@
 import 'package:flutter/material.dart';
 import 'package:shimmer/shimmer.dart';
 
+class Skeleton extends StatelessWidget {
+  final double height;
+  final double width;
+  final double borderRadius;
+  final BoxShape shape;
+
+  const Skeleton({
+    super.key,
+    required this.height,
+    required this.width,
+    this.borderRadius = 4.0,
+    this.shape = BoxShape.rectangle,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Shimmer.fromColors(
+      baseColor: Colors.grey[300]!,
+      highlightColor: Colors.grey[100]!,
+      child: Container(
+        height: height,
+        width: width,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius:
+              shape == BoxShape.rectangle
+                  ? BorderRadius.circular(borderRadius)
+                  : null,
+          shape: shape,
+        ),
+      ),
+    );
+  }
+}
+
 class ChatSkeletonLoader extends StatelessWidget {
   const ChatSkeletonLoader({super.key});
 
@@ -53,14 +88,7 @@ class AdminChatSkeleton extends StatelessWidget {
           child: Row(
             children: [
               // Circular Avatar Placeholder (Optional)
-              Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: Colors.grey[300],
-                ),
-              ),
+              const Skeleton(height: 40, width: 40, shape: BoxShape.circle),
               const SizedBox(width: 12),
 
               // Chat Info Placeholder
@@ -69,46 +97,17 @@ class AdminChatSkeleton extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     // Fake Username
-                    Shimmer.fromColors(
-                      baseColor: Colors.grey[300]!,
-                      highlightColor: Colors.grey[100]!,
-                      child: Container(
-                        height: 12,
-                        width: 120,
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                      ),
-                    ),
+                    const Skeleton(height: 12, width: 120),
                     const SizedBox(height: 6),
 
                     // Fake Last Message Preview
-                    Shimmer.fromColors(
-                      baseColor: Colors.grey[300]!,
-                      highlightColor: Colors.grey[100]!,
-                      child: Container(
-                        height: 10,
-                        width: double.infinity,
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                      ),
-                    ),
+                    const Skeleton(height: 10, width: double.infinity),
                   ],
                 ),
               ),
 
               // Fake Unread Badge
-              Container(
-                width: 20,
-                height: 20,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: Colors.grey[300],
-                ),
-              ),
+              const Skeleton(height: 20, width: 20, shape: BoxShape.circle),
             ],
           ),
         );

@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:final_ecommerce/repositories/user_repository.dart';
 import 'package:flutter/material.dart';
+import 'package:rxdart/rxdart.dart';
 
 import '../models/models_export.dart';
 import '../repositories/chat_repository.dart';
@@ -114,11 +115,31 @@ class ChatProvider extends ChangeNotifier {
 
   // Listen to real-time message updates
   Stream<List<Message>> listenToMessages(String userId) {
-    return _chatRepository.listenToMessages(userId).map((messages) {
-      _messages = messages;
-      notifyListeners();
-      return messages;
-    });
+    // Add debounce time to reduce excessive updates
+    return _chatRepository
+        .listenToMessages(userId)
+        .debounce((_) => TimerStream(true, const Duration(milliseconds: 500)))
+        .map((messages) {
+          // Only update if the message list actually changed
+          if (_messagesChanged(messages)) {
+            _messages = messages;
+            notifyListeners();
+          }
+          return messages;
+        });
+  }
+
+  // Check if messages list actually changed to avoid unnecessary updates
+  bool _messagesChanged(List<Message> newMessages) {
+    if (newMessages.length != _messages.length) return true;
+
+    for (int i = 0; i < newMessages.length; i++) {
+      if (i >= _messages.length || newMessages[i].id != _messages[i].id) {
+        return true;
+      }
+    }
+
+    return false;
   }
 
   // Fetch unread messages count
@@ -161,8 +182,21 @@ class ChatProvider extends ChangeNotifier {
 
   // Add local message for instant UI update
   void addLocalMessage(Message message) {
-    debugPrint("Adding local message...");
+    // Insert at index 0 to show at the bottom of the ListView (which is reversed)
     _messages.insert(0, message);
+
+    // Update the chat list UI if this is a new chat or affects the last message
+    final existingChatIndex = _chats.indexWhere(
+      (chat) => chat.userId == message.senderId,
+    );
+    if (existingChatIndex != -1) {
+      // Update existing chat's last message data
+      _chats[existingChatIndex] = _chats[existingChatIndex].copyWith(
+        lastMessage: message.message.isNotEmpty ? message.message : 'Image',
+        lastMessageTimestamp: message.timestamp,
+      );
+    }
+
     notifyListeners();
   }
 
@@ -181,5 +215,10 @@ class ChatProvider extends ChangeNotifier {
       );
       notifyListeners();
     }
+  }
+
+  void clearMessages() {
+    _messages.clear();
+    notifyListeners();
   }
 }

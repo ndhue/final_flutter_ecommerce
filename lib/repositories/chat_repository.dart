@@ -53,12 +53,12 @@ class ChatRepository {
         .orderBy('timestamp', descending: true)
         .limit(20)
         .snapshots()
-        .debounceTime(Duration(milliseconds: 1000)) // Reduce excessive updates
+        .debounceTime(
+          const Duration(milliseconds: 1000),
+        ) // Reduce excessive updates
         .map(
           (snapshot) =>
-              snapshot.docs.map((doc) {
-                return Message.fromMap(doc.data());
-              }).toList(),
+              snapshot.docs.map((doc) => Message.fromMap(doc.data())).toList(),
         );
   }
 
@@ -143,6 +143,12 @@ class ChatRepository {
       debugPrint("Error sending message: $e");
       rethrow;
     }
+  }
+
+  // Check if chat exists without creating if not exists
+  Future<bool> chatExists(String userId) async {
+    final chatDoc = await _firestore.collection('chats').doc(userId).get();
+    return chatDoc.exists;
   }
 
   // Chat exists before opening
