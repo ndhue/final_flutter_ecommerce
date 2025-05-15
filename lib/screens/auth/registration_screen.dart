@@ -1,4 +1,4 @@
-import 'package:final_ecommerce/providers/auth_provider.dart';
+import 'package:final_ecommerce/providers/providers_export.dart';
 import 'package:final_ecommerce/screens/screen_export.dart';
 import 'package:final_ecommerce/utils/constants.dart';
 import 'package:final_ecommerce/widgets/address_picker_registration.dart';
@@ -50,6 +50,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
     setState(() => _isLoading = true);
 
     final authProvider = context.read<AuthProvider>();
+    final user = context.read<UserProvider>();
 
     String email = _emailController.text.trim();
     String password = _passController.text.trim();
@@ -66,7 +67,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
       return;
     }
 
-    bool isSuccess = await authProvider.signUp(
+    String userId = await authProvider.signUp(
       email,
       password,
       fullName,
@@ -77,7 +78,8 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
     );
     setState(() => _isLoading = false);
 
-    if (isSuccess) {
+    if (userId.isNotEmpty) {
+      user.fetchUser(userId);
       Fluttertoast.showToast(msg: "Sign up successful!");
       if (mounted) {
         Navigator.pushReplacement(
