@@ -34,15 +34,3 @@ An Ecommerce app using Flutter.
    ```sh
    flutter pub upgrade
    ```
-
-6. **Account**
-
-   ```sh
-   Admin:
-      email: superadmin@gmail.com
-      password: superadmin
-
-   User:
-      email: user2@example.com
-      password: userpassword
-   ```
