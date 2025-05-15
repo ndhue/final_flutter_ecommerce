@@ -34,12 +34,31 @@ class _PaymentScreenState extends State<PaymentScreen> {
   }
 
   @override
+  void dispose() {
+    _discountController.dispose();
+    _loyaltyPointsController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final cartProvider = Provider.of<CartProvider>(context);
     final couponProvider = Provider.of<CouponProvider>(context);
     final userProvider = Provider.of<UserProvider>(context);
 
-    final selectedItems = cartProvider.cartItems.toList();
+    // Filter only selected items
+    final selectedItems =
+        cartProvider.cartItems
+            .where(
+              (item) => cartProvider.isSelected(
+                item.product.id,
+                item.variant.variantId,
+              ),
+            )
+            .toList();
+
+    // Calculate total price based on selected items
     final totalPrice = cartProvider.totalAmount;
     final discount =
         couponProvider.appliedCoupon != null
@@ -60,26 +79,43 @@ class _PaymentScreenState extends State<PaymentScreen> {
     final finalTotalPrice =
         totalPrice - discount - loyaltyPointsDiscount + _shippingFee;
 
-    return Scaffold(
-      appBar: AppBar(title: const Text('Payment')),
-      body: Column(
-        children: [
-          buildDeliveryInfo(cartProvider, context),
-          _buildCouponInput(context),
-          Expanded(child: _buildCartList(context, selectedItems)),
-          _buildOrderSummary(
-            totalPrice,
-            discount,
-            loyaltyPointsDiscount,
-            finalTotalPrice,
-            couponProvider.appliedCoupon,
+    return WillPopScope(
+      onWillPop: () async {
+        // Clear the applied coupon when user presses back button
+        couponProvider.clearAppliedCoupon();
+        return true; // Allow back navigation
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text('Payment'),
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back),
+            onPressed: () {
+              // Clear coupon when back button in AppBar is pressed
+              couponProvider.clearAppliedCoupon();
+              Navigator.of(context).pop();
+            },
           ),
-        ],
-      ),
-      bottomNavigationBar: _buildPaymentButton(
-        selectedItems,
-        finalTotalPrice,
-        adjustedLoyaltyPointsUsed,
+        ),
+        body: Column(
+          children: [
+            buildDeliveryInfo(cartProvider, context),
+            _buildCouponInput(context),
+            Expanded(child: _buildCartList(context, selectedItems)),
+            _buildOrderSummary(
+              totalPrice,
+              discount,
+              loyaltyPointsDiscount,
+              finalTotalPrice,
+              couponProvider.appliedCoupon,
+            ),
+          ],
+        ),
+        bottomNavigationBar: _buildPaymentButton(
+          selectedItems,
+          finalTotalPrice,
+          adjustedLoyaltyPointsUsed,
+        ),
       ),
     );
   }
@@ -124,7 +160,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
 
   Widget _buildCartList(BuildContext context, List<CartItem> selectedItems) {
     if (selectedItems.isEmpty) {
-      return const Center(child: Text('Your cart is empty'));
+      return const Center(child: Text('No items selected for checkout'));
     }
 
     return ListView.builder(
