@@ -39,7 +39,7 @@ class AuthProvider extends ChangeNotifier {
   }
 
   // Sign up
-  Future<bool> signUp(
+  Future<String> signUp(
     String email,
     String password,
     String fullName,
@@ -80,11 +80,11 @@ class AuthProvider extends ChangeNotifier {
 
           _isLoading = false;
           notifyListeners();
-          return true;
+          return _user!.uid;
         } catch (firestoreError) {
           _isLoading = false;
           notifyListeners();
-          return true;
+          return '';
         }
       }
     } catch (authError) {
@@ -99,7 +99,7 @@ class AuthProvider extends ChangeNotifier {
 
     _isLoading = false;
     notifyListeners();
-    return false;
+    return '';
   }
 
   // Sign in
@@ -203,7 +203,7 @@ class AuthProvider extends ChangeNotifier {
 
       debugPrint("Account creation result: $result");
 
-      if (result) {
+      if (result.isNotEmpty) {
         // Associate orders if account was created successfully
         try {
           final orderProvider = OrderProvider();
@@ -217,7 +217,7 @@ class AuthProvider extends ChangeNotifier {
 
       _isLoading = false;
       notifyListeners();
-      return result;
+      return true;
     } on FirebaseAuthException catch (e) {
       debugPrint(
         "Firebase Auth Exception during account creation: ${e.code} - ${e.message}",
