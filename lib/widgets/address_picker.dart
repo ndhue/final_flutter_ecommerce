@@ -50,7 +50,6 @@ class _AddressPickerState extends State<AddressPicker> {
   void initState() {
     super.initState();
 
-    // Nếu đã có address, load lên
     final currentAddress = widget.cartProvider.addressInfo;
     if (currentAddress != null) {
       selectedCity = currentAddress.city;
@@ -59,7 +58,6 @@ class _AddressPickerState extends State<AddressPicker> {
       addressController.text = currentAddress.detailedAddress;
       nameController.text = currentAddress.receiverName;
     } else {
-      // Nếu chưa có, dùng mặc định
       selectedCity = "Hồ Chí Minh";
       selectedDistrict = districts[selectedCity]!.first;
       selectedWard = wards[selectedDistrict]!.first;
