@@ -19,6 +19,7 @@ class _ChangePasswordDialogState extends State<ChangePasswordDialog> {
       TextEditingController();
   bool _isObscureOld = true;
   bool _isObscureNew = true;
+  bool _isObscureConfirm = true;
   bool _isLoading = false;
 
   void _handleChangePassword() async {
@@ -115,12 +116,23 @@ class _ChangePasswordDialogState extends State<ChangePasswordDialog> {
               // Confirm New Password
               TextFormField(
                 controller: _confirmPasswordController,
-                obscureText: _isObscureNew,
+                obscureText: _isObscureConfirm,
                 decoration: InputDecoration(
                   labelText: "Confirm New Password",
                   prefixIcon: const Icon(
                     Icons.lock_outline,
                     color: primaryColor,
+                  ),
+                  suffixIcon: IconButton(
+                    icon: Icon(
+                      _isObscureConfirm
+                          ? Icons.visibility_off
+                          : Icons.visibility,
+                    ),
+                    onPressed:
+                        () => setState(
+                          () => _isObscureConfirm = !_isObscureConfirm,
+                        ),
                   ),
                 ),
                 validator:
