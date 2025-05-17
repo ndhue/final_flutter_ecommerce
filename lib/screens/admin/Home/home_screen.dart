@@ -676,7 +676,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 BarChartData(
                   alignment: BarChartAlignment.spaceAround,
                   barGroups:
-                      topProducts.asMap().entries.map((entry) {
+                      topProducts.take(5).toList().asMap().entries.map((entry) {
                         final index = entry.key;
                         final product = entry.value;
                         return BarChartGroupData(
