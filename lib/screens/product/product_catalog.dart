@@ -29,7 +29,7 @@ class _ProductCatalogState extends State<ProductCatalog> {
   @override
   void initState() {
     super.initState();
-    _selectedCategies = [widget.category == 'All' ? '' : widget.category];
+    _selectedCategies = widget.category == 'All' ? [] : [widget.category];
     _selectedBrands = [];
     _selectedSortOption = 'sellingPrice_asc';
     _selectedRange = const RangeValues(0, 100000000);
@@ -109,9 +109,6 @@ class _ProductCatalogState extends State<ProductCatalog> {
           _selectedBrands = brands;
           _selectedRange = range;
         });
-        debugPrint(
-          'Selected Categories: $_selectedCategies, Brands: $_selectedBrands, Range: $range',
-        );
         _productProvider.fetchProducts(
           category: categories,
           brand: brands,
