@@ -8,7 +8,7 @@ import '../repositories/product_repository.dart';
 class ProductProvider with ChangeNotifier {
   final ProductRepository _repository;
   final List<NewProduct> _products = [];
-  DocumentSnapshot? _lastDocument;
+  int _currentPage = 0; // Thay thế cho lastDocument
   bool _hasMore = true;
   bool _isLoading = false;
 
@@ -37,8 +37,8 @@ class ProductProvider with ChangeNotifier {
     int? minPrice,
     int? maxPrice,
     bool isInitial = false,
-    bool includeInactive = false, // Add this parameter
-    bool? activationStatus, // Add this parameter to filter by activation status
+    bool includeInactive = false,
+    bool? activationStatus,
   }) async {
     if ((_isLoading || !_hasMore) && !isInitial) return;
 
@@ -48,7 +48,7 @@ class ProductProvider with ChangeNotifier {
     try {
       if (isInitial) {
         _products.clear();
-        _lastDocument = null;
+        _currentPage = 0; // Reset về trang đầu tiên
         _hasMore = true;
       }
 
@@ -57,8 +57,11 @@ class ProductProvider with ChangeNotifier {
         filteredCategory = null;
       }
 
-      final result = await _repository.fetchProducts(
-        lastDocument: _lastDocument,
+      // Tính offset dựa vào trang hiện tại
+      int offset = _currentPage * 10;
+
+      final result = await _repository.fetchProductsPaginated(
+        offset: offset,
         limit: 10,
         orderBy: orderBy,
         descending: descending,
@@ -75,15 +78,24 @@ class ProductProvider with ChangeNotifier {
       }
 
       if (result.isNotEmpty) {
-        _lastDocument = result.last.docSnapshot;
+        _currentPage++; // Tăng số trang khi có kết quả
         _products.addAll(result);
+
+        // Đảm bảo không có trùng lặp
+        _removeDuplicates();
       }
     } catch (e) {
-      rethrow;
+      debugPrint('Error fetching products: $e');
     } finally {
       _isLoading = false;
       notifyListeners();
     }
+  }
+
+  // Hàm loại bỏ các sản phẩm trùng lặp
+  void _removeDuplicates() {
+    final ids = <String>{};
+    _products.retainWhere((product) => ids.add(product.id));
   }
 
   //Add new product
@@ -148,7 +160,7 @@ class ProductProvider with ChangeNotifier {
 
   // Reset pagination and cache
   void resetPagination() {
-    _lastDocument = null;
+    _currentPage = 0;
     _products.clear();
     _hasMore = true;
     _newProducts.clear();
@@ -165,9 +177,9 @@ class ProductProvider with ChangeNotifier {
   Future<void> fetchProductsByCategory({
     required String category,
     bool isInitial = false,
-    bool includeInactive = false, // Add this parameter
+    bool includeInactive = false,
   }) async {
-    if (_isLoading) return;
+    if ((_isLoading || !_hasMore) && !isInitial) return;
 
     _isLoading = true;
     notifyListeners();
@@ -175,15 +187,18 @@ class ProductProvider with ChangeNotifier {
     try {
       if (isInitial) {
         _products.clear();
-        _lastDocument = null;
+        _currentPage = 0;
         _hasMore = true;
       }
 
-      final result = await _repository.fetchProductsByCategory(
+      // Tính offset dựa vào trang hiện tại
+      int offset = _currentPage * 10;
+
+      final result = await _repository.fetchProductsByCategoryPaginated(
         category: category,
-        lastDocument: _lastDocument,
+        offset: offset,
         limit: 10,
-        includeInactive: includeInactive, 
+        includeInactive: includeInactive,
       );
 
       if (result.length < 10) {
@@ -191,9 +206,14 @@ class ProductProvider with ChangeNotifier {
       }
 
       if (result.isNotEmpty) {
-        _lastDocument = result.last.docSnapshot;
+        _currentPage++;
         _products.addAll(result);
+
+        // Đảm bảo không có trùng lặp
+        _removeDuplicates();
       }
+    } catch (e) {
+      debugPrint('Error fetching products by category: $e');
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -205,9 +225,9 @@ class ProductProvider with ChangeNotifier {
     String orderBy = 'name',
     bool descending = false,
     bool isInitial = false,
-    bool includeInactive = false, 
+    bool includeInactive = false,
   }) async {
-    if (_isLoading) return;
+    if ((_isLoading || !_hasMore) && !isInitial) return;
 
     _isLoading = true;
     notifyListeners();
@@ -215,17 +235,20 @@ class ProductProvider with ChangeNotifier {
     try {
       if (isInitial) {
         _products.clear();
-        _lastDocument = null;
+        _currentPage = 0;
         _hasMore = true;
       }
 
-      final result = await _repository.fetchProductsByKeyword(
+      // Tính offset dựa vào trang hiện tại
+      int offset = _currentPage * 10;
+
+      final result = await _repository.fetchProductsByKeywordPaginated(
         keyword: keyword,
-        lastDocument: _lastDocument,
+        offset: offset,
         limit: 10,
         orderBy: orderBy,
         descending: descending,
-        includeInactive: includeInactive, 
+        includeInactive: includeInactive,
       );
 
       if (result.length < 10) {
@@ -233,9 +256,14 @@ class ProductProvider with ChangeNotifier {
       }
 
       if (result.isNotEmpty) {
-        _lastDocument = result.last.docSnapshot;
+        _currentPage++;
         _products.addAll(result);
+
+        // Đảm bảo không có trùng lặp
+        _removeDuplicates();
       }
+    } catch (e) {
+      debugPrint('Error fetching products by keyword: $e');
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -279,26 +307,29 @@ class ProductProvider with ChangeNotifier {
     required String productId,
     bool isInitial = false,
   }) async {
-    if (_isLoading && !isInitial) return _productReviewsCache[productId] ?? [];
+    if ((_isLoading || !_hasMore) && !isInitial)
+      return _productReviewsCache[productId] ?? [];
 
     _isLoading = true;
     notifyListeners();
 
     try {
+      int reviewPage = 0;
+
       if (isInitial) {
         _productReviewsCache[productId] = [];
-        _lastReviewDocuments[productId] = null;
+        reviewPage = 0;
+      } else {
+        reviewPage = (_productReviewsCache[productId]?.length ?? 0) ~/ 10;
       }
 
       final result = await _repository.fetchProductReviews(
         productId: productId,
-        lastDocument: _lastReviewDocuments[productId],
+        offset: reviewPage * 10,
         limit: 10,
       );
 
       if (result.isNotEmpty) {
-        _lastReviewDocuments[productId] = result.last.docSnapshot;
-
         // Create a new list to avoid concurrent modification
         List<ProductReview> updatedList = [];
         if (!isInitial && _productReviewsCache.containsKey(productId)) {
@@ -306,10 +337,20 @@ class ProductProvider with ChangeNotifier {
         }
         updatedList.addAll(result);
         _productReviewsCache[productId] = updatedList;
+
+        // Remove duplicates
+        final reviewIds = <String>{};
+        _productReviewsCache[productId] =
+            _productReviewsCache[productId]!
+                .where((review) => reviewIds.add(review.username))
+                .toList();
       }
 
       _reviewCounts[productId] = _productReviewsCache[productId]?.length ?? 0;
 
+      return _productReviewsCache[productId] ?? [];
+    } catch (e) {
+      debugPrint('Error fetching product reviews: $e');
       return _productReviewsCache[productId] ?? [];
     } finally {
       _isLoading = false;
