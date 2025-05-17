@@ -75,6 +75,7 @@ class _ProductCatalogState extends State<ProductCatalog> {
         brand: _selectedBrands,
         minPrice: _selectedRange.start.toInt(),
         maxPrice: _selectedRange.end.toInt(),
+        isInitial: false,
       );
     }
   }

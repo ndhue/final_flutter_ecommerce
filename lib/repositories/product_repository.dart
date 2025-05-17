@@ -243,7 +243,7 @@ class ProductRepository {
 
   Future<List<ProductReview>> fetchProductReviews({
     required String productId,
-    DocumentSnapshot? lastDocument,
+    int offset = 0,
     int limit = 10,
   }) async {
     try {
@@ -252,16 +252,22 @@ class ProductRepository {
           .collection('reviews')
           .orderBy('createdAt', descending: true);
 
-      if (lastDocument != null) {
-        query = query.startAfterDocument(lastDocument);
+      final snapshot = await query.get();
+      final allDocs = snapshot.docs;
+
+      // Nếu offset vượt quá số lượng reviews, trả về mảng rỗng
+      if (offset >= allDocs.length) {
+        return [];
       }
 
-      final snapshot = await query.limit(limit).get();
-      return snapshot.docs
+      // Cắt mảng theo offset và limit
+      final paginatedDocs = allDocs.skip(offset).take(limit).toList();
+
+      return paginatedDocs
           .map(
             (doc) => ProductReview.fromMap(
               doc.data() as Map<String, dynamic>,
-              snapshot: doc, 
+              snapshot: doc,
             ),
           )
           .toList();
@@ -352,6 +358,188 @@ class ProductRepository {
     } catch (e) {
       debugPrint('Error incrementing product sell count: $e');
       rethrow;
+    }
+  }
+
+  Future<List<NewProduct>> fetchProductsPaginated({
+    int offset = 0,
+    int limit = 10,
+    String orderBy = 'sellingPrice',
+    bool descending = false,
+    List<String>? brands,
+    List<String>? categories,
+    int? minPrice,
+    int? maxPrice,
+    bool includeInactive = false,
+    bool? activationStatus,
+  }) async {
+    try {
+      Query query = _products;
+
+      if (activationStatus != null) {
+        query = query.where('activated', isEqualTo: activationStatus);
+      } else if (!includeInactive) {
+        query = query.where('activated', isEqualTo: true);
+      }
+
+      if (brands != null && brands.isNotEmpty) {
+        query = query.where('brand', whereIn: brands);
+      }
+
+      if (categories != null && categories.isNotEmpty) {
+        List<String> specialCategories = [
+          'Best Sellers',
+          'Promotional',
+          'New Products',
+        ];
+        List<String> normalCategories =
+            categories.where((c) => !specialCategories.contains(c)).toList();
+
+        bool hasBestSellers = categories.contains('Best Sellers');
+        bool hasPromotional = categories.contains('Promotional');
+        bool hasNewProducts = categories.contains('New Products');
+
+        if (normalCategories.isNotEmpty) {
+          query = query.where('category', whereIn: normalCategories);
+        }
+
+        if (hasBestSellers) {
+          query = query.orderBy('salesCount', descending: true);
+        }
+
+        if (hasPromotional) {
+          query = query.where('discount', isGreaterThan: 0);
+        }
+
+        if (hasNewProducts) {
+          query = query.orderBy('createdAt', descending: true);
+        }
+      }
+
+      // Filter price range
+      if (minPrice != null) {
+        query = query.where('sellingPrice', isGreaterThanOrEqualTo: minPrice);
+      }
+      if (maxPrice != null) {
+        query = query.where('sellingPrice', isLessThanOrEqualTo: maxPrice);
+      }
+
+      // Sort
+      if (orderBy == 'sellingPrice') {
+        query = query.orderBy('sellingPrice', descending: descending);
+      }
+
+      if (orderBy == 'name') {
+        query = query.orderBy('name', descending: descending);
+      }
+
+  
+      final snapshot = await query.get();
+
+      final allDocs = snapshot.docs;
+
+      if (offset >= allDocs.length) {
+        return [];
+      }
+
+      final paginatedDocs = allDocs.skip(offset).take(limit).toList();
+
+      return paginatedDocs
+          .map((doc) => NewProduct.fromMap(doc.data() as Map<String, dynamic>))
+          .toList();
+    } catch (e) {
+      debugPrint('Error fetching products paginated: $e');
+      return [];
+    }
+  }
+
+  Future<List<NewProduct>> fetchProductsByCategoryPaginated({
+    required String category,
+    int offset = 0,
+    int limit = 10,
+    bool includeInactive = false,
+  }) async {
+    try {
+      Query query = _products;
+
+      // Filter out inactive products by default
+      if (!includeInactive) {
+        query = query.where('activated', isEqualTo: true);
+      }
+
+      switch (category) {
+        case 'All':
+          // No filter
+          break;
+        case 'Best Sellers':
+          query = query.orderBy('salesCount', descending: true);
+          break;
+        case 'Promotional':
+          query = query
+              .where('discount', isGreaterThan: 0)
+              .orderBy('discount', descending: true);
+          break;
+        case 'New Products':
+          query = query.orderBy('createdAt', descending: true);
+          break;
+        default:
+          query = query.where('category', isEqualTo: category);
+      }
+
+      final snapshot = await query.get();
+      final allDocs = snapshot.docs;
+
+      if (offset >= allDocs.length) {
+        return [];
+      }
+
+      final paginatedDocs = allDocs.skip(offset).take(limit).toList();
+
+      return paginatedDocs.map((doc) => NewProduct.fromMap(doc)).toList();
+    } catch (e) {
+      debugPrint('Error fetching products by category paginated: $e');
+      return [];
+    }
+  }
+
+  Future<List<NewProduct>> fetchProductsByKeywordPaginated({
+    required String keyword,
+    int offset = 0,
+    int limit = 10,
+    String orderBy = 'name',
+    bool descending = false,
+    bool includeInactive = false,
+  }) async {
+    try {
+      // First get all products matching the name pattern
+      Query query = _products
+          .orderBy('name', descending: descending)
+          .where('name', isGreaterThanOrEqualTo: keyword)
+          .where('name', isLessThanOrEqualTo: '$keyword\uf8ff');
+
+      final snapshot = await query.get();
+
+      // Then filter out inactive products in the application
+      List<NewProduct> products =
+          snapshot.docs
+              .map(
+                (doc) => NewProduct.fromMap(doc.data() as Map<String, dynamic>),
+              )
+              .toList();
+
+      if (!includeInactive) {
+        products = products.where((product) => product.activated).toList();
+      }
+
+      // Phân trang sau khi lọc
+      if (offset >= products.length) {
+        return [];
+      }
+
+      return products.skip(offset).take(limit).toList();
+    } catch (e) {
+      debugPrint('Error fetching products by keyword paginated: $e');
+      return [];
     }
   }
 }
