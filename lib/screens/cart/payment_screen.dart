@@ -70,10 +70,15 @@ class _PaymentScreenState extends State<PaymentScreen> {
     final availableLoyaltyPoints = userProvider.user?.loyaltyPoints ?? 0;
     final loyaltyPointsUsed = int.tryParse(_loyaltyPointsController.text) ?? 0;
 
-    final adjustedLoyaltyPointsUsed =
+    var adjustedLoyaltyPointsUsed =
         loyaltyPointsUsed > availableLoyaltyPoints
             ? availableLoyaltyPoints
             : loyaltyPointsUsed;
+
+    final priceAfterDiscount = totalPrice - discount;
+    if (adjustedLoyaltyPointsUsed > priceAfterDiscount) {
+      adjustedLoyaltyPointsUsed = priceAfterDiscount.toInt();
+    }
 
     final loyaltyPointsDiscount = adjustedLoyaltyPointsUsed.toDouble();
     final finalTotalPrice =
