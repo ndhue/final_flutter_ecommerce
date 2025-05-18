@@ -344,7 +344,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
             if (widget.order.loyaltyPointsUsed > 0)
               _buildDetailRow(
                 'Loyalty Points Used',
-                '${widget.order.loyaltyPointsUsed} points',
+                '${widget.order.loyaltyPointsUsed / 10000} points',
               ),
 
             const Divider(),
@@ -515,21 +515,14 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
             if (widget.order.loyaltyPointsEarned > 0)
               _buildDetailRow(
                 'Points Earned',
-                '${widget.order.loyaltyPointsEarned} points',
+                '${(widget.order.loyaltyPointsEarned / 10000).toInt()} points',
                 valueColor: Colors.green,
               ),
             if (widget.order.loyaltyPointsUsed > 0)
               _buildDetailRow(
                 'Points Used',
-                '${widget.order.loyaltyPointsUsed} points',
+                '${widget.order.loyaltyPointsUsed / 10000} points',
                 valueColor: Colors.orange,
-              ),
-            if (widget.order.loyaltyPointsEarned > 0 &&
-                widget.order.loyaltyPointsUsed > 0)
-              _buildDetailRow(
-                'Net Points',
-                '${widget.order.loyaltyPointsEarned - widget.order.loyaltyPointsUsed} points',
-                valueBold: true,
               ),
           ],
         ),
